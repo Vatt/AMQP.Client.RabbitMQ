@@ -5,76 +5,75 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ
+namespace AMQP.Client.RabbitMQ.Decoder
 {
+
     internal ref struct ValueDecoder
     {
         public SequenceReader<byte> reader;
-        public int Position { get; private set; }
-        public ReadOnlySpan<byte> Data;
-
-        public ValueDecoder(ReadOnlySpan<byte> data)
+        public ValueDecoder(ReadOnlySequence<byte> data)
         {
-            Position = 0;
-            Data = data;
-            reader = new SequenceReader<byte>();
+            reader = new SequenceReader<byte>(data);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SkipMany(int value)
+        public short ReadShortInt()
         {
-            Position += value;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ReadShortInt()
-        {
-            int val = BinaryPrimitives.ReadInt16BigEndian(Data.Slice(Position, 2));
-            Position += 2;
+            var tryRead = reader.TryReadBigEndian(out short val);
             return val;
-
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadInt()
         {
-            int val = BinaryPrimitives.ReadInt32BigEndian(Data.Slice(Position, 4));
-            Position += 4;
-            return val;
+            return ReadLong();
 
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte ReadOctet()
         {
-            var val = Data[Position];
-            Position++;
+            var tryRead = reader.TryRead(out byte val);
             return val;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public long ReadLongLong()
         {
-            var val = BinaryPrimitives.ReadInt64BigEndian(Data.Slice(Position, 8));
-            Position += 8;
+            var tryRead = reader.TryReadBigEndian(out long val);
             return val;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadLong()
         {
-            var val = BinaryPrimitives.ReadInt32BigEndian(Data.Slice(Position, 4));
-            Position += 4;
+            var tryRead = reader.TryReadBigEndian(out int val);
             return val;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private string ReadStringInternal(int length)
+        {
+            if (reader.CurrentSpan.Length < reader.CurrentSpanIndex + length)
+            {
+                DecoderThrowHelper.ThrowValueDecoderStringDecodeFailed();
+            }
+            var stringSpan = reader.CurrentSpan.Slice(reader.CurrentSpanIndex, length);
+            var str = Encoding.UTF8.GetString(stringSpan);
+            reader.Advance(length);
+            return str;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string ReadShortStr()
         {
-            int length = ReadOctet();
-            var str = Encoding.UTF8.GetString(Data.Slice(Position, length));
-            Position += length;
-            return str;
+            return ReadStringInternal(ReadOctet()); 
+
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string ReadLongStr()
+        {
+            return ReadStringInternal(ReadInt());
         }
         public Dictionary<string, object> ReadTable()
         {
 
-            var lengthBytes = ReadInt() + Position;
+            var lengthBytes = ReadInt() + reader.Consumed;
             Dictionary<string, object> table = new Dictionary<string, object>();
-            while (Position < lengthBytes)
+            while (reader.Consumed < lengthBytes)
             {
                 string name = ReadShortStr();
                 object value = ReadValue();
@@ -84,13 +83,6 @@ namespace AMQP.Client.RabbitMQ
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string ReadLongStr()
-        {
-            int length = ReadInt();
-            var str = Encoding.UTF8.GetString(Data.Slice(Position, length));
-            Position += length;
-            return str;
-        }
         public bool ReadBool()
         {
             return Convert.ToBoolean(ReadOctet());
@@ -104,7 +96,11 @@ namespace AMQP.Client.RabbitMQ
                 case 't': return ReadBool();
                 case 's': return ReadShortStr();
                 case 'S': return ReadLongStr();
-                default: throw new ArgumentException("Unrecognised type");
+                default:
+                    {
+                        DecoderThrowHelper.ThrowValueDecoderUnrecognisedType();
+                        return null;
+                    }
             }
         }
     }

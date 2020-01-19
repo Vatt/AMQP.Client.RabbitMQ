@@ -1,42 +1,73 @@
-﻿using AMQP.Client.Abstractions;
-using Microsoft.AspNetCore.Connections;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Microsoft.AspNetCore.Connections;
+using System.IO.Pipelines;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Internal;
+using AMQP.Client.RabbitMQ.Methods;
+using Bedrock.Framework;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public class RabbitMQConnection : AMQPConnection
+    public class RabbitMQConnection
     {
-        public static readonly byte[] ProtocolMsg = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
-        public ServerInfo Info { get; private set; }
-        public RabbitMQConnection(ConnectionContext context, AMQPApiVersion apiVersion, ServerInfo info)
-            :base(context, apiVersion)
+        private static readonly Bedrock.Framework.Client _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider())
+                                                                    .UseSockets()
+                                                                    .Build();
+        
+        private readonly object _lockObj = new object();
+        private readonly CancellationTokenSource _connectionCloseTokenSource = new CancellationTokenSource();
+        private readonly CancellationToken ConnectionClosed;
+        private ConnectionContext _context;
+        public EndPoint RemoteEndPoint => _context.RemoteEndPoint;
+        public IDuplexPipe Transport => _context.Transport;
+        private readonly ReaderDispatcher Dispatcher;
+        
+        public RabbitMQServerInfo ServerInfo { get; private set; }
+        public readonly int Chanell;
+        public RabbitMQConnection()
         {
-            Info = info;
+            //_context = context;
+            //Info = serverInfo;
+            Chanell = 1;
+            ConnectionClosed = _connectionCloseTokenSource.Token;
+            Dispatcher = new ReaderDispatcher();
         }
-
-        public override async void Start()
+        private async Task StartReadingAsync()
         {
-            /*
-            var writeResult = await Transport.Output.WriteAsync(ProtocolMsg);
-            var readResult = await Transport.Input.ReadAsync();
-            Info = FrameDecoder.DecodeStartMethodFrame(readResult.Buffer.FirstSpan);
-            if (Info.Major != ApiVersion.Major && Info.Minor != ApiVersion.Minor)
+            while(true)
             {
-                throw new Exception("FrameDecoder: AMQP version missmatch");
-            }
-            //Transport.Input.AdvanceTo(result.Buffer.Start);
-            Console.WriteLine($"Connected to {RemoteEndPoint}");
-            Console.WriteLine($"ServerInfo:");
-            Console.WriteLine($"Major:{Info.Major}; Minor:{Info.Minor}");
-            foreach (var pair in Info.Properties)
+                
+                var result = await Transport.Input.ReadAsync();
+                if(result.IsCompleted || result.IsCanceled)
+                {
+                    break;
+                }
+                Dispatcher.OnPipeReader(result.Buffer);
+                Transport.Input.AdvanceTo(result.Buffer.End);
+
+
+            }           
+
+        }
+        public async Task StartAsync(IPEndPoint endpoint)
+        {
+            _context = await _client.ConnectAsync(endpoint);
+            StartMethod start = new StartMethod(Dispatcher, Transport.Output);
+            await start.InvokeAsync(); 
+            var readingTask =  StartReadingAsync();            
+            await readingTask;
+        }
+        public void CloseConnection()
+        {
+            lock (_lockObj)
             {
-                Console.WriteLine($"{pair.Key}:{pair.Value}");
+                _connectionCloseTokenSource.Cancel();
+                _context.Abort();
+                _connectionCloseTokenSource.Dispose();
             }
-            Console.WriteLine($"Mechanisms:{Info.Mechanisms}");
-            Console.WriteLine($"Locales:{Info.Locales}");
-            */
+
         }
     }
 }

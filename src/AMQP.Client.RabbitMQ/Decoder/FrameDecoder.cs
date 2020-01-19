@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace AMQP.Client.RabbitMQ
+namespace AMQP.Client.RabbitMQ.Decoder
 {
     internal ref struct FrameHeader
     {
-        public int FrameType;
-        public int Chanell;
-        public int PaylodaSize;
-        public FrameHeader(int type,int chanell,int payloadSize)
+        public readonly byte FrameType;
+        public readonly short Chanell;
+        public readonly int PaylodaSize;
+        public FrameHeader(byte type,short chanell,int payloadSize)
         {
             FrameType = type;
             Chanell = chanell;
@@ -18,30 +19,35 @@ namespace AMQP.Client.RabbitMQ
     }
     internal class FrameDecoder
     {
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ServerInfo DecodeStartMethodFrame(ReadOnlySpan<byte> frameSpan)
+        public static RabbitMQServerInfo DecodeStartMethodFrame(ReadOnlySequence<byte> sequence)
         {
-            ValueDecoder decoder = new ValueDecoder(frameSpan);
+            ValueDecoder decoder = new ValueDecoder(sequence);
             var header = DecodeFrameHeader(ref decoder);
             var classId = decoder.ReadShortInt();
             var methodId = decoder.ReadShortInt();
             if (header.FrameType != 1 && header.Chanell != 0 && classId != 10 && methodId != 10)
             {
-                throw new Exception("FrameDecoder: start method decode failed");
+                DecoderThrowHelper.ThrowFrameDecoderStartMethodDecodeFailed();
             }
             var major = decoder.ReadOctet();
             var minor = decoder.ReadOctet();
             var tab = decoder.ReadTable();
             var mechanisms = decoder.ReadLongStr();
             var locales = decoder.ReadLongStr();
-
-            return new ServerInfo(major,minor,tab,mechanisms,locales);
+            var end_frame_marker = decoder.ReadOctet();
+            if (end_frame_marker != 206)  
+            {
+                DecoderThrowHelper.ThrowFrameDecoderEndMarkerMissmatch();
+            }
+            return new RabbitMQServerInfo(major,minor,tab,mechanisms,locales);
         }
 
 
-        public static void DecodeFrame(ReadOnlySpan<byte> frameSpan)
+        public static void DecodeFrame(ReadOnlySequence<byte> sequence)
         {
-            ValueDecoder decoder = new ValueDecoder(frameSpan);
+            ValueDecoder decoder = new ValueDecoder(sequence);
             var header = DecodeFrameHeader(ref decoder);
             switch (header.FrameType)
             {
@@ -51,14 +57,10 @@ namespace AMQP.Client.RabbitMQ
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static FrameHeader DecodeFrameHeader(ref ValueDecoder decoder)
         {
-            int frameType = decoder.ReadOctet();
-            int chanell = decoder.ReadShortInt();
+            byte frameType = decoder.ReadOctet();
+            short chanell = decoder.ReadShortInt();
             int payloadSize = decoder.ReadLong();
-            int endMarker = decoder.Data[decoder.Position + payloadSize];
-            if (endMarker != 206)
-            {
-                throw new Exception("FrameDecoder: end-marker missmatch");
-            }
+
             return new FrameHeader(frameType, chanell, payloadSize);
         }
     }

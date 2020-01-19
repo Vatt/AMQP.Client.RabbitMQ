@@ -21,8 +21,4 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\AMQP.Client.Abstractions\AMQP.Client.Abstractions.csproj" />
-  </ItemGroup>
-
 </Project>
