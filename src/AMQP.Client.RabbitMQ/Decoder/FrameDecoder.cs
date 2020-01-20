@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Decoder
     {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static RabbitMQServerInfo DecodeStartMethodFrame(ReadOnlySequence<byte> sequence)
+        public static SequencePosition DecodeStartMethodFrame(ReadOnlySequence<byte> sequence, out RabbitMQServerInfo info)
         {
             ValueDecoder decoder = new ValueDecoder(sequence);
             var header = DecodeFrameHeader(ref decoder);
@@ -41,7 +41,8 @@ namespace AMQP.Client.RabbitMQ.Decoder
             {
                 DecoderThrowHelper.ThrowFrameDecoderEndMarkerMissmatch();
             }
-            return new RabbitMQServerInfo(major,minor,tab,mechanisms,locales);
+            info =  new RabbitMQServerInfo(major,minor,tab,mechanisms,locales);
+            return decoder.reader.Position;
         }
 
 

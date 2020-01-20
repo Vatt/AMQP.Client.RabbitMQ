@@ -16,17 +16,18 @@ namespace AMQP.Client.RabbitMQ.Methods
         private static readonly byte[] _protocol = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
         private readonly ReaderDispatcher _dispatcher;
         private readonly PipeWriter _writer; //FOR TEST
-        internal RabbitMQServerInfo _serverInfo;
+        private  RabbitMQServerInfo _serverInfo;
         public StartMethod(ReaderDispatcher dispatcher,PipeWriter writer)
         {
             _dispatcher = dispatcher;
             _writer = writer;
         }
-        public async Task InvokeAsync()
+        public async Task<RabbitMQServerInfo> InvokeAsync()
         {
             _dispatcher.SetWait(DecodeStart);
             await SendProtocol();
             await SendStartOk();
+            return  _serverInfo;
             
             
         }
@@ -34,10 +35,10 @@ namespace AMQP.Client.RabbitMQ.Methods
         {     
             FrameEncoder.EncodeStartOkFrame(memory);
         }
-        private void DecodeStart(ReadOnlySequence<byte> sequence)
+        private SequencePosition DecodeStart(ReadOnlySequence<byte> sequence)
         {
 
-            _serverInfo = FrameDecoder.DecodeStartMethodFrame(sequence);
+             return FrameDecoder.DecodeStartMethodFrame(sequence, out _serverInfo);
         }
         private async Task SendStartOk()
         {

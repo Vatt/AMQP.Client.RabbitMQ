@@ -7,6 +7,7 @@ using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Methods;
 using Bedrock.Framework;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -44,8 +45,8 @@ namespace AMQP.Client.RabbitMQ
                 {
                     break;
                 }
-                Dispatcher.OnPipeReader(result.Buffer);
-                Transport.Input.AdvanceTo(result.Buffer.End);
+                Dispatcher.OnPipeReader(result.Buffer, out SequencePosition position);
+                Transport.Input.AdvanceTo(position);
 
 
             }           
@@ -55,9 +56,8 @@ namespace AMQP.Client.RabbitMQ
         {
             _context = await _client.ConnectAsync(endpoint);
             StartMethod start = new StartMethod(Dispatcher, Transport.Output);
-            await start.InvokeAsync(); 
-            var readingTask =  StartReadingAsync();            
-            await readingTask;
+            ServerInfo = await start.InvokeAsync();
+            await StartReadingAsync();
         }
         public void CloseConnection()
         {

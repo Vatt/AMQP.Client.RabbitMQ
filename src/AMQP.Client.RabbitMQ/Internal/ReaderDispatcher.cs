@@ -1,27 +1,29 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Text;
-using AMQP.Client.RabbitMQ.Decoder;
+using System.Threading.Tasks;
+
 namespace AMQP.Client.RabbitMQ.Internal
 {
+    internal delegate Task ReaderDelegate(ReaderContext ctx);
     internal class ReaderDispatcher:IDisposable
     {
         private readonly object _obj = new object();
-        private Queue<Action<ReadOnlySequence<byte>>> _waiting;
+        private Queue<Func<ReadOnlySequence<byte>, SequencePosition>> _waiting;
         public ReaderDispatcher()
         {
-            _waiting = new Queue<Action<ReadOnlySequence<byte>>>();
+            _waiting = new Queue<Func<ReadOnlySequence<byte>, SequencePosition>>();
         }
-        public void OnPipeReader(ReadOnlySequence<byte> sequence)
+        public void OnPipeReader(ReadOnlySequence<byte> sequence, out SequencePosition position)
         {
-            if (_waiting.TryDequeue(out Action<ReadOnlySequence<byte>> waitingCallback))
+            if (_waiting.TryDequeue(out Func<ReadOnlySequence<byte>, SequencePosition> waitingCallback))
             {
-                waitingCallback(sequence);
+                position = waitingCallback(sequence);
+                return;
             }
-
+            position = default;
         }
-        public void SetWait(Action<ReadOnlySequence<byte>> callback)
+        public void SetWait(Func<ReadOnlySequence<byte>, SequencePosition> callback)
         {
             lock(_obj)
             {
