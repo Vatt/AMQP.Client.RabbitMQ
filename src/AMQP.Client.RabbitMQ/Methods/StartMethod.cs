@@ -20,9 +20,9 @@ namespace AMQP.Client.RabbitMQ.Methods
             _reader = reader;
             _writer = writer;
             _callback = callback;
-            _reader.Subscribe(new MethodFrame(10,10), PorocessStartSequence);
+            _reader.Subscribe(new MethodFrame(10,10), ProcessStartSequence);
         }
-        public async void RunAsync()
+        public async ValueTask RunAsync()
         {
             await SendProtocol();          
         }
@@ -30,7 +30,7 @@ namespace AMQP.Client.RabbitMQ.Methods
         {     
             FrameEncoder.EncodeStartOkFrame(memory);
         }
-        private async void PorocessStartSequence(ReadOnlySequence<byte> sequence)
+        private async ValueTask ProcessStartSequence(ReadOnlySequence<byte> sequence)
         {
             DecodeStart(sequence);
             await SendStartOk();
@@ -41,9 +41,10 @@ namespace AMQP.Client.RabbitMQ.Methods
             _reader.AdvanceTo(position);
             _callback(info);
         }
-        private async Task SendStartOk()
+        private async ValueTask SendStartOk()
         {
             var memory = _writer.GetMemory();
+            
             EncodeStartOk(memory);
             _writer.Advance(8);
             await _writer.FlushAsync();

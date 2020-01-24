@@ -3,7 +3,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Framing
 {
-    public readonly struct MethodFrame
+    internal readonly struct MethodFrame
     {
         public readonly short ClassId;
         public readonly short MethodId;

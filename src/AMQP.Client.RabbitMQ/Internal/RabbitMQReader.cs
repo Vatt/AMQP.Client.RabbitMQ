@@ -9,15 +9,15 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Internal
 {
-
-    public class RabbitMQReader
+    internal delegate ValueTask MethodFrameDelegate(ReadOnlySequence<byte> sequence);
+    internal class RabbitMQReader
     {
         private readonly PipeReader _reader;
-        private readonly Dictionary<MethodFrame,Action<ReadOnlySequence<byte>>> _methodsCallbacks;
+        private readonly Dictionary<MethodFrame, MethodFrameDelegate> _methodsCallbacks;
         public RabbitMQReader(PipeReader reader)
         {
             _reader = reader;
-            _methodsCallbacks = new Dictionary<MethodFrame, Action<ReadOnlySequence<byte>>>();
+            _methodsCallbacks = new Dictionary<MethodFrame, MethodFrameDelegate>();
         }
         public async Task StartAsync()
         {
@@ -27,26 +27,26 @@ namespace AMQP.Client.RabbitMQ.Internal
                 var frame = FrameDecoder.DecodeFrame(result.Buffer);
                 switch (frame.FrameType)
                 {
-                    case 1:OnMethod(result.Buffer);break;
+                    case 1: await OnMethod(result.Buffer);break;
                 }                
             }
         }
-        public void OnMethod(ReadOnlySequence<byte> sequence)
+        public async ValueTask OnMethod(ReadOnlySequence<byte> sequence)
         {
             var methodFrame = FrameDecoder.DecodeMethodFrame(sequence);
-            var result = _methodsCallbacks.TryGetValue(methodFrame, out Action<ReadOnlySequence<byte>> callback);
+            var result = _methodsCallbacks.TryGetValue(methodFrame, out MethodFrameDelegate callback);
             if(!result)
             {
                 throw new Exception($"RabbitMQReader.OnMethod with (class-id,method-id)={(methodFrame.ClassId, methodFrame.MethodId)}");
             }
-            callback(sequence);
+            await callback(sequence);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AdvanceTo(SequencePosition position)
         {
             _reader.AdvanceTo(position);
         }
-        public void Subscribe(MethodFrame frame, Action<ReadOnlySequence<byte>> callback)
+        public void Subscribe(MethodFrame frame, MethodFrameDelegate callback)
         {
             if(_methodsCallbacks.ContainsKey(frame))
             {
