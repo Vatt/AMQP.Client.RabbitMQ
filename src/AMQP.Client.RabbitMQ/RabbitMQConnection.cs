@@ -23,7 +23,7 @@ namespace AMQP.Client.RabbitMQ
         private ConnectionContext _context;
         public EndPoint RemoteEndPoint => _context.RemoteEndPoint;
         public IDuplexPipe Transport => _context.Transport;
-        private readonly ReaderDispatcher Dispatcher;
+        private RabbitMQReader _reader;
         
         public RabbitMQServerInfo ServerInfo { get; private set; }
         public readonly int Chanell;
@@ -33,31 +33,14 @@ namespace AMQP.Client.RabbitMQ
             //Info = serverInfo;
             Chanell = 1;
             ConnectionClosed = _connectionCloseTokenSource.Token;
-            Dispatcher = new ReaderDispatcher();
-        }
-        private async Task StartReadingAsync()
-        {
-            while(true)
-            {
-                
-                var result = await Transport.Input.ReadAsync();
-                if(result.IsCompleted || result.IsCanceled)
-                {
-                    break;
-                }
-                Dispatcher.OnPipeReader(result.Buffer, out SequencePosition position);
-                Transport.Input.AdvanceTo(position);
-
-
-            }           
-
         }
         public async Task StartAsync(IPEndPoint endpoint)
         {
-            _context = await _client.ConnectAsync(endpoint);
-            StartMethod start = new StartMethod(Dispatcher, Transport.Output);
-            ServerInfo = await start.InvokeAsync();
-            await StartReadingAsync();
+            _context = await _client.ConnectAsync(endpoint, _connectionCloseTokenSource.Token);
+            _reader = new RabbitMQReader(Transport.Input);
+            StartMethod start = new StartMethod(_reader, Transport.Output, (info) => { ServerInfo = info; });
+            start.RunAsync();
+            await _reader.StartAsync();
         }
         public void CloseConnection()
         {

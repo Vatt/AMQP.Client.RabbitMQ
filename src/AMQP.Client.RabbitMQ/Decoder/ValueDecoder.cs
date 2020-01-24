@@ -10,15 +10,23 @@ namespace AMQP.Client.RabbitMQ.Decoder
 
     internal ref struct ValueDecoder
     {
-        public SequenceReader<byte> reader;
+        private SequenceReader<byte> _reader;
+        public SequencePosition Position => _reader.Position;
+        public long Consumed => _reader.Consumed;
         public ValueDecoder(ReadOnlySequence<byte> data)
         {
-            reader = new SequenceReader<byte>(data);
+            _reader = new SequenceReader<byte>(data);
+        }
+        public ValueDecoder(ReadOnlySequence<byte> data,long advance)
+        {
+            _reader = new SequenceReader<byte>(data);
+            _reader.Advance(advance);
+            
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public short ReadShortInt()
         {
-            var tryRead = reader.TryReadBigEndian(out short val);
+            var tryRead = _reader.TryReadBigEndian(out short val);
             return val;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -30,31 +38,31 @@ namespace AMQP.Client.RabbitMQ.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte ReadOctet()
         {
-            var tryRead = reader.TryRead(out byte val);
+            var tryRead = _reader.TryRead(out byte val);
             return val;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public long ReadLongLong()
         {
-            var tryRead = reader.TryReadBigEndian(out long val);
+            var tryRead = _reader.TryReadBigEndian(out long val);
             return val;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int ReadLong()
         {
-            var tryRead = reader.TryReadBigEndian(out int val);
+            var tryRead = _reader.TryReadBigEndian(out int val);
             return val;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private string ReadStringInternal(int length)
         {
-            if (reader.CurrentSpan.Length < reader.CurrentSpanIndex + length)
+            if (_reader.CurrentSpan.Length < _reader.CurrentSpanIndex + length)
             {
                 DecoderThrowHelper.ThrowValueDecoderStringDecodeFailed();
             }
-            var stringSpan = reader.CurrentSpan.Slice(reader.CurrentSpanIndex, length);
+            var stringSpan = _reader.CurrentSpan.Slice(_reader.CurrentSpanIndex, length);
             var str = Encoding.UTF8.GetString(stringSpan);
-            reader.Advance(length);
+            _reader.Advance(length);
             return str;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -71,9 +79,9 @@ namespace AMQP.Client.RabbitMQ.Decoder
         public Dictionary<string, object> ReadTable()
         {
 
-            var lengthBytes = ReadInt() + reader.Consumed;
+            var lengthBytes = ReadInt() + _reader.Consumed;
             Dictionary<string, object> table = new Dictionary<string, object>();
-            while (reader.Consumed < lengthBytes)
+            while (_reader.Consumed < lengthBytes)
             {
                 string name = ReadShortStr();
                 object value = ReadValue();

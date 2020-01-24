@@ -6,10 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bedrock.Framework" Version="0.1.38-alpha.gd25d5b37ad" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\src\AMQP.Client.RabbitMQ\AMQP.Client.RabbitMQ.csproj" />
   </ItemGroup>
 
