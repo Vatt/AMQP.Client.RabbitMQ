@@ -14,39 +14,51 @@ namespace AMQP.Client.RabbitMQ.Methods
         private static readonly byte[] _protocol = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
         private readonly RabbitMQReader _reader;
         private readonly PipeWriter _writer; //FOR TEST
-        private Action<RabbitMQServerInfo> _callback;
-        public StartMethod(RabbitMQReader reader, PipeWriter writer, Action<RabbitMQServerInfo> callback)
+        private Action<RabbitMQServerInfo> _serverInfoCalback;
+        private readonly RabbitMQInfo _info;
+        private readonly RabbitMQConnectionInfo _connectionInfo;
+        private readonly RabbitMQClientInfo _clientInfo;
+        public readonly  Action _successCallback;
+        public StartMethod(RabbitMQReader reader, PipeWriter writer, RabbitMQInfo info,
+                           RabbitMQConnectionInfo connectionInfo,RabbitMQClientInfo clientInfo,
+                           Action<RabbitMQServerInfo> serverInfoCalback, Action successCallback)
         {
             _reader = reader;
             _writer = writer;
-            _callback = callback;
-            _reader.Subscribe(new MethodFrame(10,10), ProcessStartSequence);
+            _serverInfoCalback = serverInfoCalback;
+            _info = info;
+            _connectionInfo = connectionInfo;
+            _clientInfo = clientInfo;
+            _successCallback = successCallback;
+            _reader.SubscribeOnMethod(new MethodFrame(10,10), ProcessStart);
+            _reader.SubscribeOnMethod(new MethodFrame(10,30), ProcessTuneAndOpen);
+            _reader.SubscribeOnMethod(new MethodFrame(10,41), OpenOkReceive);
         }
+
+        private ValueTask OpenOkReceive(ReadOnlySequence<byte> sequence)
+        {
+            _reader.AdvanceTo(sequence.End);
+            _successCallback();
+            return default;
+        }
+
         public async ValueTask RunAsync()
         {
             await SendProtocol();          
         }
-        private void EncodeStartOk(Memory<byte> memory)
-        {     
-            FrameEncoder.EncodeStartOkFrame(memory);
-        }
-        private async ValueTask ProcessStartSequence(ReadOnlySequence<byte> sequence)
+
+        private async ValueTask ProcessStart(ReadOnlySequence<byte> sequence)
         {
-            DecodeStart(sequence);
+            var position = FrameDecoder.DecodeStartMethodFrame(sequence, out RabbitMQServerInfo info);
+            _reader.AdvanceTo(position);
+            _serverInfoCalback(info);
             await SendStartOk();
         }
-        private void DecodeStart(ReadOnlySequence<byte> sequence)
-        {
-            var position =  FrameDecoder.DecodeStartMethodFrame(sequence, out RabbitMQServerInfo info);
-            _reader.AdvanceTo(position);
-            _callback(info);
-        }
+
         private async ValueTask SendStartOk()
         {
-            var memory = _writer.GetMemory();
-            
-            EncodeStartOk(memory);
-            _writer.Advance(8);
+            var memory = _writer.GetMemory();                       
+            _writer.Advance(FrameEncoder.EncodeStartOkFrame(memory, _clientInfo, _connectionInfo));
             await _writer.FlushAsync();
         }
         private async Task SendProtocol()
@@ -54,7 +66,27 @@ namespace AMQP.Client.RabbitMQ.Methods
             Memory<byte> memory = _writer.GetMemory(8);
             _protocol.CopyTo(memory);
             _writer.Advance(8);
-            var flush = await _writer.FlushAsync();            
+            await _writer.FlushAsync();            
+        }
+        private async ValueTask ProcessTuneAndOpen(ReadOnlySequence<byte> sequence)
+        {
+            var position = FrameDecoder.DecodeTuneMethodFrame(sequence, out RabbitMQInfo connectionInfo); // надо чтото сдеать с этим
+            _reader.AdvanceTo(position);
+            await SendTuneOkFrame();
+            await ProcessOpenSequence();
+        }
+        private async ValueTask ProcessOpenSequence()
+        {
+            Memory<byte> memory = _writer.GetMemory();
+            _writer.Advance(FrameEncoder.EncodeOpenFrame(memory,_connectionInfo.VHost));
+            await _writer.FlushAsync();
+        }
+        private async ValueTask SendTuneOkFrame()
+        {
+            Memory<byte> memory = _writer.GetMemory(20);
+            _writer.Advance(FrameEncoder.EncodeTuneOKFrame(memory,_info));
+            await _writer.FlushAsync();
+
         }
 
     }

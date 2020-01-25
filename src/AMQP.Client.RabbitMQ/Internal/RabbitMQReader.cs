@@ -28,6 +28,12 @@ namespace AMQP.Client.RabbitMQ.Internal
                 switch (frame.FrameType)
                 {
                     case 1: await OnMethod(result.Buffer);break;
+                    case 8:
+                        {
+                            OnHeartbeat(result.Buffer);
+                            break;
+                        }
+                    default: throw new Exception($"{frame.FrameType} {frame.Chanell} {frame.PaylodaSize}");
                 }                
             }
         }
@@ -41,12 +47,16 @@ namespace AMQP.Client.RabbitMQ.Internal
             }
             await callback(sequence);
         }
+        public async void OnHeartbeat(ReadOnlySequence<byte> sequence)
+        {
+            AdvanceTo(sequence.End);
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AdvanceTo(SequencePosition position)
         {
             _reader.AdvanceTo(position);
         }
-        public void Subscribe(MethodFrame frame, MethodFrameDelegate callback)
+        public void SubscribeOnMethod(MethodFrame frame, MethodFrameDelegate callback)
         {
             if(_methodsCallbacks.ContainsKey(frame))
             {

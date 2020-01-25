@@ -20,14 +20,28 @@ namespace AMQP.Client.RabbitMQ.Decoder
             var mechanisms = decoder.ReadLongStr();
             var locales = decoder.ReadLongStr();
             var end_frame_marker = decoder.ReadOctet();
-            if (end_frame_marker != 206)  //TODO: ERROR
+            if (end_frame_marker != 206)  
             {
                 DecoderThrowHelper.ThrowFrameDecoderEndMarkerMissmatch();
             }
             info =  new RabbitMQServerInfo(major,minor,tab,mechanisms,locales);
             return decoder.Position;
         }
-
+        public static SequencePosition DecodeTuneMethodFrame(ReadOnlySequence<byte> sequence, out RabbitMQInfo connectionInfo)
+        {
+            var advance = 11;
+            ValueDecoder decoder = new ValueDecoder(sequence, advance);
+            var chanellMax = decoder.ReadShortInt();
+            var frameMax = decoder.ReadLong();
+            var heartbeat = decoder.ReadShortInt();
+            var end_frame_marker = decoder.ReadOctet();
+            if (end_frame_marker != 206)  
+            {
+                DecoderThrowHelper.ThrowFrameDecoderEndMarkerMissmatch();
+            }
+            connectionInfo = new RabbitMQInfo(chanellMax, frameMax, heartbeat);
+            return decoder.Position;
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static MethodFrame DecodeMethodFrame(ReadOnlySequence<byte> sequence)
         {

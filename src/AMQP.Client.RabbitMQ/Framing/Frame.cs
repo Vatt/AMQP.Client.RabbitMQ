@@ -3,7 +3,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Framing
 {
-    internal readonly struct Frame
+    internal struct Frame
     {
         public readonly byte FrameType;
         public readonly short Chanell;
