@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Decoder;
 using AMQP.Client.RabbitMQ.Framing;
+using AMQP.Client.RabbitMQ.Methods;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -10,14 +11,16 @@ using System.Threading.Tasks;
 namespace AMQP.Client.RabbitMQ.Internal
 {
     internal delegate ValueTask MethodFrameDelegate(ReadOnlySequence<byte> sequence);
-    internal class RabbitMQReader
+    internal class RabbitMQListener
     {
         private readonly PipeReader _reader;
         private readonly Dictionary<MethodFrame, MethodFrameDelegate> _methodsCallbacks;
-        public RabbitMQReader(PipeReader reader)
+        private readonly Heartbeat _heartbeat;
+        public RabbitMQListener(PipeReader reader, Heartbeat heartbeat)
         {
             _reader = reader;
             _methodsCallbacks = new Dictionary<MethodFrame, MethodFrameDelegate>();
+            _heartbeat = heartbeat;
         }
         public async Task StartAsync()
         {
@@ -27,10 +30,15 @@ namespace AMQP.Client.RabbitMQ.Internal
                 var frame = FrameDecoder.DecodeFrame(result.Buffer);
                 switch (frame.FrameType)
                 {
-                    case 1: await OnMethod(result.Buffer);break;
+                    case 1:
+                        {
+                            await OnMethod(result.Buffer);
+                            break;
+                        }
                     case 8:
                         {
-                            OnHeartbeat(result.Buffer);
+                            _heartbeat.OnHeartbeat(result.Buffer);
+                            _reader.AdvanceTo(result.Buffer.End);
                             break;
                         }
                     default: throw new Exception($"{frame.FrameType} {frame.Chanell} {frame.PaylodaSize}");
@@ -46,10 +54,6 @@ namespace AMQP.Client.RabbitMQ.Internal
                 throw new Exception($"RabbitMQReader.OnMethod with (class-id,method-id)={(methodFrame.ClassId, methodFrame.MethodId)}");
             }
             await callback(sequence);
-        }
-        public async void OnHeartbeat(ReadOnlySequence<byte> sequence)
-        {
-            AdvanceTo(sequence.End);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AdvanceTo(SequencePosition position)

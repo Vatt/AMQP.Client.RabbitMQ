@@ -23,11 +23,12 @@ namespace AMQP.Client.RabbitMQ
         private ConnectionContext _context;
         public EndPoint RemoteEndPoint => _context.RemoteEndPoint;
         public IDuplexPipe Transport => _context.Transport;
-        private RabbitMQReader _reader;
-        
+        private RabbitMQListener _reader;
+        private Heartbeat _heartbeat;
         public RabbitMQServerInfo ServerInfo { get; private set; }
         public RabbitMQInfo Info { get; private set; }
         public RabbitMQClientInfo ClientInfo { get; private set; }
+        
         private readonly RabbitMQConnectionInfo _connectionInfo;
         public readonly int Chanell;
         public RabbitMQConnection()
@@ -42,7 +43,8 @@ namespace AMQP.Client.RabbitMQ
         public async Task StartAsync(IPEndPoint endpoint)
         {
             _context = await _client.ConnectAsync(endpoint, _connectionCloseTokenSource.Token);
-            _reader = new RabbitMQReader(Transport.Input);
+            _heartbeat = new Heartbeat(Transport.Output, _connectionCloseTokenSource.Token);
+            _reader = new RabbitMQListener(Transport.Input,_heartbeat);
             StartMethod start = new StartMethod(_reader, Transport.Output, Info, _connectionInfo, ClientInfo , ServerInfoReceived, StartMethodSuccess);
             await start.RunAsync();
             await _reader.StartAsync();
@@ -51,10 +53,9 @@ namespace AMQP.Client.RabbitMQ
         {
             ServerInfo = info;
         }
-        /*Сделать чтонибудь*/
         private void StartMethodSuccess()
-        {
-            
+        {            
+            _heartbeat.StartAsync();
         }
 
         public void CloseConnection()

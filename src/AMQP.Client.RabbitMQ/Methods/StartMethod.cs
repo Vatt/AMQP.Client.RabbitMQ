@@ -12,14 +12,14 @@ namespace AMQP.Client.RabbitMQ.Methods
     internal class StartMethod
     {
         private static readonly byte[] _protocol = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
-        private readonly RabbitMQReader _reader;
-        private readonly PipeWriter _writer; //FOR TEST
+        private readonly RabbitMQListener _reader;
+        private readonly PipeWriter _writer; 
         private Action<RabbitMQServerInfo> _serverInfoCalback;
         private readonly RabbitMQInfo _info;
         private readonly RabbitMQConnectionInfo _connectionInfo;
         private readonly RabbitMQClientInfo _clientInfo;
         public readonly  Action _successCallback;
-        public StartMethod(RabbitMQReader reader, PipeWriter writer, RabbitMQInfo info,
+        public StartMethod(RabbitMQListener reader, PipeWriter writer, RabbitMQInfo info,
                            RabbitMQConnectionInfo connectionInfo,RabbitMQClientInfo clientInfo,
                            Action<RabbitMQServerInfo> serverInfoCalback, Action successCallback)
         {
@@ -32,10 +32,10 @@ namespace AMQP.Client.RabbitMQ.Methods
             _successCallback = successCallback;
             _reader.SubscribeOnMethod(new MethodFrame(10,10), ProcessStart);
             _reader.SubscribeOnMethod(new MethodFrame(10,30), ProcessTuneAndOpen);
-            _reader.SubscribeOnMethod(new MethodFrame(10,41), OpenOkReceive);
+            _reader.SubscribeOnMethod(new MethodFrame(10,41), OpenOk);
         }
 
-        private ValueTask OpenOkReceive(ReadOnlySequence<byte> sequence)
+        private ValueTask OpenOk(ReadOnlySequence<byte> sequence)
         {
             _reader.AdvanceTo(sequence.End);
             _successCallback();
