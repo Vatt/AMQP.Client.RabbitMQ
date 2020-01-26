@@ -17,7 +17,7 @@ namespace AMQP.Client.RabbitMQ
         }
         public static RabbitMQInfo DefaultConnectionInfo()
         {
-            return new RabbitMQInfo(0, 131072, 60);
+            return new RabbitMQInfo(2047, 131072, 60);
         }
 
     }

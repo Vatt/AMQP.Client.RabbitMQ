@@ -43,7 +43,7 @@ namespace AMQP.Client.RabbitMQ.Internal
                             break;
                         }
                     default: throw new Exception($"RabbitMQListener:cannot decode frame (type,chanell,payload) - {frame.FrameType} {frame.Chanell} {frame.PaylodaSize}" +
-                                                $"{Encoding.UTF8.GetString(result.Buffer.ToArray())}");
+                                                 $"{Encoding.UTF8.GetString(result.Buffer.ToArray())}");
                 }                
             }
         }
@@ -53,7 +53,7 @@ namespace AMQP.Client.RabbitMQ.Internal
             var result = _methodsCallbacks.TryGetValue(methodFrame, out MethodFrameDelegate callback);
             if(!result)
             {
-                throw new Exception($"RabbitMQReader.OnMethod with (class-id,method-id)={(methodFrame.ClassId, methodFrame.MethodId)}");
+                throw new Exception($"RabbitMQListener.OnMethod with (class-id,method-id)={(methodFrame.ClassId, methodFrame.MethodId)}");
             }
             await callback(sequence);
         }
@@ -66,7 +66,7 @@ namespace AMQP.Client.RabbitMQ.Internal
         {
             if(_methodsCallbacks.ContainsKey(frame))
             {
-                throw new Exception($"RabbitMQReader.Subscribe (class-id,method-id)={(frame.ClassId, frame.MethodId)}");
+                throw new Exception($"RabbitMQListener.Subscribe (class-id,method-id)={(frame.ClassId, frame.MethodId)}");
             }
             _methodsCallbacks.Add(frame, callback);
         }
