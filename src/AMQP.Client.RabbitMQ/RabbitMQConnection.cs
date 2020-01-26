@@ -44,7 +44,7 @@ namespace AMQP.Client.RabbitMQ
         public async Task StartAsync()
         {
             _context = await _client.ConnectAsync(RemoteEndPoint, _connectionCloseTokenSource.Token);
-            _heartbeat = new Heartbeat(Transport.Output, _connectionCloseTokenSource.Token);
+            _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(Info.Heartbeat), _connectionCloseTokenSource.Token);
             _reader = new RabbitMQListener(Transport.Input,_heartbeat);
             StartMethod start = new StartMethod(_reader, Transport.Output, Info, _connectionInfo, ClientInfo , ServerInfoReceived, StartMethodSuccess);
             await start.RunAsync();
