@@ -4,11 +4,11 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public readonly struct RabbitMQInfo
+    public struct RabbitMQInfo
     {
-        public readonly short ChanellMax;
-        public readonly int FrameMax;
-        public readonly short Heartbeat;
+        public short ChanellMax;
+        public int FrameMax;
+        public short Heartbeat;
         public RabbitMQInfo(short chanellMax,int frameMax, short heartbeat)
         {
             ChanellMax = chanellMax;

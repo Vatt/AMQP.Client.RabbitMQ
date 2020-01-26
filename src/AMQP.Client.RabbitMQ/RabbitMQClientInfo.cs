@@ -4,9 +4,9 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public readonly struct RabbitMQClientInfo
+    public struct RabbitMQClientInfo
     {
-        public readonly Dictionary<string, object> Properties;
+        public Dictionary<string, object> Properties;
         public readonly string Mechanism;
         public readonly string Locale;
         public RabbitMQClientInfo(Dictionary<string, object> properties, string mechanism, string locale)
@@ -21,8 +21,8 @@ namespace AMQP.Client.RabbitMQ
                 { "product", "AMQP.Client.RabbitMQ" },
                 { "version", "0.0.1" },
                 { "platform", ".Net Core" },
-                { "copyright", "Copyright (c) 2007-2020 Pivotal Software, Inc." },
-                { "information","Licensed under the MPL. See https://www.rabbitmq.com/" },                
+                { "copyright", "" },
+                { "information","" },                
                 { "capabilities", new Dictionary<string,object>
                                     {
                                         { "publisher_confirms", true},
@@ -34,7 +34,7 @@ namespace AMQP.Client.RabbitMQ
 
                                     } 
                 },
-                { "connection_name","AMQP.Client.RabbitMQ:Test" },
+                { "connection_name","" },
             };
             return new RabbitMQClientInfo(props, "PLAIN","en_US") ;
         }

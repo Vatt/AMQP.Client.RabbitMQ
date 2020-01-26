@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ
         private readonly CancellationTokenSource _connectionCloseTokenSource = new CancellationTokenSource();
         private readonly CancellationToken ConnectionClosed;
         private ConnectionContext _context;
-        public EndPoint RemoteEndPoint => _context.RemoteEndPoint;
+        public readonly EndPoint RemoteEndPoint;
         public IDuplexPipe Transport => _context.Transport;
         private RabbitMQListener _reader;
         private Heartbeat _heartbeat;
@@ -31,18 +31,19 @@ namespace AMQP.Client.RabbitMQ
         
         private readonly RabbitMQConnectionInfo _connectionInfo;
         public readonly int Chanell;
-        public RabbitMQConnection()
+        public RabbitMQConnection(RabbitMQConnectionBuilder builder)
         {
+            RemoteEndPoint = builder.Endpoint;
+            Info = builder.Info;
+            ClientInfo = builder.ClientInfo;
+            _connectionInfo = builder.ConnInfo;
             Chanell = 1;
-            ConnectionClosed = _connectionCloseTokenSource.Token;
-            ClientInfo = RabbitMQClientInfo.DefaultClientInfo();
-            Info = RabbitMQInfo.DefaultConnectionInfo();
-            _connectionInfo = new RabbitMQConnectionInfo("gamover", "gam2106", "/");
-            
+            ConnectionClosed = _connectionCloseTokenSource.Token;           
         }
-        public async Task StartAsync(IPEndPoint endpoint)
+        
+        public async Task StartAsync()
         {
-            _context = await _client.ConnectAsync(endpoint, _connectionCloseTokenSource.Token);
+            _context = await _client.ConnectAsync(RemoteEndPoint, _connectionCloseTokenSource.Token);
             _heartbeat = new Heartbeat(Transport.Output, _connectionCloseTokenSource.Token);
             _reader = new RabbitMQListener(Transport.Input,_heartbeat);
             StartMethod start = new StartMethod(_reader, Transport.Output, Info, _connectionInfo, ClientInfo , ServerInfoReceived, StartMethodSuccess);
