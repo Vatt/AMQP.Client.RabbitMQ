@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Internal
@@ -41,7 +42,8 @@ namespace AMQP.Client.RabbitMQ.Internal
                             _reader.AdvanceTo(result.Buffer.End);
                             break;
                         }
-                    default: throw new Exception($"{frame.FrameType} {frame.Chanell} {frame.PaylodaSize}");
+                    default: throw new Exception($"RabbitMQListener:cannot decode frame (type,chanell,payload) - {frame.FrameType} {frame.Chanell} {frame.PaylodaSize}" +
+                                                $"{Encoding.UTF8.GetString(result.Buffer.ToArray())}");
                 }                
             }
         }

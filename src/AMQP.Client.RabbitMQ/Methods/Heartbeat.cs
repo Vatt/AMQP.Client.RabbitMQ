@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,11 +32,11 @@ namespace AMQP.Client.RabbitMQ.Methods
         }
         public void OnHeartbeat(ReadOnlySequence<byte> sequence)
         {
-            Interlocked.Exchange(ref _missedServerHeartbeats, 0);
-            if (sequence.FirstSpan[7] != 206)
-            {
-
-            }
+            //Interlocked.Exchange(ref _missedServerHeartbeats, 0);
+            SequenceReader<byte> reader = new SequenceReader<byte>(sequence);            
+            reader.Advance(7);
+            reader.TryRead(out byte val);
+            Debug.Assert(val == 206);
         }
         public async ValueTask TickHeartbeat()
         {
