@@ -11,7 +11,7 @@ namespace Test
         {
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(IPEndPoint.Parse("192.168.0.19:5672"));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                                    .Heartbeat(5)
+                                    .Heartbeat(1)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
                                     .ConnectionName("AMQP.Client.RabbitMQ:Test")

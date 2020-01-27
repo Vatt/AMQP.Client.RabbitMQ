@@ -39,11 +39,11 @@ namespace AMQP.Client.RabbitMQ.Internal
                     case 8:
                         {
                             _heartbeat.OnHeartbeat(result.Buffer);
-                            _reader.AdvanceTo(result.Buffer.End);
+                            _reader.AdvanceTo(result.Buffer.GetPosition(8));
                             break;
                         }
-                    default: throw new Exception($"RabbitMQListener:cannot decode frame (type,chanell,payload) - {frame.FrameType} {frame.Chanell} {frame.PaylodaSize}" +
-                                                 $"{Encoding.UTF8.GetString(result.Buffer.ToArray())}");
+                    default: throw new Exception($"RabbitMQListener:cannot decode frame (type,chanell,payload) - {frame.FrameType} {frame.Chanell} {frame.PaylodaSize}." +
+                                                 $"Frame data: {Encoding.UTF8.GetString(result.Buffer.ToArray())}");
                 }                
             }
         }
