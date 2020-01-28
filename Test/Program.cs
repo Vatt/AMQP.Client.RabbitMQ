@@ -9,7 +9,7 @@ namespace Test
         
         static async Task Main(string[] args)
         {
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(IPEndPoint.Parse("192.168.0.19:5672"));
+            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(IPEndPoint.Parse("172.17.72.148:5672"));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
                                     .Heartbeat(1)
                                     .ProductName("AMQP.Client.RabbitMQ")

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Buffers;
 
-namespace AMQP.Client.RabbitMQ.Framing
+namespace AMQP.Client.RabbitMQ.Protocol.Framing
 {
-    internal struct Frame
+    public struct Frame
     {
         public readonly byte FrameType;
         public readonly short Chanell;

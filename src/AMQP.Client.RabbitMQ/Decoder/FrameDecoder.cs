@@ -1,8 +1,7 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using AMQP.Client.RabbitMQ.Framing;
 namespace AMQP.Client.RabbitMQ.Decoder
 {
 

@@ -1,7 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Decoder;
 using AMQP.Client.RabbitMQ.Encoder;
-using AMQP.Client.RabbitMQ.Framing;
 using AMQP.Client.RabbitMQ.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
 using System.Buffers;
 using System.IO.Pipelines;
