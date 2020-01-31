@@ -30,9 +30,9 @@ namespace AMQP.Client.RabbitMQ.Methods
             _connectionInfo = connectionInfo;
             _clientInfo = clientInfo;
             _successCallback = successCallback;
-            _reader.SubscribeOnMethod(new MethodFrame(10,10), ProcessStart);
-            _reader.SubscribeOnMethod(new MethodFrame(10,30), ProcessTuneAndOpen);
-            _reader.SubscribeOnMethod(new MethodFrame(10,41), OpenOk);
+            _reader.SubscribeOnMethod(new MethodHeader(10,10), ProcessStart);
+            _reader.SubscribeOnMethod(new MethodHeader(10,30), ProcessTuneAndOpen);
+            _reader.SubscribeOnMethod(new MethodHeader(10,41), OpenOk);
         }
 
         private ValueTask OpenOk(ReadOnlySequence<byte> sequence)

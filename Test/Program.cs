@@ -1,5 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ;
+using System.IO.Pipelines;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 namespace Test
 {

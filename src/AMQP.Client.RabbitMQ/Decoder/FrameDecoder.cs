@@ -11,7 +11,7 @@ namespace AMQP.Client.RabbitMQ.Decoder
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SequencePosition DecodeStartMethodFrame(ReadOnlySequence<byte> sequence, out RabbitMQServerInfo info)
         {
-            var advance = Unsafe.SizeOf<Frame>() + Unsafe.SizeOf<MethodFrame>() - 1;
+            var advance = Unsafe.SizeOf<FrameHeader>() + Unsafe.SizeOf<MethodHeader>() - 1;
             ValueDecoder decoder = new ValueDecoder(sequence, advance);
             var major = decoder.ReadOctet();
             var minor = decoder.ReadOctet();
@@ -42,20 +42,20 @@ namespace AMQP.Client.RabbitMQ.Decoder
             return decoder.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static MethodFrame DecodeMethodFrame(ReadOnlySequence<byte> sequence)
+        public static MethodHeader DecodeMethodFrame(ReadOnlySequence<byte> sequence)
         {
-            ValueDecoder decoder = new ValueDecoder(sequence, Unsafe.SizeOf<Frame>() - 1);
-            return new MethodFrame(decoder.ReadShortInt(), decoder.ReadShortInt());
+            ValueDecoder decoder = new ValueDecoder(sequence, Unsafe.SizeOf<FrameHeader>() - 1);
+            return new MethodHeader(decoder.ReadShortInt(), decoder.ReadShortInt());
         }
         
-        public static Frame DecodeFrame(ReadOnlySequence<byte> sequence)
+        public static FrameHeader DecodeFrame(ReadOnlySequence<byte> sequence)
         {
             ValueDecoder decoder = new ValueDecoder(sequence);
             byte frameType = decoder.ReadOctet();
             short chanell = decoder.ReadShortInt();
             int dataSize = decoder.ReadLong();
             //var end_frame_marker = decoder.ReadOctet();
-            return new Frame(frameType, chanell, dataSize);
+            return new FrameHeader(frameType, chanell, dataSize);
         }
     }
 }

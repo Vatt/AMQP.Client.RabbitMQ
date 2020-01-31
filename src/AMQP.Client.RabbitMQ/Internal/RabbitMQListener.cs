@@ -15,12 +15,12 @@ namespace AMQP.Client.RabbitMQ.Internal
     internal class RabbitMQListener
     {
         private readonly PipeReader _reader;
-        private readonly Dictionary<MethodFrame, MethodFrameDelegate> _methodsCallbacks;
+        private readonly Dictionary<MethodHeader, MethodFrameDelegate> _methodsCallbacks;
         private readonly Heartbeat _heartbeat;
         public RabbitMQListener(PipeReader reader, Heartbeat heartbeat)
         {
             _reader = reader;
-            _methodsCallbacks = new Dictionary<MethodFrame, MethodFrameDelegate>();
+            _methodsCallbacks = new Dictionary<MethodHeader, MethodFrameDelegate>();
             _heartbeat = heartbeat;
         }
         public async Task StartAsync()
@@ -62,7 +62,7 @@ namespace AMQP.Client.RabbitMQ.Internal
         {
             _reader.AdvanceTo(position);
         }
-        public void SubscribeOnMethod(MethodFrame frame, MethodFrameDelegate callback)
+        public void SubscribeOnMethod(MethodHeader frame, MethodFrameDelegate callback)
         {
             if(_methodsCallbacks.ContainsKey(frame))
             {

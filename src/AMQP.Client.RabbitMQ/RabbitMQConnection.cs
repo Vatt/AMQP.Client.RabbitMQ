@@ -38,7 +38,8 @@ namespace AMQP.Client.RabbitMQ
             ClientInfo = builder.ClientInfo;
             _connectionInfo = builder.ConnInfo;
             Chanell = 1;
-            ConnectionClosed = _connectionCloseTokenSource.Token;           
+            ConnectionClosed = _connectionCloseTokenSource.Token;       
+            
         }
         
         public async Task StartAsync()
