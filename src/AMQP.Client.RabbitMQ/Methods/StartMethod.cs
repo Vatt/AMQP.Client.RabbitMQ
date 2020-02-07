@@ -1,7 +1,4 @@
-﻿using AMQP.Client.RabbitMQ.Decoder;
-using AMQP.Client.RabbitMQ.Encoder;
-using AMQP.Client.RabbitMQ.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using AMQP.Client.RabbitMQ.Protocol;
 using System;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -12,62 +9,47 @@ namespace AMQP.Client.RabbitMQ.Methods
     internal class StartMethod
     {
         private static readonly byte[] _protocol = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
-        private readonly RabbitMQListener _reader;
-        private readonly PipeWriter _writer; 
-        private Action<RabbitMQServerInfo> _serverInfoCalback;
-        private readonly RabbitMQInfo _info;
-        private readonly RabbitMQConnectionInfo _connectionInfo;
-        private readonly RabbitMQClientInfo _clientInfo;
-        public readonly  Action _successCallback;
-        public StartMethod(RabbitMQListener reader, PipeWriter writer, RabbitMQInfo info,
-                           RabbitMQConnectionInfo connectionInfo,RabbitMQClientInfo clientInfo,
-                           Action<RabbitMQServerInfo> serverInfoCalback, Action successCallback)
+        private readonly RabbitMQWriter _writer; 
+        public StartMethod(RabbitMQWriter writer)
         {
-            _reader = reader;
             _writer = writer;
-            _serverInfoCalback = serverInfoCalback;
-            _info = info;
-            _connectionInfo = connectionInfo;
-            _clientInfo = clientInfo;
-            _successCallback = successCallback;
+            /*
             _reader.SubscribeOnMethod(new MethodHeader(10,10), ProcessStart);
             _reader.SubscribeOnMethod(new MethodHeader(10,30), ProcessTuneAndOpen);
             _reader.SubscribeOnMethod(new MethodHeader(10,41), OpenOk);
+            */
         }
-
+        public async ValueTask RunAsync()
+        {
+            await SendProtocol();
+        }
+        private async ValueTask SendProtocol()
+        {
+            _writer.Write(_protocol);
+            await _writer.FlushAsync();
+        }
+        /*
         private ValueTask OpenOk(ReadOnlySequence<byte> sequence)
         {
             _reader.AdvanceTo(sequence.End);
             _successCallback();
             return default;
         }
+        
 
-        public async ValueTask RunAsync()
-        {
-            await SendProtocol();          
-        }
-
+        
         private async ValueTask ProcessStart(ReadOnlySequence<byte> sequence)
         {
-            var position = FrameDecoder.DecodeStartMethodFrame(sequence, out RabbitMQServerInfo info);
-            _reader.AdvanceTo(position);
-            _serverInfoCalback(info);
             await SendStartOk();
         }
-
+        
         private async ValueTask SendStartOk()
-        {
-            var memory = _writer.GetMemory();                       
-            _writer.Advance(FrameEncoder.EncodeStartOkFrame(memory, _clientInfo, _connectionInfo));
+        {                            
+            //_writer.WriteStartOk()
             await _writer.FlushAsync();
         }
-        private async Task SendProtocol()
-        {
-            Memory<byte> memory = _writer.GetMemory(8);
-            _protocol.CopyTo(memory);
-            _writer.Advance(8);
-            await _writer.FlushAsync();            
-        }
+        
+        
         private async ValueTask ProcessTuneAndOpen(ReadOnlySequence<byte> sequence)
         {
             var position = FrameDecoder.DecodeTuneMethodFrame(sequence, out RabbitMQInfo connectionInfo); // надо чтото сдеать с этим
@@ -88,6 +70,7 @@ namespace AMQP.Client.RabbitMQ.Methods
             await _writer.FlushAsync();
 
         }
+        */
 
     }
 }

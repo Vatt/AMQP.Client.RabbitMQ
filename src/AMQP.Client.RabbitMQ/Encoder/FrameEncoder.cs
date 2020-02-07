@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Info;
+using System;
 
 namespace AMQP.Client.RabbitMQ.Encoder
 {
@@ -6,7 +7,7 @@ namespace AMQP.Client.RabbitMQ.Encoder
     {
         public static int EncodeStartOkFrame(Memory<byte> destination, RabbitMQClientInfo clientInfo, RabbitMQConnectionInfo connInfo)
         {
-            ValueWriter encoder = new ValueWriter(destination);
+            ValueWriter1234567890 encoder = new ValueWriter1234567890(destination);
             int payloadSize = 0;
             encoder.SetPosition(7);
             payloadSize += EncodeMethodFrame(10, 11, ref encoder);
@@ -21,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Encoder
         }
         public static int EncodeTuneOKFrame(Memory<byte> destination, RabbitMQInfo connectionInfo)
         {
-            ValueWriter encoder = new ValueWriter(destination);
+            ValueWriter1234567890 encoder = new ValueWriter1234567890(destination);
             EncodeFrameHeader(1, 0, 12, ref encoder);
             EncodeMethodFrame(10, 31, ref encoder);
             encoder.WriteShortInt(connectionInfo.ChanellMax);
@@ -32,7 +33,7 @@ namespace AMQP.Client.RabbitMQ.Encoder
         }
         public static int EncodeOpenFrame(Memory<byte> destination, string vhost)
         {
-            ValueWriter encoder = new ValueWriter(destination);
+            ValueWriter1234567890 encoder = new ValueWriter1234567890(destination);
             EncodeFrameHeader(1, 0, 8, ref encoder);
             var payloadSize = EncodeMethodFrame(10, 40, ref encoder);
             payloadSize += encoder.WriteShortStr(vhost);
@@ -41,14 +42,14 @@ namespace AMQP.Client.RabbitMQ.Encoder
             encoder.WriteOctet(206);
             return 7 + payloadSize + 1;
         }
-        public static int EncodeFrameHeader(byte type, short chanell, int payloadSize, ref ValueWriter encoder)
+        public static int EncodeFrameHeader(byte type, short chanell, int payloadSize, ref ValueWriter1234567890 encoder)
         {
             encoder.WriteOctet(type);
             encoder.WriteShortInt(chanell);
             encoder.WriteLong(payloadSize);
             return 8;
         }
-        public static int EncodeMethodFrame(short classId,short methodId,ref ValueWriter encoder)
+        public static int EncodeMethodFrame(short classId,short methodId,ref ValueWriter1234567890 encoder)
         {
             encoder.WriteShortInt(classId);             
             encoder.WriteShortInt(methodId);             

@@ -2,27 +2,27 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ.Decoder
+namespace AMQP.Client.RabbitMQ.Protocol.ThrowHelpers
 {
-    internal class DecoderThrowHelper
+    internal class ReaderThrowHelper
     {
-        public static void  ThrowValueDecoderStringDecodeFailed()
+        public static void  ThrowIfValueDecoderStringDecodeFailed()
         {
             throw new Exception("ValueDecoder: string decode failed ");
         }
-        public static void ThrowValueDecoderUnrecognisedType()
+        public static void ThrowIfValueDecoderUnrecognisedType()
         {
             throw new ArgumentException("Unrecognised type");
         }
-        public static void ThrowFrameDecoderStartMethodDecodeFailed()
+        public static void ThrowIfFrameDecoderStartMethodDecodeFailed()
         {
             throw new Exception("FrameDecoder: start method decode failed");
         }
-        public static void ThrowFrameDecoderEndMarkerMissmatch()
+        public static void ThrowIfFrameDecoderEndMarkerMissmatch()
         {
             throw new Exception("FrameDecoder: end-marker missmatch");
         }
-        public static void ThrowFrameDecoderAMQPVersionMissmatch()
+        public static void ThrowIfFrameDecoderAMQPVersionMissmatch()
         {
             throw new Exception("FrameDecoder: AMQP version missmatch");
         }

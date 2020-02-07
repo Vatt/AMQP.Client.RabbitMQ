@@ -5,6 +5,16 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using Bedrock.Framework.Protocols;
 namespace AMQP.Client.RabbitMQ.Protocol
 {
+    /* 
+     *                                   Frame Structure
+     *                                   
+    0 byte 1  short  3        int       7                          PayloadSize+7    PayloadSize+8
+    +------+---------+------------------+-------------------------------+--------------+
+    | type | chanell |    PayloadSize   |            Payload            |  end-marker  |
+    +------+---------+------------------+-------------------------------+--------------+
+                                          ContetnFrame,MethodFrame,      const value 206
+                                          BodyFrame,Heartbeatframe,etc.                               
+    */
     public class FrameHeaderReader : IMessageReader<FrameHeader>
     {
         public FrameHeaderReader()
@@ -12,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         }
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out FrameHeader message)
         {
-            SequenceReader<byte> reader = new SequenceReader<byte>();
+            SequenceReader<byte> reader = new SequenceReader<byte>(input);
             message = default;
             //Frame header = byte + short + int
             if (reader.Remaining < 7)
@@ -25,7 +35,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
             message = new FrameHeader(type, chanell, payloadSize);
 
             consumed = reader.Position;
-            examined = reader.Position;
+            examined = consumed;
             return true;
 
         }

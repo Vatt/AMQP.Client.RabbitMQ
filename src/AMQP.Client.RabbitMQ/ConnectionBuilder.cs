@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using AMQP.Client.RabbitMQ.Protocol.Info;
 using System.Net;
-using System.Text;
 
 namespace AMQP.Client.RabbitMQ
 {

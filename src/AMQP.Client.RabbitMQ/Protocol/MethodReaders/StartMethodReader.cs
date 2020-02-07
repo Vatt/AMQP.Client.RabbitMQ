@@ -1,4 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+﻿using AMQP.Client.RabbitMQ.Protocol.Info;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
@@ -20,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
             if (!reader.ReadOctet(out var end_frame_marker)) { return false; }
             if (end_frame_marker != 206)
             {
-                ValueReaderThrowHelper.ThrowIfFrameDecoderEndMarkerMissmatch();
+                ReaderThrowHelper.ThrowIfFrameDecoderEndMarkerMissmatch();
             }
             message = new RabbitMQServerInfo(major, minor, tab, mechanisms, locales);
             consumed = reader.Position;

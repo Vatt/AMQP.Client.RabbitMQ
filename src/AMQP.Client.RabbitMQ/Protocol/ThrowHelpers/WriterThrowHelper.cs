@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ.Encoder
+namespace AMQP.Client.RabbitMQ.Protocol.ThrowHelpers
 {
-    internal class EncoderThrowHelper
+    internal class WriterThrowHelper
     {
-        public static void ThrowValueWriterOutOfRange()
+        public static void ThrowIfValueWriterOutOfRange()
         {
             throw new IndexOutOfRangeException("ValueWriter");
         }

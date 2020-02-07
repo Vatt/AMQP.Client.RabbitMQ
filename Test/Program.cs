@@ -1,5 +1,8 @@
 ﻿using AMQP.Client.RabbitMQ;
-using System.IO.Pipelines;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Info;
+using AMQP.Client.RabbitMQ.Protocol.MethodReaders;
+using System;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -7,13 +10,14 @@ namespace Test
 {
 
     class Program
-    {
-        
+    {        
         static async Task Main(string[] args)
         {
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(IPEndPoint.Parse("172.17.72.148:5672"));
+            var size = Unsafe.SizeOf<RabbitMQReader>();
+            var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
+            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                                    .Heartbeat(1)
+                                    .Heartbeat(60)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
                                     .ConnectionName("AMQP.Client.RabbitMQ:Test")

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -6,16 +7,16 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Encoder
 {
-    internal ref struct ValueWriter
+    internal ref struct ValueWriter1234567890
     {
         public  Memory<byte> _data;
         public int Position { get; private set; }
-        public ValueWriter(Memory<byte> memory)
+        public ValueWriter1234567890(Memory<byte> memory)
         {
             _data = memory;
             Position = 0;
         }
-        public ValueWriter(Memory<byte> memory, int startPosition)
+        public ValueWriter1234567890(Memory<byte> memory, int startPosition)
         {
             _data = memory;
             Position = startPosition;
@@ -37,12 +38,12 @@ namespace AMQP.Client.RabbitMQ.Encoder
             {
                 if (length > byte.MaxValue)
                 {
-                    EncoderThrowHelper.ThrowValueWriterOutOfRange();
+                    WriterThrowHelper.ThrowIfValueWriterOutOfRange();
                 }
             }
             if (Position + length > _data.Length)
             {
-                EncoderThrowHelper.ThrowValueWriterOutOfRange();
+                WriterThrowHelper.ThrowIfValueWriterOutOfRange();
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

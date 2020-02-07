@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ.Protocol
+namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
-    public ref struct ValueReader 
+    internal ref struct ValueReader 
     {
         private SequenceReader<byte> _reader;
         public SequencePosition Position => _reader.Position;
@@ -127,7 +127,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                     }
                 default:
                     {
-                        ValueReaderThrowHelper.ThrowIfValueDecoderUnrecognisedType();
+                        ReaderThrowHelper.ThrowIfValueDecoderUnrecognisedType();
                         return false;
                     }
             }

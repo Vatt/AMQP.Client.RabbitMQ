@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace AMQP.Client.RabbitMQ.Protocol
+namespace AMQP.Client.RabbitMQ.Protocol.Info
 {
     public struct RabbitMQClientInfo
     {
