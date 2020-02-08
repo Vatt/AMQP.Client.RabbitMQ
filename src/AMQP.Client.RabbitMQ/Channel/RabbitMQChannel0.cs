@@ -1,13 +1,11 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Info;
-using AMQP.Client.RabbitMQ.Protocol.MethodReaders;
-using AMQP.Client.RabbitMQ.Protocol.MethodWriters;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
@@ -23,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public RabbitMQMainInfo MainInfo { get; private set; }
 
         private bool _isOpen;
-        
+        private bool _started;
         private readonly short _channelId;
 
         public bool IsOpen => _isOpen;
@@ -41,6 +39,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _protocol = protocol;
             _channelId = 0;
             _isOpen = false;
+            _started = false;
         }
         public async ValueTask HandleAsync(FrameHeader header)
         {
@@ -87,6 +86,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 10 when method.MethodId == 41:
                     {
                         _isOpen = await ReadOpenOkAsync();
+                        _started = true;
                         break;
                     }
 
@@ -155,7 +155,8 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask<bool> TryOpenChannelAsync()
         {
             await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg);
-            return true;
+            await Task.Run(() => { while (!_started) { } });
+            return _isOpen;
         }
 
         public async ValueTask<bool> TryCloseChannelAsync()

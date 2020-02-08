@@ -1,8 +1,8 @@
 ﻿using AMQP.Client.RabbitMQ;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
-using AMQP.Client.RabbitMQ.Protocol.MethodReaders;
-using AMQP.Client.RabbitMQ.Protocol.MethodWriters;
+using AMQP.Client.RabbitMQ.Protocol.Methods;
+
 using Microsoft.AspNetCore.Connections;
 using System;
 using System.Net;
@@ -15,7 +15,6 @@ namespace Test
     {        
         static async Task Main(string[] args)
         {
-            //var size = Unsafe.SizeOf<ConnectionContext>();
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
@@ -27,6 +26,9 @@ namespace Test
                                     .ClientCopyright("©")
                                     .Build();
             await connection.StartAsync();
+            //await Task.Delay(1000);
+            var channel = await connection.CreateChannel();
+            connection.WaitEndReading();//for testing
         }
     }
 

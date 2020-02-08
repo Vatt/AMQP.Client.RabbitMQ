@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ.Protocol.MethodWriters
+namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
     internal class FrameWriter
     {

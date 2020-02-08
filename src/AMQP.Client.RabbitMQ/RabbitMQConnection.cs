@@ -22,9 +22,11 @@ namespace AMQP.Client.RabbitMQ
         
         private readonly object _lockObj = new object();
         private CancellationToken _connectionClosed;
+        private CancellationTokenSource _cts;
         private ConnectionContext _context;
         public readonly EndPoint RemoteEndPoint;
         public IDuplexPipe Transport => _context.Transport;
+        private Task _readingTask;
         private RabbitMQProtocol _protocol;
         private Heartbeat _heartbeat;
         public RabbitMQServerInfo ServerInfo => Channel0.ServerInfo;
@@ -32,63 +34,86 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
 
         private RabbitMQChannel0 Channel0;
-        private RabbitMQChannelsHandler _channels;
+        private RabbitMQChannelManager _channels;
         private readonly RabbitMQConnectionBuilder _builder;
         public RabbitMQConnection(RabbitMQConnectionBuilder builder)
         {
             RemoteEndPoint = builder?.Endpoint;
             _builder = builder;
-            
+            _cts = new CancellationTokenSource();
         }
         
         public async Task StartAsync()
         {
-            _context = await _client.ConnectAsync(RemoteEndPoint, _connectionClosed);
-            _connectionClosed = _context.ConnectionClosed;
+            _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token);
+            _connectionClosed = _cts.Token;
             _protocol = new RabbitMQProtocol(_context);
-            Channel0 = new RabbitMQChannel0(_builder, _protocol);            
-            _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _connectionClosed);
-            bool started = await Channel0.TryOpenChannelAsync();
-            _channels = new RabbitMQChannelsHandler(_protocol,MainInfo.ChannelMax);
-            await StartReading();
+            Channel0 = new RabbitMQChannel0(_builder, _protocol);
+
+            _readingTask = StartReading();
+            bool openned = await Channel0.TryOpenChannelAsync();
+            if(!openned)
+            {
+                _context.Abort();
+                _cts.Cancel();
+                return;
+            }
+            _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _cts.Token);
+            _channels = new RabbitMQChannelManager(_protocol, MainInfo.ChannelMax);
+
         }
         private async Task StartReading()
         {
+
             var headerReader = new FrameHeaderReader();
-            while (true)
+            try
             {
-                var result = await _protocol.Reader.ReadAsync(headerReader, _connectionClosed);
-                _protocol.Reader.Advance();
-                if (result.IsCompleted)
+                while (true)
                 {
-                    break;
-                }
-                var header = result.Message;
-                switch (header.FrameType)
-                {
-                    case 1:
-                        {
-                            if(header.Chanell == 0)
+                    var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token);
+                    _protocol.Reader.Advance();
+                    if (result.IsCompleted)
+                    {
+                        break;
+                    }
+                    var header = result.Message;
+                    switch (header.FrameType)
+                    {
+                        case 1:
                             {
-                                await Channel0.HandleAsync(header);
+                                if (header.Chanell == 0)
+                                {
+                                    await Channel0.HandleAsync(header);
+                                    break;
+                                }
+                                await _channels.HandleFrameAsync(header);
                                 break;
                             }
-                            await _channels.HandleFrameAsync(header);
-                            break;
-                        }
-                    case 59:
-                        {
-                            Debug.Assert(false);
-                            break;
-                        }
-                    /*case 8:
-                        {
-                            break;
-                        }
-                        */
-                    default: throw new Exception($"Frame type missmatch:{header.FrameType}");
+                        case 59:
+                            {
+                                Debug.Assert(false);
+                                break;
+                            }
+                        /*case 8:
+                            {
+                                break;
+                            }
+                            */
+                        default: throw new Exception($"Frame type missmatch:{header.FrameType}");
+                    }
                 }
+            }catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+                _cts.Cancel();
+                _context.Abort();
+                return;
             }
+        }
+        public async ValueTask<IRabbitMQChannel> CreateChannel()
+        {
+            return await _channels.CreateChannel();
         }
         private void StartMethodSuccess()
         {            
@@ -98,8 +123,13 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask CloseConnection()
         {
             _context.Abort();
+            _cts.Cancel();
             //await _protocol.DisposeAsync();
 
+        }
+        public void WaitEndReading()
+        {
+            Task.WaitAll(_readingTask);
         }
     }
 }

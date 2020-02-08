@@ -5,7 +5,7 @@ using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
 
-namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
+namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
     public class ConnectionStartReader : IMessageReader<RabbitMQServerInfo>
     {

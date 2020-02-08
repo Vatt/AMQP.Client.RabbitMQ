@@ -3,7 +3,7 @@ using AMQP.Client.RabbitMQ.Protocol.Internal;
 using Bedrock.Framework.Protocols;
 using System.Buffers;
 
-namespace AMQP.Client.RabbitMQ.Protocol.MethodWriters
+namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
     /* 
      *               Tune method frame

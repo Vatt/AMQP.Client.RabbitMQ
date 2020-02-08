@@ -4,7 +4,7 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 
-namespace AMQP.Client.RabbitMQ.Protocol.MethodWriters
+namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
     public class ConnectionOpenWriter : IMessageWriter<string>
     {
