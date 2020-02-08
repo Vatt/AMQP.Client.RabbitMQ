@@ -7,6 +7,14 @@ using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
 {
+ /* 
+  *               Tune method frame
+  * 
+  * 0             2           6           8
+  * +-------------+-----------+-----------+
+  * | channel-max | frame-max | heartbeat |
+  * +-------------+-----------+-----------+
+  */
     public class ConnectionTuneReader:IMessageReader<RabbitMQMainInfo>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQMainInfo message)

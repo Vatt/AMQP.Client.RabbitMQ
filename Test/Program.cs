@@ -2,6 +2,7 @@
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
 using AMQP.Client.RabbitMQ.Protocol.MethodReaders;
+using AMQP.Client.RabbitMQ.Protocol.MethodWriters;
 using Microsoft.AspNetCore.Connections;
 using System;
 using System.Net;

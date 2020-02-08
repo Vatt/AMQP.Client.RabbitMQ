@@ -6,17 +6,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.ThrowHelpers
 {
     internal class ReaderThrowHelper
     {
-        public static void  ThrowIfValueDecoderStringDecodeFailed()
-        {
-            throw new Exception("ValueDecoder: string decode failed ");
-        }
         public static void ThrowIfValueDecoderUnrecognisedType()
         {
             throw new ArgumentException("Unrecognised type");
-        }
-        public static void ThrowIfFrameDecoderStartMethodDecodeFailed()
-        {
-            throw new Exception("FrameDecoder: start method decode failed");
         }
         public static void ThrowIfFrameDecoderEndMarkerMissmatch()
         {

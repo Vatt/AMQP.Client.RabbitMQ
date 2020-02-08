@@ -10,6 +10,7 @@ using System;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
 using AMQP.Client.RabbitMQ.Channel;
+using System.Diagnostics;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -31,7 +32,7 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
 
         private RabbitMQChannel0 Channel0;
-        private RabbitMQChannelHandler _channels;
+        private RabbitMQChannelsHandler _channels;
         private readonly RabbitMQConnectionBuilder _builder;
         public RabbitMQConnection(RabbitMQConnectionBuilder builder)
         {
@@ -45,11 +46,10 @@ namespace AMQP.Client.RabbitMQ
             _context = await _client.ConnectAsync(RemoteEndPoint, _connectionClosed);
             _connectionClosed = _context.ConnectionClosed;
             _protocol = new RabbitMQProtocol(_context);
-            Channel0 = new RabbitMQChannel0(_builder, _protocol);
-            _channels = new RabbitMQChannelHandler(_protocol);
-            _channels.Channel0 = Channel0;
+            Channel0 = new RabbitMQChannel0(_builder, _protocol);            
             _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _connectionClosed);
             bool started = await Channel0.TryOpenChannelAsync();
+            _channels = new RabbitMQChannelsHandler(_protocol,MainInfo.ChannelMax);
             await StartReading();
         }
         private async Task StartReading()
@@ -57,17 +57,28 @@ namespace AMQP.Client.RabbitMQ
             var headerReader = new FrameHeaderReader();
             while (true)
             {
-                var header = await _protocol.Reader.ReadAsync(headerReader, _connectionClosed);
+                var result = await _protocol.Reader.ReadAsync(headerReader, _connectionClosed);
                 _protocol.Reader.Advance();
-                if (header.IsCompleted)
+                if (result.IsCompleted)
                 {
                     break;
                 }
-                switch (header.Message.FrameType)
+                var header = result.Message;
+                switch (header.FrameType)
                 {
                     case 1:
                         {
-                            await _channels.HandleFrameAsync(header.Message);
+                            if(header.Chanell == 0)
+                            {
+                                await Channel0.HandleAsync(header);
+                                break;
+                            }
+                            await _channels.HandleFrameAsync(header);
+                            break;
+                        }
+                    case 59:
+                        {
+                            Debug.Assert(false);
                             break;
                         }
                     /*case 8:
@@ -75,7 +86,7 @@ namespace AMQP.Client.RabbitMQ
                             break;
                         }
                         */
-                    default: throw new Exception($"Frame type missmatch:{header.Message.FrameType}");
+                    default: throw new Exception($"Frame type missmatch:{header.FrameType}");
                 }
             }
         }

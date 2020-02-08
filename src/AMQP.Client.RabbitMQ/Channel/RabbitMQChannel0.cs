@@ -14,28 +14,37 @@ namespace AMQP.Client.RabbitMQ.Channel
     /*
      * Zero channel is service channel 
      */
-    public class RabbitMQChannel0 : RabbitMQChannelBase
+    public class RabbitMQChannel0 : IRabbitMQChannel
     {
         private static readonly byte[] _protocolMsg = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
         public RabbitMQServerInfo ServerInfo { get; private set; }
         public RabbitMQClientInfo ClientInfo { get; private set; }
-        private RabbitMQMainInfo _mainInfo;
-        public RabbitMQMainInfo MainInfo => _mainInfo;
 
-        public override bool IsOpen => false;
+        public RabbitMQMainInfo MainInfo { get; private set; }
+
+        private bool _isOpen;
+        
+        private readonly short _channelId;
+
+        public bool IsOpen => _isOpen;
+        public short ChannelId => _channelId;
 
         private readonly RabbitMQConnectionInfo _connectionInfo;
         private readonly RabbitMQProtocol _protocol;
-        public RabbitMQChannel0(RabbitMQConnectionBuilder builder, RabbitMQProtocol protocol) :base(0)
+        
+
+        public RabbitMQChannel0(RabbitMQConnectionBuilder builder, RabbitMQProtocol protocol)
         {
-            _mainInfo = builder.MainInfo;
+            MainInfo = builder.MainInfo;
             ClientInfo = builder.ClientInfo;
             _connectionInfo = builder.ConnInfo;
             _protocol = protocol;
+            _channelId = 0;
+            _isOpen = false;
         }
-        public override async ValueTask HandleFrameAsync(FrameHeader header)
+        public async ValueTask HandleAsync(FrameHeader header)
         {
-            Debug.Assert(this.Id == header.Chanell);
+            Debug.Assert(_channelId == header.Chanell);
             switch (header.FrameType)
             {
                 case 1:
@@ -63,19 +72,26 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 10 when method.MethodId == 10:
                     {
-                        await ReadStartMethodAsync();
+                        ServerInfo = await ReadStartsync();
                         await SendStartOk();
                         break;
                     }
-                
+
                 case 10 when method.MethodId == 30:
                     {
-                        await ReadTuneMethodAsync();
+                        MainInfo = await ReadTuneMethodAsync();
+                        await SendTuneOk();
+                        await SendOpen();
                         break;
                     }
-                
+                case 10 when method.MethodId == 41:
+                    {
+                        _isOpen = await ReadOpenOkAsync();
+                        break;
+                    }
+
                 default:
-                    throw new Exception($"{nameof(RabbitMQChannel0)}:cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId}");
+                    throw new Exception($"{nameof(RabbitMQChannel0)}:cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
 
             }
         }
@@ -84,44 +100,68 @@ namespace AMQP.Client.RabbitMQ.Channel
             var startok = new ConnectionStartOkWriter(_connectionInfo);
             await _protocol.Writer.WriteAsync(startok, ClientInfo);
         }
-        private async ValueTask ReadStartMethodAsync()
+        private async ValueTask SendTuneOk()
+        {
+            var tuneok = new ConnectionTuneOkWriter();
+            await _protocol.Writer.WriteAsync(tuneok, MainInfo);
+        }
+        private async ValueTask SendOpen()
+        {
+            var open = new ConnectionOpenWriter();
+            await _protocol.Writer.WriteAsync(open, _connectionInfo.VHost);
+        }
+        private async ValueTask<RabbitMQServerInfo> ReadStartsync()
         {
             var result = await _protocol.Reader.ReadAsync(new ConnectionStartReader());
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь
             }
-            ServerInfo = result.Message;
             _protocol.Reader.Advance();
+            return result.Message;
         }
-        private async ValueTask ReadTuneMethodAsync()
+        private async ValueTask<RabbitMQMainInfo> ReadTuneMethodAsync()
         {
-            var result =  await _protocol.Reader.ReadAsync(new ConnectionTuneReader());
+            var result = await _protocol.Reader.ReadAsync(new ConnectionTuneReader());
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь
             }
             _protocol.Reader.Advance();
             var info = result.Message;
-            if ((_mainInfo.ChanellMax > info.ChanellMax) || (_mainInfo.ChanellMax == 0 && info.ChanellMax != 0))
+            var mainInfo = MainInfo;
+            if ((mainInfo.ChannelMax > info.ChannelMax) || (mainInfo.ChannelMax == 0 && info.ChannelMax != 0))
             {
-                _mainInfo.ChanellMax = info.ChanellMax;
+                mainInfo.ChannelMax = info.ChannelMax;
             }
             if (MainInfo.FrameMax > info.FrameMax)
             {
-                _mainInfo.FrameMax = info.FrameMax;
+                mainInfo.FrameMax = info.FrameMax;
             }
+            return mainInfo;
         }
-        public override async ValueTask<bool> TryOpenChannelAsync()
+        private async ValueTask<bool> ReadOpenOkAsync()
+        {
+            var result = await _protocol.Reader.ReadAsync(new ConnectionOpenOkReader());
+            if (result.IsCompleted)
+            {
+                //TODO: сделать чтонибудь
+            }
+            var isOpen = result.Message;
+            _protocol.Reader.Advance();
+            return isOpen;
+
+        }
+        public async ValueTask<bool> TryOpenChannelAsync()
         {
             await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg);
             return true;
         }
 
-        public override ValueTask<bool> TryCloseChannelAsync()
+        public async ValueTask<bool> TryCloseChannelAsync()
         {
             //тиснуть сюда Close, CloseOK методы
-            return default; ;
+            return default;
         }
     }
 }
