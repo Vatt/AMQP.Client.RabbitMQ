@@ -6,6 +6,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
 {
     public class RabbitMQChannelReader
     {
-        //Qos,Publish, Deliveri, ChanelOpen,ChannelClose helpers
+        
     }
 }
