@@ -1,19 +1,19 @@
 ﻿namespace AMQP.Client.RabbitMQ.Protocol.Info
 {
-    public struct RabbitMQInfo
+    public struct RabbitMQMainInfo
     {
         public short ChanellMax;
         public int FrameMax;
         public short Heartbeat;
-        public RabbitMQInfo(short chanellMax,int frameMax, short heartbeat)
+        public RabbitMQMainInfo(short chanellMax,int frameMax, short heartbeat)
         {
             ChanellMax = chanellMax;
             FrameMax = frameMax;
             Heartbeat = heartbeat;
         }
-        public static RabbitMQInfo DefaultConnectionInfo()
+        public static RabbitMQMainInfo DefaultConnectionInfo()
         {
-            return new RabbitMQInfo(2047, 131072, 60);
+            return new RabbitMQMainInfo(2047, 131072, 60);
         }
 
     }

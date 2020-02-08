@@ -4,7 +4,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
 {
-    public class OpenOkMethodReader : IMessageReader<bool>
+    public class ConnectionOpenOkReader : IMessageReader<bool>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
         {

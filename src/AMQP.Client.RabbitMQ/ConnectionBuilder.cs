@@ -7,13 +7,13 @@ namespace AMQP.Client.RabbitMQ
     {
         public RabbitMQConnectionInfo ConnInfo;
         public RabbitMQClientInfo ClientInfo;
-        public RabbitMQInfo Info;
+        public RabbitMQMainInfo MainInfo;
         public IPEndPoint Endpoint;
         public RabbitMQConnectionBuilder(IPEndPoint endpoint)
         {
             ConnInfo = RabbitMQConnectionInfo.DefaultConnectionInfo();
             ClientInfo = RabbitMQClientInfo.DefaultClientInfo();
-            Info = RabbitMQInfo.DefaultConnectionInfo();
+            MainInfo = RabbitMQMainInfo.DefaultConnectionInfo();
             Endpoint = endpoint;
         }
         public RabbitMQConnectionBuilder ConnectionInfo(string user, string password, string host)
@@ -23,17 +23,17 @@ namespace AMQP.Client.RabbitMQ
         }
         public RabbitMQConnectionBuilder ChanellMax(short chanellMax)
         {
-            Info.ChanellMax = chanellMax;
+            MainInfo.ChanellMax = chanellMax;
             return this;
         }
         public RabbitMQConnectionBuilder FrameMax(int frameMax)
         {
-            Info.FrameMax = frameMax;
+            MainInfo.FrameMax = frameMax;
             return this;
         }
         public RabbitMQConnectionBuilder Heartbeat(short heartbeat)
         {
-            Info.Heartbeat = heartbeat;
+            MainInfo.Heartbeat = heartbeat;
             return this;
         }
         public RabbitMQConnectionBuilder ConnectionName(string name)

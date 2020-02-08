@@ -7,9 +7,9 @@ using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
 {
-    public class TuneMethodReader:IMessageReader<RabbitMQInfo>
+    public class ConnectionTuneReader:IMessageReader<RabbitMQMainInfo>
     {
-        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQInfo message)
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQMainInfo message)
         {
             message = default;
             ValueReader reader = new ValueReader(input);
@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
             {
                 ReaderThrowHelper.ThrowIfFrameDecoderEndMarkerMissmatch();
             }
-            message = new RabbitMQInfo(chanellMax, frameMax, heartbeat);
+            message = new RabbitMQMainInfo(chanellMax, frameMax, heartbeat);
             consumed = reader.Position;
             examined = reader.Position;
             return true;

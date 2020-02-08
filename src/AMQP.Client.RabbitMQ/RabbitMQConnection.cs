@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
-using AMQP.Client.RabbitMQ.Chanell;
+using AMQP.Client.RabbitMQ.Channel;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -20,75 +20,74 @@ namespace AMQP.Client.RabbitMQ
                                                                     .Build();
         
         private readonly object _lockObj = new object();
-        private readonly CancellationTokenSource _connectionCloseTokenSource = new CancellationTokenSource();
-        private readonly CancellationToken ConnectionClosed;
+        private CancellationToken _connectionClosed;
         private ConnectionContext _context;
         public readonly EndPoint RemoteEndPoint;
         public IDuplexPipe Transport => _context.Transport;
-        private RabbitMQReader _reader;
-        private RabbitMQWriter _writer;
+        private RabbitMQProtocol _protocol;
         private Heartbeat _heartbeat;
-        private RabbitMQInfo _info;
-        public RabbitMQServerInfo ServerInfo { get; private set; }
-        public RabbitMQInfo Info => _info;
-        public RabbitMQClientInfo ClientInfo { get; private set; }
-        
-        private readonly RabbitMQConnectionInfo _connectionInfo;
-        public readonly RabbitMQChanell Chanell0;
+        public RabbitMQServerInfo ServerInfo => Channel0.ServerInfo;
+        public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
+        public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
+
+        private RabbitMQChannel0 Channel0;
+        private RabbitMQChannelHandler _channels;
+        private readonly RabbitMQConnectionBuilder _builder;
         public RabbitMQConnection(RabbitMQConnectionBuilder builder)
         {
             RemoteEndPoint = builder?.Endpoint;
-            _info = builder.Info;
-            ClientInfo = builder.ClientInfo;
-            _connectionInfo = builder.ConnInfo;
-            ConnectionClosed = _connectionCloseTokenSource.Token;
-            //Chanell0 = new RabbitMQChanell(0);
+            _builder = builder;
+            
         }
         
         public async Task StartAsync()
         {
-            _context = await _client.ConnectAsync(RemoteEndPoint, _connectionCloseTokenSource.Token);
-            _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(Info.Heartbeat), _connectionCloseTokenSource.Token);
-            _reader = new RabbitMQReader(Transport.Input, _connectionCloseTokenSource.Token);
-            _writer = new RabbitMQWriter(Transport.Output, _connectionCloseTokenSource.Token);
-            _reader.OnServerInfoReaded = ServerInfoReceived;
-            _reader.OnInfoReaded = InfoReceived;
-            StartMethod start = new StartMethod(_writer);
-            await start.RunAsync();
-            await _reader.StartReading();
+            _context = await _client.ConnectAsync(RemoteEndPoint, _connectionClosed);
+            _connectionClosed = _context.ConnectionClosed;
+            _protocol = new RabbitMQProtocol(_context);
+            Channel0 = new RabbitMQChannel0(_builder, _protocol);
+            _channels = new RabbitMQChannelHandler(_protocol);
+            _channels.Channel0 = Channel0;
+            _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _connectionClosed);
+            bool started = await Channel0.TryOpenChannelAsync();
+            await StartReading();
         }
-        private async ValueTask ServerInfoReceived(RabbitMQServerInfo info)
+        private async Task StartReading()
         {
-            ServerInfo = info;
-            _writer.WriteStartOk(ClientInfo,_connectionInfo);            
-            await _writer.FlushAsync();
-            var test = _writer.Test();
-        }
-        private ValueTask InfoReceived(RabbitMQInfo info)
-        {
-            if ( (_info.ChanellMax > info.ChanellMax) || (_info.ChanellMax == 0 && info.ChanellMax != 0) )
+            var headerReader = new FrameHeaderReader();
+            while (true)
             {
-                _info.ChanellMax = info.ChanellMax;
+                var header = await _protocol.Reader.ReadAsync(headerReader, _connectionClosed);
+                _protocol.Reader.Advance();
+                if (header.IsCompleted)
+                {
+                    break;
+                }
+                switch (header.Message.FrameType)
+                {
+                    case 1:
+                        {
+                            await _channels.HandleFrameAsync(header.Message);
+                            break;
+                        }
+                    /*case 8:
+                        {
+                            break;
+                        }
+                        */
+                    default: throw new Exception($"Frame type missmatch:{header.Message.FrameType}");
+                }
             }
-            if (_info.FrameMax > info.FrameMax)
-            {
-                _info.FrameMax = info.FrameMax;
-            }
-            return default;
         }
         private void StartMethodSuccess()
         {            
             _heartbeat.StartAsync();
         }
 
-        public void CloseConnection()
+        public async ValueTask CloseConnection()
         {
-            lock (_lockObj)
-            {
-                _connectionCloseTokenSource.Cancel();
-                _context.Abort();
-                _connectionCloseTokenSource.Dispose();
-            }
+            _context.Abort();
+            //await _protocol.DisposeAsync();
 
         }
     }

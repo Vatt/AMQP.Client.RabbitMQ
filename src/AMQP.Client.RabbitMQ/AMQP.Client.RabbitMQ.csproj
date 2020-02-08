@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <PackageReference Include="Bedrock.Framework" Version="0.1.53-alpha.gfd6085c54f" />
-    <PackageReference Include="Bedrock.Framework.Experimental" Version="0.1.53-alpha.gfd6085c54f" />
   </ItemGroup>
 
   <ItemGroup>

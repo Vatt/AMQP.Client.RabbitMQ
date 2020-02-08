@@ -2,6 +2,7 @@
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
 using AMQP.Client.RabbitMQ.Protocol.MethodReaders;
+using Microsoft.AspNetCore.Connections;
 using System;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -13,7 +14,7 @@ namespace Test
     {        
         static async Task Main(string[] args)
         {
-            var size = Unsafe.SizeOf<RabbitMQReader>();
+            //var size = Unsafe.SizeOf<ConnectionContext>();
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")

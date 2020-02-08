@@ -7,7 +7,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.MethodReaders
 {
-    public class StartMethodReader : IMessageReader<RabbitMQServerInfo>
+    public class ConnectionStartReader : IMessageReader<RabbitMQServerInfo>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQServerInfo message)
         {
