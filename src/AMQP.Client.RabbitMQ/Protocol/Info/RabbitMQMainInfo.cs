@@ -2,12 +2,12 @@
 {
     public struct RabbitMQMainInfo
     {
-        public short ChanellMax;
+        public short ChannelMax;
         public int FrameMax;
         public short Heartbeat;
         public RabbitMQMainInfo(short chanellMax,int frameMax, short heartbeat)
         {
-            ChanellMax = chanellMax;
+            ChannelMax = chanellMax;
             FrameMax = frameMax;
             Heartbeat = heartbeat;
         }

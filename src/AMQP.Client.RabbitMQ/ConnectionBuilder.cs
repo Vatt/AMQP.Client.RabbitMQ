@@ -23,7 +23,7 @@ namespace AMQP.Client.RabbitMQ
         }
         public RabbitMQConnectionBuilder ChanellMax(short chanellMax)
         {
-            MainInfo.ChanellMax = chanellMax;
+            MainInfo.ChannelMax = chanellMax;
             return this;
         }
         public RabbitMQConnectionBuilder FrameMax(int frameMax)
