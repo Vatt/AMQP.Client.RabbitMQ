@@ -27,7 +27,7 @@ namespace AMQP.Client.RabbitMQ.Methods
         }
         public Task StartAsync()
         {
-            _timer = new Timer(async (_) => { TickHeartbeat(); }, this, 0, _tick.Ticks);
+            _timer = new Timer(async (_) => { await TickHeartbeat(); }, this, 0, _tick.Ticks);
             return default;
         }
         public void OnHeartbeat(ReadOnlySequence<byte> sequence)

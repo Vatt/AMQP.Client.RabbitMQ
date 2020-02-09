@@ -11,7 +11,7 @@ using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
 using AMQP.Client.RabbitMQ.Channel;
 using System.Diagnostics;
-using System.Net.Sockets;
+using AMQP.Client.RabbitMQ.Protocol.Methods;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -24,6 +24,7 @@ namespace AMQP.Client.RabbitMQ
         private readonly object _lockObj = new object();
         private CancellationToken _connectionClosed;
         private CancellationTokenSource _cts;
+        private TaskCompletionSource<bool> _endReading;
         private ConnectionContext _context;
         public readonly EndPoint RemoteEndPoint;
         public IDuplexPipe Transport => _context.Transport;
@@ -42,6 +43,7 @@ namespace AMQP.Client.RabbitMQ
             RemoteEndPoint = builder?.Endpoint;
             _builder = builder;
             _cts = new CancellationTokenSource();
+            _endReading = new TaskCompletionSource<bool>();
         }
         
         public async Task StartAsync()
@@ -60,6 +62,7 @@ namespace AMQP.Client.RabbitMQ
                 return;
             }
             _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _cts.Token);
+            _heartbeat.StartAsync();
             _channels = new RabbitMQChannelManager(_protocol, MainInfo.ChannelMax);
 
         }
@@ -67,40 +70,47 @@ namespace AMQP.Client.RabbitMQ
         {
 
             var headerReader = new FrameHeaderReader();
-            while (true)
+            try
             {
-                var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token);
-                _protocol.Reader.Advance();
-                if (result.IsCompleted)
+                while (true)
                 {
-                    break;
-                }
-                var header = result.Message;
-                Debug.WriteLine($"{header.FrameType} {header.Chanell} {header.PaylodaSize}");
-                switch (header.FrameType)
-                {
-                    case 1:
-                        {
-                            if (header.Chanell == 0)
+                    var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token);
+                    _protocol.Reader.Advance();
+                    if (result.IsCompleted)
+                    {
+                        break;
+                    }
+                    var header = result.Message;
+                    Debug.WriteLine($"{header.FrameType} {header.Chanell} {header.PaylodaSize}");
+                    switch (header.FrameType)
+                    {
+                        case 1:
                             {
-                                await Channel0.HandleAsync(header);
+                                if (header.Chanell == 0)
+                                {
+                                    await Channel0.HandleAsync(header);
+                                    break;
+                                }
+                                await _channels.HandleFrameAsync(header);
                                 break;
                             }
-                            await _channels.HandleFrameAsync(header);
-                            break;
-                        }
-                    /*case 59:
-                        {
-
-                            break;
-                        }
-                    case 8:
-                        {
-                            break;
-                        }
-                        */
-                    default: throw new Exception($"Frame type missmatch:{header.FrameType}");
+                        case 8:
+                            {
+                                await _protocol.Reader.ReadAsync(new HeartbeatReader());
+                                _protocol.Reader.Advance();
+                                break;
+                            }
+                            
+                        default: throw new Exception($"Frame type missmatch:{header.FrameType}");
+                    }
                 }
+            }catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+                _context.Abort();
+                _cts.Cancel();
+                _endReading.SetResult(false);
             }
   
         }
@@ -108,20 +118,17 @@ namespace AMQP.Client.RabbitMQ
         {
             return await _channels.CreateChannel();
         }
-        private void StartMethodSuccess()
-        {            
-            _heartbeat.StartAsync();
-        }
 
         public async ValueTask CloseConnectionAsync()
         {
             _context.Abort();
-            _cts.Cancel();        
-            
+            _cts.Cancel();
+            _endReading.SetResult(false);
+
         }
-        public void WaitEndReading()
+        public async Task WaitEndReading()
         {
-            Task.WaitAll(_readingTask);
+            await _endReading.Task;
         }
     }
 }

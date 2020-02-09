@@ -7,27 +7,20 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods
 {
-    public class HeartbeatReader : IMessageReader<bool>
+    public class CloseOkReader : IMessageReader<bool>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
         {
-            if (input.Length < 8)
-            {
-                message = false;
-                return false;
-            }
-            var reader = new SequenceReader<byte>(input);
-            reader.Advance(8);
+            SequenceReader<byte> reader = new SequenceReader<byte>(input);
             reader.TryRead(out byte endMarker);
-            if (endMarker != 206)
+            if(endMarker != 206)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
-            message = true;
             consumed = reader.Position;
             examined = consumed;
+            message = true;
             return true;
-
         }
     }
 }

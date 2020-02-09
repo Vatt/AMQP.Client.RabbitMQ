@@ -1,8 +1,8 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
@@ -10,12 +10,12 @@ namespace AMQP.Client.RabbitMQ.Channel
     internal class RabbitMQChannelManager
     {
         private static short _channelId = 0; //Interlocked?
-        private readonly Dictionary<short, IRabbitMQChannel> _channels;
+        private readonly ConcurrentDictionary<short, IRabbitMQChannel> _channels;
         private RabbitMQProtocol _protocol;
         private short _maxChannels;
         public RabbitMQChannelManager(RabbitMQProtocol protocol, short maxChannels)
         {
-            _channels = new Dictionary<short, IRabbitMQChannel>();
+            _channels = new ConcurrentDictionary<short, IRabbitMQChannel>();
             _protocol = protocol;
             _maxChannels = maxChannels;
         }
@@ -34,15 +34,29 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 return default;
             }
-            var channel = new RabbitMQChannel(_protocol,id);
+            var channel = new RabbitMQDefaultChannel(_protocol,id, CloseChannelPrivate);
             _channels[id] = channel;
             var openned = await channel.TryOpenChannelAsync();
             if(!openned)
             {
-                _channels.Remove(id);
+                if(!_channels.TryRemove(id,out IRabbitMQChannel _))
+                {
+                    //TODO: сделать что нибудь
+                }
                 return default;
             }
             return channel;
+        }
+        private void CloseChannelPrivate(short id)
+        {
+            if (!_channels.TryRemove(id, out IRabbitMQChannel channel))
+            {
+                //TODO: сделать что нибудь
+            }
+            if (channel != null && channel.IsOpen)
+            {
+                //TODO: сделать что нибудь
+            }
         }
     }
 }

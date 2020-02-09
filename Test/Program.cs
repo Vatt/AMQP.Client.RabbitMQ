@@ -31,7 +31,8 @@ namespace Test
 
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            connection.WaitEndReading();//for testing
+            await channel.TryCloseChannelAsync("Channel closing test");
+            await connection.WaitEndReading();//for testing
         }
 
     }

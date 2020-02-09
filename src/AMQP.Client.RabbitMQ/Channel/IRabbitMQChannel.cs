@@ -1,7 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using AMQP.Client.RabbitMQ.Protocol.Info;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
@@ -13,6 +11,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         ValueTask HandleAsync(FrameHeader header);
         Task<bool> TryOpenChannelAsync();
-        Task<bool> TryCloseChannelAsync();
+        Task<bool> TryCloseChannelAsync(string reason);
+        Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
     }
 }
