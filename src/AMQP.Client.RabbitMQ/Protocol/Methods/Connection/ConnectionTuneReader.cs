@@ -27,7 +27,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
             if (!reader.ReadOctet(out var end_frame_marker)) { return false; }
             if (end_frame_marker != 206)
             {
-                ReaderThrowHelper.ThrowIfFrameDecoderEndMarkerMissmatch();
+                ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
             message = new RabbitMQMainInfo(chanellMax, frameMax, heartbeat);
             consumed = reader.Position;

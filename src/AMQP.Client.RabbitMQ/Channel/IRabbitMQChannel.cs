@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public bool IsOpen { get; }
 
         ValueTask HandleAsync(FrameHeader header);
-        ValueTask<bool> TryOpenChannelAsync();
-        ValueTask<bool> TryCloseChannelAsync();
+        Task<bool> TryOpenChannelAsync();
+        Task<bool> TryCloseChannelAsync();
     }
 }

@@ -127,7 +127,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                     }
                 default:
                     {
-                        ReaderThrowHelper.ThrowIfValueDecoderUnrecognisedType();
+                        ReaderThrowHelper.ThrowIfUnrecognisedType();
                         return false;
                     }
             }

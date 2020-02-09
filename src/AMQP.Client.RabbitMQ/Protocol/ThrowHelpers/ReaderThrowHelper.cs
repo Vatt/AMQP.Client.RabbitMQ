@@ -6,17 +6,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.ThrowHelpers
 {
     internal class ReaderThrowHelper
     {
-        public static void ThrowIfValueDecoderUnrecognisedType()
+        public static void ThrowIfUnrecognisedType()
         {
             throw new ArgumentException("Unrecognised type");
         }
-        public static void ThrowIfFrameDecoderEndMarkerMissmatch()
+        public static void ThrowIfEndMarkerMissmatch()
         {
-            throw new Exception("FrameDecoder: end-marker missmatch");
+            throw new Exception("End-marker missmatch");
         }
-        public static void ThrowIfFrameDecoderAMQPVersionMissmatch()
+        public static void ThrowIfAMQPVersionMissmatch()
         {
-            throw new Exception("FrameDecoder: AMQP version missmatch");
+            throw new Exception("AMQP version missmatch");
         }
     }
 }

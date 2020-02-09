@@ -11,6 +11,7 @@ using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Info;
 using AMQP.Client.RabbitMQ.Channel;
 using System.Diagnostics;
+using System.Net.Sockets;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -66,50 +67,42 @@ namespace AMQP.Client.RabbitMQ
         {
 
             var headerReader = new FrameHeaderReader();
-            try
+            while (true)
             {
-                while (true)
+                var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token);
+                _protocol.Reader.Advance();
+                if (result.IsCompleted)
                 {
-                    var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token);
-                    _protocol.Reader.Advance();
-                    if (result.IsCompleted)
-                    {
-                        break;
-                    }
-                    var header = result.Message;
-                    switch (header.FrameType)
-                    {
-                        case 1:
-                            {
-                                if (header.Chanell == 0)
-                                {
-                                    await Channel0.HandleAsync(header);
-                                    break;
-                                }
-                                await _channels.HandleFrameAsync(header);
-                                break;
-                            }
-                        case 59:
-                            {
-                                Debug.Assert(false);
-                                break;
-                            }
-                        /*case 8:
-                            {
-                                break;
-                            }
-                            */
-                        default: throw new Exception($"Frame type missmatch:{header.FrameType}");
-                    }
+                    break;
                 }
-            }catch(Exception e)
-            {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
-                _cts.Cancel();
-                _context.Abort();
-                return;
+                var header = result.Message;
+                Debug.WriteLine($"{header.FrameType} {header.Chanell} {header.PaylodaSize}");
+                switch (header.FrameType)
+                {
+                    case 1:
+                        {
+                            if (header.Chanell == 0)
+                            {
+                                await Channel0.HandleAsync(header);
+                                break;
+                            }
+                            await _channels.HandleFrameAsync(header);
+                            break;
+                        }
+                    /*case 59:
+                        {
+
+                            break;
+                        }
+                    case 8:
+                        {
+                            break;
+                        }
+                        */
+                    default: throw new Exception($"Frame type missmatch:{header.FrameType}");
+                }
             }
+  
         }
         public async ValueTask<IRabbitMQChannel> CreateChannel()
         {
@@ -120,12 +113,11 @@ namespace AMQP.Client.RabbitMQ
             _heartbeat.StartAsync();
         }
 
-        public async ValueTask CloseConnection()
+        public async ValueTask CloseConnectionAsync()
         {
             _context.Abort();
-            _cts.Cancel();
-            //await _protocol.DisposeAsync();
-
+            _cts.Cancel();        
+            
         }
         public void WaitEndReading()
         {

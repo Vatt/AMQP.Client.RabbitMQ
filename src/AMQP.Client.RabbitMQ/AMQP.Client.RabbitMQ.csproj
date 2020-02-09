@@ -26,7 +26,6 @@
 
   <ItemGroup>
     <Folder Include="Internal\" />
-    <Folder Include="Protocol\MethodWriters\" />
   </ItemGroup>
 
 </Project>

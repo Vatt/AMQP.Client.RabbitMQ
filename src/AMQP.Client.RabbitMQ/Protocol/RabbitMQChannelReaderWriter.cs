@@ -1,4 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
@@ -18,6 +19,16 @@ namespace AMQP.Client.RabbitMQ.Protocol
         {
             var result = await _protocol.Reader.ReadAsync(new ChannelOpenOkReader());
             _protocol.Reader.Advance();
+            return result.Message;
+        }
+        public async ValueTask<MethodHeader> ReadMethod()
+        {
+            var result = await _protocol.Reader.ReadAsync(new MethodHeaderReader());
+            _protocol.Reader.Advance();
+            if (result.IsCanceled)
+            {
+                //TODO:  сделать чтонибудь
+            }
             return result.Message;
         }
     }

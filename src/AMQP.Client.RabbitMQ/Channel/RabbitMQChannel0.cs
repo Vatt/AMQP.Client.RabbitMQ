@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public RabbitMQMainInfo MainInfo { get; private set; }
 
         private bool _isOpen;
-        private bool _started;
+        private TaskCompletionSource<bool> _openOkSrc = new TaskCompletionSource<bool>();
         private readonly short _channelId;
 
         public bool IsOpen => _isOpen;
@@ -39,7 +39,6 @@ namespace AMQP.Client.RabbitMQ.Channel
             _protocol = protocol;
             _channelId = 0;
             _isOpen = false;
-            _started = false;
         }
         public async ValueTask HandleAsync(FrameHeader header)
         {
@@ -86,7 +85,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 10 when method.MethodId == 41:
                     {
                         _isOpen = await ReadOpenOkAsync();
-                        _started = true;
+                        _openOkSrc.SetResult(_isOpen);
                         break;
                     }
 
@@ -152,14 +151,13 @@ namespace AMQP.Client.RabbitMQ.Channel
             return isOpen;
 
         }
-        public async ValueTask<bool> TryOpenChannelAsync()
+        public async Task<bool> TryOpenChannelAsync()
         {
-            await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg);
-            await Task.Run(() => { while (!_started) { } });
-            return _isOpen;
+            await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg);            
+            return await _openOkSrc.Task;
         }
 
-        public async ValueTask<bool> TryCloseChannelAsync()
+        public async Task<bool> TryCloseChannelAsync()
         {
             //тиснуть сюда Close, CloseOK методы
             return default;
