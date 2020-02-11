@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Channel
     /*
      * Zero channel is a service channel 
      */
-    internal class RabbitMQChannel0 : ConnectionReaderWriter,IRabbitMQChannel
+    internal class RabbitMQChannelZero : ConnectionReaderWriter,IRabbitMQChannel
     {
         private static readonly byte[] _protocolMsg = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
         public RabbitMQServerInfo ServerInfo { get; private set; }
@@ -30,7 +30,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         private readonly RabbitMQConnectionInfo _connectionInfo;
         
 
-        internal RabbitMQChannel0(RabbitMQConnectionBuilder builder, RabbitMQProtocol protocol):base(protocol)
+        internal RabbitMQChannelZero(RabbitMQConnectionBuilder builder, RabbitMQProtocol protocol):base(protocol)
         {
             MainInfo = builder.MainInfo;
             ClientInfo = builder.ClientInfo;
@@ -83,7 +83,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                     }
 
                 default:
-                    throw new Exception($"{nameof(RabbitMQChannel0)}:cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new Exception($"{nameof(RabbitMQChannelZero)}:cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
 
             }
         }

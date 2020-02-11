@@ -13,6 +13,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
     
     internal ref struct ValueWriter
     {
+
+        private byte m_bitAccumulator;
+        private int m_bitMask;
+        private bool m_needBitFlush;
+
+
+
         private IBufferWriter<byte> _output;
         private Span<byte> _span;
         private int _buffered;
@@ -58,6 +65,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         
         public ValueWriter(IBufferWriter<byte> writer)
         {
+            m_needBitFlush = false;
+            m_bitAccumulator = 0;
+            m_bitMask = 1;
+
             _output = writer;
             _span = _output.GetSpan();
             _buffered = 0;
@@ -103,6 +114,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<byte> source)
         {
+            BitFlush();
             WriteBytes(source);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,6 +136,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteBytes(ReadOnlySpan<byte> source)
         {
+            BitFlush();
 
             while (source.Length > 0)
             {
@@ -141,7 +154,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteOctet(byte value)
         {
-            if(_span.Length == 0)
+            BitFlush();
+            if (_span.Length == 0)
             {
                 GetNextSpan();
             }
@@ -151,12 +165,14 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteType(char type)
         {
+            BitFlush();
             WriteOctet((byte)type);
         }
   
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortIntTyped(short shortint)
         {
+            BitFlush();
             WriteType('U');
             WriteShortInt(shortint);
         }
@@ -164,7 +180,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortInt(short shortint)
         {
-            
+            BitFlush();
+
             if (_span.Length < 2)
             {
                 byte[] bytes = ArrayPool<byte>.Shared.Rent(2);
@@ -181,11 +198,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongTyped(int longInt)
         {
+            BitFlush();
             WriteType('I');
             WriteLong(longInt);
         }
         public void WriteLong(int longInt)
         {
+            BitFlush();
             if (_span.Length < 4)
             {
                 byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
@@ -201,11 +220,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         }
         public void WriteLongLongTyped(long longlong)
         {
+            BitFlush();
             WriteType('L');
             WriteLongLong(longlong);
         }
         public void WriteLongLong(long longlong)
         {
+            BitFlush();
             if (_span.Length < 8)
             {
                 byte[] bytes = ArrayPool<byte>.Shared.Rent(8);
@@ -222,13 +243,15 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortStrTyped(string str)
         {
+            BitFlush();
             WriteType('s');
             WriteShortStr(str);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortStr(string str)
         {
-            if(str.Length > byte.MaxValue)
+            BitFlush();
+            if (str.Length > byte.MaxValue)
             {
                 WriterThrowHelper.ThrowIfValueWriterOutOfRange();
             }
@@ -239,27 +262,64 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongStrTyped(string str)
         {
+            BitFlush();
             WriteType('S');
             WriteLongStr(str);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongStr(string str)
         {
+            BitFlush();
             ReadOnlySpan<byte> data = Encoding.UTF8.GetBytes(str);
             WriteLong(data.Length);
             WriteBytes(data);
         }
-        private void WriteBoolTyped(bool b)
+        public void WriteBoolTyped(bool b)
         {
+            BitFlush();
             WriteType('t');
             WriteBool(b);
         }
-        private void WriteBool(bool b)
+        public void WriteBool(bool b)
         {
             WriteOctet(Convert.ToByte(b));
         }
+        
+        public void WriteBit(bool value)
+        {
+            if (m_bitMask > 0x80)
+            {
+                BitFlush();
+            }
+            if (value)
+            {
+                // The cast below is safe, because the combination of
+                // the test against 0x80 above, and the action of
+                // BitFlush(), causes m_bitMask never to exceed 0x80
+                // at the point the following statement executes.
+                m_bitAccumulator = (byte)(m_bitAccumulator | (byte)m_bitMask);
+            }
+            m_bitMask = m_bitMask << 1;
+            m_needBitFlush = true;
+        }
+        private void BitFlush()
+        {
+            if (m_needBitFlush)
+            {
+                _span[0] = m_bitAccumulator;
+                Advance(1);
+                ResetBitAccumulator();
+            }
+        }
+        private void ResetBitAccumulator()
+        {
+            m_needBitFlush = false;
+            m_bitAccumulator = 0;
+            m_bitMask = 1;
+        }
         private void WriteValue(object value)
         {
+            BitFlush();
             switch (value)
             {
                 case short shortInt:
@@ -292,7 +352,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                         WriteBoolTyped(b);
                         break;
                     }
-                default: throw new Exception("WriteValue failed");
+                default: throw new Exception($"WriteValue ({value.ToString()} failed");
             }
         }
         public void WriteTableTyped(Dictionary<string, object> table)
@@ -302,7 +362,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         }
         public void WriteTable(Dictionary<string, object> table)
         {
-            
+            BitFlush();
+            if (table == null)
+            {
+                WriteLong(0);
+                return;
+            }
             Span<byte> sizeSpan = stackalloc byte[4];
             var reserved = Reserve(4);
             int first = Written;

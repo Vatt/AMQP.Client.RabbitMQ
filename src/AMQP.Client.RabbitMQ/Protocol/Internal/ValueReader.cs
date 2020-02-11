@@ -59,6 +59,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             return ReadStringInternal(len,out shortStr);
 
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadLongStr(out string longString)
         {
             if (!ReadLong(out int len))
@@ -84,7 +85,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             table = default;
 
             if(!ReadLong(out int tabLen)) { return false; }
-
+            if (tabLen == 0) { return true; }
             var lengthBytes = tabLen + _reader.Consumed;
              table = new Dictionary<string, object>();
             while (_reader.Consumed < lengthBytes)

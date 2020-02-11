@@ -1,15 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Info;
-using AMQP.Client.RabbitMQ.Protocol.Methods;
-
-using Microsoft.AspNetCore.Connections;
-using System;
-using System.Diagnostics;
+using AMQP.Client.RabbitMQ.Exchange;
 using System.Net;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 namespace Test
 {
@@ -21,7 +12,7 @@ namespace Test
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                                    .Heartbeat(1)
+                                    .Heartbeat(60)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
                                     .ConnectionName("AMQP.Client.RabbitMQ:Test")
@@ -31,6 +22,13 @@ namespace Test
 
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
+            await channel.Exchange()
+                         .AsCreate("TextExchange", ExchangeType.Direct)
+                         .AutoDelete()
+                         .Durable()
+                         .WithArgument("TEST_ARGUMENT", true)
+                         .DeclareAsync();
+
             await channel.TryCloseChannelAsync("Channel closing test");
             await connection.WaitEndReading();//for testing
         }

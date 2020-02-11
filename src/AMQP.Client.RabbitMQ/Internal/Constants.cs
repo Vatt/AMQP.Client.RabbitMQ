@@ -7,12 +7,12 @@ namespace AMQP.Client.RabbitMQ.Internal
     internal sealed class Constants
     {
  
-        public const int FrameMethod = 1;
-        public const int FrameHeader = 2;
-        public const int FrameBody = 3;
-        public const int FrameHeartbeat = 8;
+        public const byte FrameMethod = 1;
+        public const byte FrameHeader = 2;
+        public const byte FrameBody = 3;
+        public const byte FrameHeartbeat = 8;
         public const int FrameMinSize = 4096;
-        public const int FrameEnd = 206;
+        public const byte FrameEnd = 206;
         public const int ReplySuccess = 200;
         public const int ContentTooLarge = 311;
         public const int NoConsumers = 313;

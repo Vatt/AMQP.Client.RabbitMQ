@@ -35,7 +35,7 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
 
-        private RabbitMQChannel0 Channel0;
+        private RabbitMQChannelZero Channel0;
         private RabbitMQChannelManager _channels;
         private readonly RabbitMQConnectionBuilder _builder;
         public RabbitMQConnection(RabbitMQConnectionBuilder builder)
@@ -51,7 +51,7 @@ namespace AMQP.Client.RabbitMQ
             _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token);
             _connectionClosed = _cts.Token;
             _protocol = new RabbitMQProtocol(_context);
-            Channel0 = new RabbitMQChannel0(_builder, _protocol);
+            Channel0 = new RabbitMQChannelZero(_builder, _protocol);
 
             _readingTask = StartReading();
             bool openned = await Channel0.TryOpenChannelAsync();
@@ -94,12 +94,13 @@ namespace AMQP.Client.RabbitMQ
                                 await _channels.HandleFrameAsync(header);
                                 break;
                             }
-                        case 8:
+                       case 8:
                             {
                                 await _protocol.Reader.ReadAsync(new HeartbeatReader());
                                 _protocol.Reader.Advance();
                                 break;
                             }
+                            
                             
                         default: throw new Exception($"Frame type missmatch:{header.FrameType}");
                     }
@@ -114,7 +115,7 @@ namespace AMQP.Client.RabbitMQ
             }
   
         }
-        public async ValueTask<IRabbitMQChannel> CreateChannel()
+        public async ValueTask<IRabbitMQDefaultChannel> CreateChannel()
         {
             return await _channels.CreateChannel();
         }
