@@ -320,7 +320,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             m_bitMask = m_bitMask << 1;
             m_needBitFlush = true;
         }
-        private void BitFlush()
+        public void BitFlush()
         {
             if (m_needBitFlush)
             {

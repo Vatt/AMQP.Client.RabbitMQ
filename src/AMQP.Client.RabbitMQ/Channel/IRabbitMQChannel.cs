@@ -16,6 +16,9 @@ namespace AMQP.Client.RabbitMQ.Channel
         ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
         ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
         ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
+        ValueTask<bool> ExchangeDeleteAsync(string name, bool ifUnused = false);
+        ValueTask ExchangeDeleteNoWaitAsync(string name, bool ifUnused = false);
+
     }
     
 }

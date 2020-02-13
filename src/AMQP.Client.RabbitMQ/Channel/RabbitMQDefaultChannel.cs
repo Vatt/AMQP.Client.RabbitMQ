@@ -86,24 +86,6 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             }
         }
-        public async ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
-        {
-            return await _exchangeMethodHandler.TryDeclareAsync(name, type, durable, autoDelete, arguments);
-        }
-        public async ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
-        {
-            await _exchangeMethodHandler.TryDeclareNoWaitAsync(name, type, durable, autoDelete, arguments);
-        }
-        public async ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
-        {
-            return await _exchangeMethodHandler.TryDeclarePassiveAsync(name, type, durable, autoDelete, arguments);
-        }
-        public async Task<bool> TryOpenChannelAsync()
-        {
-            await SendChannelOpen(_channelId);
-            return await _openSrc.Task;
-        }
-
         public async Task<bool> TryCloseChannelAsync(string reason)
         {
             await SendChannelClose(new CloseInfo(ChannelId, Constants.ReplySuccess, reason, 20, 41));
@@ -118,7 +100,34 @@ namespace AMQP.Client.RabbitMQ.Channel
             _managerCloseCallback(_channelId);
             return result;
         }
+        public async ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
+        {
+            return await _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);
+        }
+        public async ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
+        {
+            await _exchangeMethodHandler.DeclareNoWaitAsync(name, type, durable, autoDelete, arguments);
+        }
+        public async ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
+        {
+            return await _exchangeMethodHandler.DeclarePassiveAsync(name, type, durable, autoDelete, arguments);
+        }
+        public async Task<bool> TryOpenChannelAsync()
+        {
+            await SendChannelOpen(_channelId);
+            return await _openSrc.Task;
+        }
 
 
+
+        public async ValueTask<bool> ExchangeDeleteAsync(string name, bool ifUnused = false)
+        {
+            return await _exchangeMethodHandler.DeleteAsync(name, ifUnused);
+        }
+
+        public async ValueTask ExchangeDeleteNoWaitAsync(string name, bool ifUnused = false)
+        {
+            await _exchangeMethodHandler.DeleteNoWaitAsync(name, ifUnused);
+        }
     }
 }

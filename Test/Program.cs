@@ -1,5 +1,4 @@
 ﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Exchange;
 using System;
 using System.Collections.Generic;
@@ -26,7 +25,8 @@ namespace Test
 
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            await channel.ExchangeDeclareNoWaitAsync($"TestExchange", ExchangeType.Direct, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.ExchangeDeleteAsync("TestExchange", true);
             //for(int i = 0;i<16;i++)
             //{
             //    Task.Run(ShitRun);
@@ -34,7 +34,7 @@ namespace Test
 
 
 
-             await channel.TryCloseChannelAsync("Channel closing test");
+            await channel.TryCloseChannelAsync("Channel closing test");
             await connection.WaitEndReading();//for testing
         }
         static async void ShitRun()
