@@ -4,6 +4,8 @@ using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using AMQP.Client.RabbitMQ.Queue;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,6 +26,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public bool IsOpen => _isOpen;
 
         private ExchangeHandler _exchangeMethodHandler;
+        private QueueHandler _queueMethodHandler;
         internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, ushort id, Action<ushort> closeCallback) : base(protocol)
         {
             _channelId = id;
@@ -31,6 +34,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _isOpen = false;
             _managerCloseCallback = closeCallback;
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
+            _queueMethodHandler = new QueueHandler(_channelId,_protocol);
         }
 
 
@@ -49,6 +53,11 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 40://Exchange class
                     {
                         await _exchangeMethodHandler.HandleMethodAsync(method);
+                        break;
+                    }
+                case 50://queue class
+                    {
+                        await _queueMethodHandler.HandleMethodAsync(method);
                         break;
                     }
                 default: throw new Exception($"{nameof(RabbitMQDefaultChannel)}.HandleAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
@@ -128,6 +137,21 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask ExchangeDeleteNoWaitAsync(string name, bool ifUnused = false)
         {
             await _exchangeMethodHandler.DeleteNoWaitAsync(name, ifUnused);
+        }
+
+        public async ValueTask<QueueDeclareOk> QueueDeclareAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
+        {
+            return await _queueMethodHandler.DeclareAsync(name, durable, exclusive, autoDelete, arguments);
+        }
+
+        public async ValueTask<QueueDeclareOk> QueueDeclarePassiveAsync(string name)
+        {
+            return await _queueMethodHandler.DeclarePassiveAsync(name);
+        }
+
+        public async ValueTask QueueDeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
+        {
+            await _queueMethodHandler.DeclareNoWaitAsync(name, durable, exclusive, autoDelete, arguments);
         }
     }
 }

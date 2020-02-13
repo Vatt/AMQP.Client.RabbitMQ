@@ -19,16 +19,14 @@ namespace AMQP.Client.RabbitMQ.Exchange
     }
     internal class ExchangeHandler : ExchangeReaderWriter
     {
-        private readonly ushort _channelId;
         private readonly SemaphoreSlim _semafore;
         private Dictionary<string, ExchangeInfo> _exchanges;
         private TaskCompletionSource<bool> _declareOkSrc;
         private TaskCompletionSource<bool> _deleteOkSrc;
-        public ExchangeHandler(ushort channelId, RabbitMQProtocol protocol):base(protocol)
+        public ExchangeHandler(ushort channelId, RabbitMQProtocol protocol):base(channelId,protocol)
         {
             _exchanges = new Dictionary<string, ExchangeInfo>();
             _semafore = new SemaphoreSlim(1);
-            _channelId = channelId;
         }
         public async ValueTask HandleMethodAsync(MethodHeader method)
         {
@@ -52,17 +50,17 @@ namespace AMQP.Client.RabbitMQ.Exchange
         }
         public async ValueTask<bool> DeclareAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
         {
-            var info = new ExchangeInfo(_channelId, name, type, durable: durable, autoDelete: autoDelete, arguments: arguments);
+            var info = new ExchangeInfo(name, type, durable: durable, autoDelete: autoDelete, arguments: arguments);
             return await DeclarePrivateAsync(info);
         }
         public async ValueTask DeclareNoWaitAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
         {
-            var info = new ExchangeInfo(_channelId, name, type, durable: durable, autoDelete: autoDelete, nowait: true, arguments: arguments);
+            var info = new ExchangeInfo(name, type, durable: durable, autoDelete: autoDelete, nowait: true, arguments: arguments);
             await SendExchangeDeclareAsync(info);
         }
         public async ValueTask<bool> DeclarePassiveAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
         {
-            var info = new ExchangeInfo(_channelId, name, type, durable: durable, autoDelete: autoDelete, passive: true, arguments: arguments);
+            var info = new ExchangeInfo(name, type, durable: durable, autoDelete: autoDelete, passive: true, arguments: arguments);
             return await DeclarePrivateAsync(info);
         }
         private async ValueTask<bool> DeclarePrivateAsync(ExchangeInfo info)
@@ -87,7 +85,7 @@ namespace AMQP.Client.RabbitMQ.Exchange
         {
             await _semafore.WaitAsync();
             _deleteOkSrc = new TaskCompletionSource<bool>();
-            var info = new ExchangeDeleteInfo(_channelId, name, ifUnused);
+            var info = new ExchangeDeleteInfo(name, ifUnused);
             await SendExchangeDeleteAsync(info);
             var result = await _deleteOkSrc.Task;
             if (result)
@@ -103,7 +101,7 @@ namespace AMQP.Client.RabbitMQ.Exchange
         }
         public async ValueTask DeleteNoWaitAsync(string name, bool ifUnused = false)
         {
-            var info = new ExchangeDeleteInfo(_channelId, name, ifUnused);
+            var info = new ExchangeDeleteInfo(name, ifUnused);
             await SendExchangeDeleteAsync(info);
             _exchanges.Remove(info.Name);
 

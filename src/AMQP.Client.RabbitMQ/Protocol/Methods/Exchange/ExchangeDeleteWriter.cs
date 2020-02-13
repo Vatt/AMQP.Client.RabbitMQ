@@ -9,11 +9,16 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
     public class ExchangeDeleteWriter : IMessageWriter<ExchangeDeleteInfo>
     {
+        private readonly ushort _channelId;
+        public ExchangeDeleteWriter(ushort channelId)
+        {
+            _channelId = channelId;
+        }
         public void WriteMessage(ExchangeDeleteInfo message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);
-            writer.WriteShortInt(message.ChannelId);
+            writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(40, 20, ref writer);
