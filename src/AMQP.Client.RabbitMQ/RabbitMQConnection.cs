@@ -8,7 +8,7 @@ using Bedrock.Framework;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Info;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Channel;
 using System.Diagnostics;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
@@ -36,7 +36,7 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
 
         private RabbitMQChannelZero Channel0;
-        private RabbitMQChannelManager _channels;
+        private RabbitMQChannelHandler _channels;
         private readonly RabbitMQConnectionBuilder _builder;
         public RabbitMQConnection(RabbitMQConnectionBuilder builder)
         {
@@ -62,8 +62,8 @@ namespace AMQP.Client.RabbitMQ
                 return;
             }
             _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _cts.Token);
-            _heartbeat.StartAsync();
-            _channels = new RabbitMQChannelManager(_protocol, MainInfo.ChannelMax);
+           // _heartbeat.StartAsync();
+            _channels = new RabbitMQChannelHandler(_protocol, MainInfo.ChannelMax);
 
         }
         private async Task StartReading()
@@ -81,12 +81,12 @@ namespace AMQP.Client.RabbitMQ
                         break;
                     }
                     var header = result.Message;
-                    Debug.WriteLine($"{header.FrameType} {header.Chanell} {header.PaylodaSize}");
+                    Debug.WriteLine($"{header.FrameType} {header.Channel} {header.PaylodaSize}");
                     switch (header.FrameType)
                     {
                         case 1:
                             {
-                                if (header.Chanell == 0)
+                                if (header.Channel == 0)
                                 {
                                     await Channel0.HandleAsync(header);
                                     break;
@@ -98,6 +98,7 @@ namespace AMQP.Client.RabbitMQ
                             {
                                 await _protocol.Reader.ReadAsync(new HeartbeatReader());
                                 _protocol.Reader.Advance();
+                                await _protocol.Writer.WriteAsync(new HeartbeatWriter(),false);
                                 break;
                             }
                             

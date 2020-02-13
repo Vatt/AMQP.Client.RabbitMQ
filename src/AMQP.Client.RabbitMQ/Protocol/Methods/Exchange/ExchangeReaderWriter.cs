@@ -1,5 +1,4 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Info.Exchange;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {

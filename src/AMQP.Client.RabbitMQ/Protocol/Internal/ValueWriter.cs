@@ -195,6 +195,24 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 Advance(2);
             }
         }
+        public void WriteShortInt(ushort shortint)
+        {
+            BitFlush();
+
+            if (_span.Length < 2)
+            {
+                byte[] bytes = ArrayPool<byte>.Shared.Rent(2);
+                BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
+                WriteBytes(bytes);
+                ArrayPool<byte>.Shared.Return(bytes);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(_span, shortint);
+                Advance(2);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongTyped(int longInt)
         {

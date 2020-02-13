@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ.Protocol.Info.Exchange
+namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
     public struct ExchangeInfo
     {
-        public readonly short ChannelId;
+        public readonly ushort ChannelId;
         public readonly string Name;
         public readonly string Type;
         public bool Passive;
@@ -15,8 +15,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Info.Exchange
         public bool Internal;
         public bool NoWait;
         public Dictionary<string, object> Arguments;
-        public ExchangeInfo(short channelId, string name, string type, bool passive, bool durable,
-                                   bool autoDelete, bool _internal,bool nowait, Dictionary<string, object> arguments)
+        public ExchangeInfo(ushort channelId, string name, string type, bool passive = false, bool durable = false,
+                            bool autoDelete = false, bool _internal = false,bool nowait=false, Dictionary<string, object> arguments = null)
         {
             ChannelId = channelId;
             Name = name;

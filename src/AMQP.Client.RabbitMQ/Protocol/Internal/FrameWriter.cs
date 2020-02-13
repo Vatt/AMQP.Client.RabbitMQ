@@ -7,10 +7,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
     internal class FrameWriter
     {
-        public static void WriteFrameHeader(byte type, short chanell, int payloadSize, ref ValueWriter output)
+        public static void WriteFrameHeader(byte type, ushort channel, int payloadSize, ref ValueWriter output)
         {
             output.WriteOctet(type);
-            output.WriteShortInt(chanell);
+            output.WriteShortInt(channel);
             output.WriteLong(payloadSize);
         }
         public static void WriteMethodFrame(short classId, short methodId, ref ValueWriter output)

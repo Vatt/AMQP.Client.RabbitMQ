@@ -1,6 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -19,6 +20,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         public bool ReadShortInt(out short shortint)
         {
             return _reader.TryReadBigEndian(out shortint);
+        }
+        public bool ReadShortInt(out ushort shortint)
+        {
+            var span = _reader.CurrentSpan.Slice((int)_reader.Consumed, 2);
+            var result =  BinaryPrimitives.TryReadUInt16BigEndian(span, out shortint);
+            if (result)
+            {
+                _reader.Advance(2);
+                return true;
+            }
+            return false;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadOctet(out byte octet)

@@ -1,5 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Info;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection

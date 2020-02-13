@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Buffers;
-using System.IO.Pipelines;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using Bedrock.Framework.Protocols;
 namespace AMQP.Client.RabbitMQ.Protocol
@@ -22,17 +22,30 @@ namespace AMQP.Client.RabbitMQ.Protocol
         }
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out FrameHeader message)
         {
-            SequenceReader<byte> reader = new SequenceReader<byte>(input);
+            //SequenceReader<byte> reader = new SequenceReader<byte>(input);
+            //message = default;
+            ////Frame header = byte + short + int
+            //if (reader.Remaining < 7)
+            //{
+            //    return false;
+            //}
+            //reader.TryRead(out byte type);
+            //reader.TryReadBigEndian(out short channel);
+            //reader.TryReadBigEndian(out int payloadSize);
+            //message = new FrameHeader(type, channel, payloadSize);
+
+            //consumed = reader.Position;
+            //examined = consumed;
+            ValueReader reader = new ValueReader(input);
             message = default;
-            //Frame header = byte + short + int
-            if (reader.Remaining < 7)
+            if (input.Length < 7)
             {
                 return false;
             }
-            reader.TryRead(out byte type);
-            reader.TryReadBigEndian(out short chanell);
-            reader.TryReadBigEndian(out int payloadSize);
-            message = new FrameHeader(type, chanell, payloadSize);
+            reader.ReadOctet(out byte type);
+            reader.ReadShortInt(out ushort channel);
+            reader.ReadLong(out int payloadSize);
+            message = new FrameHeader(type, channel, payloadSize);
 
             consumed = reader.Position;
             examined = consumed;

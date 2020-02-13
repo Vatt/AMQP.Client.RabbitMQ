@@ -3,6 +3,7 @@ using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods
@@ -11,14 +12,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
         {
-            if (input.Length < 8)
+            var reader = new SequenceReader<byte>(input);
+            if(!reader.TryRead(out byte endMarker))
             {
                 message = false;
                 return false;
             }
-            var reader = new SequenceReader<byte>(input);
-            reader.Advance(8);
-            reader.TryRead(out byte endMarker);
+            Debug.Assert(endMarker == 206);
             if (endMarker != 206)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();

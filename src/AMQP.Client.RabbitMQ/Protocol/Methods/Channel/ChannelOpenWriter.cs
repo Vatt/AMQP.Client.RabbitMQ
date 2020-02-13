@@ -7,9 +7,9 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {
-    class ChannelOpenWriter : IMessageWriter<short>
+    class ChannelOpenWriter : IMessageWriter<ushort>
     {
-        public void WriteMessage(short message, IBufferWriter<byte> output)
+        public void WriteMessage(ushort message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             FrameWriter.WriteFrameHeader(1, message, 5, ref writer);

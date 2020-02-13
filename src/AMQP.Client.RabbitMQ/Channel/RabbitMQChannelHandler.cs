@@ -2,28 +2,27 @@
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
-    internal class RabbitMQChannelManager
+    internal class RabbitMQChannelHandler
     {
-        private static short _channelId = 0; //Interlocked?
-        private readonly ConcurrentDictionary<short, RabbitMQDefaultChannel> _channels;
+        private static ushort _channelId = 0; //Interlocked?
+        private readonly ConcurrentDictionary<ushort, RabbitMQDefaultChannel> _channels;
         private RabbitMQProtocol _protocol;
-        private short _maxChannels;
-        public RabbitMQChannelManager(RabbitMQProtocol protocol, short maxChannels)
+        private ushort _maxChannels;
+        public RabbitMQChannelHandler(RabbitMQProtocol protocol, ushort maxChannels)
         {
-            _channels = new ConcurrentDictionary<short, RabbitMQDefaultChannel>();
+            _channels = new ConcurrentDictionary<ushort, RabbitMQDefaultChannel>();
             _protocol = protocol;
             _maxChannels = maxChannels;
         }
         public async ValueTask HandleFrameAsync(FrameHeader header)
         {
-            if(!_channels.TryGetValue(header.Chanell,out RabbitMQDefaultChannel channel))
+            if(!_channels.TryGetValue(header.Channel,out RabbitMQDefaultChannel channel))
             {
-                throw new Exception($"{nameof(RabbitMQChannelManager)}: channel-id({header.Chanell}) missmatch");
+                throw new Exception($"{nameof(RabbitMQChannelHandler)}: channel-id({header.Channel}) missmatch");
             }
             await channel.HandleAsync(header);
         }
@@ -47,7 +46,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             }
             return channel;
         }
-        private void CloseChannelPrivate(short id)
+        private void CloseChannelPrivate(ushort id)
         {
             if (!_channels.TryRemove(id, out RabbitMQDefaultChannel channel))
             {

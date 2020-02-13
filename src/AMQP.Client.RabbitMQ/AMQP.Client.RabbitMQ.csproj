@@ -21,11 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bedrock.Framework" Version="0.1.53-alpha.gfd6085c54f" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Protocol\Info\Channel\" />
+    <PackageReference Include="Bedrock.Framework" Version="0.1.55-alpha.gda27b93d3b" />
   </ItemGroup>
 
 </Project>

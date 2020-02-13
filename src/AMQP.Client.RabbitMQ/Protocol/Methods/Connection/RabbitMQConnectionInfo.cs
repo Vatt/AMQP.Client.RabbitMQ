@@ -1,4 +1,4 @@
-﻿namespace AMQP.Client.RabbitMQ.Protocol.Info
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
     public readonly struct RabbitMQConnectionInfo
     {

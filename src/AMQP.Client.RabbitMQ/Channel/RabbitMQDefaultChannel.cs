@@ -2,41 +2,42 @@
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Info;
+using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
-    public class RabbitMQDefaultChannel : ChannelReaderWriter, IRabbitMQDefaultChannel//,IMethodHandler,IFrameHandler
+    public class RabbitMQDefaultChannel : ChannelReaderWriter, IRabbitMQDefaultChannel
     {
 
-        private readonly short _channelId;
+        private readonly ushort _channelId;
         private bool _isOpen;
-        private Action<short> _managerCloseCallback;
+        private Action<ushort> _managerCloseCallback;
         private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _closeSrc =  new TaskCompletionSource<bool>();
         private readonly RabbitMQProtocol _protocol;
-        public short ChannelId => _channelId;
+        public ushort ChannelId => _channelId;
         public bool IsOpen => _isOpen;
 
         private ExchangeHandler _exchangeMethodHandler;
-        internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, short id, Action<short> closeCallback) : base(protocol)
+        internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, ushort id, Action<ushort> closeCallback) : base(protocol)
         {
             _channelId = id;
             _protocol = protocol;
             _isOpen = false;
             _managerCloseCallback = closeCallback;
-            _exchangeMethodHandler = new ExchangeHandler(_protocol);
+            _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
         }
 
 
 
         public async ValueTask HandleAsync(FrameHeader header)
         {
-            Debug.Assert(header.Chanell == _channelId);
+            Debug.Assert(header.Channel == _channelId);
             var method = await ReadMethodHeader();
             switch (method.ClassId)
             {
@@ -85,19 +86,17 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             }
         }
-        //public async ValueTask ExchangeDeclare(string name, string type)
-        //public async ValueTask ExchangeDeclare(string name, string type, bool passive = false, 
-        //                                       bool durable = false, bool autoDelete = false, 
-        //                                       bool nowait = false, Dictionary<string, object> args = null)
-        //{
-        //    //var info = new ExchangeDeclareInfo(name, type, false, false,false, true, new Dictionary<string, object>(){ { "1234", 1 } });
-        //    var info = new ExchangeDeclareInfo(ChannelId,name, type, passive, durable, autoDelete, nowait, args);
-        //    await new ExchangeReaderWriter(_protocol).WriteExchangeDeclareAsync(info);
-
-        //}
-        public ExchangeBuilder Exchange()
+        public async ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
         {
-            return new ExchangeBuilder(_channelId, _exchangeMethodHandler);
+            return await _exchangeMethodHandler.TryDeclareAsync(name, type, durable, autoDelete, arguments);
+        }
+        public async ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
+        {
+            await _exchangeMethodHandler.TryDeclareNoWaitAsync(name, type, durable, autoDelete, arguments);
+        }
+        public async ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
+        {
+            return await _exchangeMethodHandler.TryDeclarePassiveAsync(name, type, durable, autoDelete, arguments);
         }
         public async Task<bool> TryOpenChannelAsync()
         {

@@ -1,6 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Info;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using System;
 using System.Diagnostics;
@@ -22,10 +21,10 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         private bool _isOpen;
         private TaskCompletionSource<bool> _openOkSrc = new TaskCompletionSource<bool>();
-        private readonly short _channelId;
+        private readonly ushort _channelId;
 
         public bool IsOpen => _isOpen;
-        public short ChannelId => _channelId;
+        public ushort ChannelId => _channelId;
 
         private readonly RabbitMQConnectionInfo _connectionInfo;
         
@@ -40,7 +39,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         public async ValueTask HandleAsync(FrameHeader header)
         {
-            Debug.Assert(_channelId == header.Chanell);
+            Debug.Assert(_channelId == header.Channel);
             switch (header.FrameType)
             {
                 case 1:

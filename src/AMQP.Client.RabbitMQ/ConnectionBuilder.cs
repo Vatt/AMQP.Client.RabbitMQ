@@ -1,4 +1,4 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Info;
+﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using System.Net;
 
 namespace AMQP.Client.RabbitMQ
@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ
             ConnInfo = new RabbitMQConnectionInfo(user, password, host);
             return this;
         }
-        public RabbitMQConnectionBuilder ChanellMax(short chanellMax)
+        public RabbitMQConnectionBuilder ChanellMax(ushort chanellMax)
         {
             MainInfo.ChannelMax = chanellMax;
             return this;

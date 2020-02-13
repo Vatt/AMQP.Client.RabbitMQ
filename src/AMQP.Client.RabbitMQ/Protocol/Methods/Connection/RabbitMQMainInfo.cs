@@ -1,11 +1,11 @@
-﻿namespace AMQP.Client.RabbitMQ.Protocol.Info
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
     public struct RabbitMQMainInfo
     {
-        public short ChannelMax;
+        public ushort ChannelMax;
         public int FrameMax;
         public short Heartbeat;
-        public RabbitMQMainInfo(short chanellMax,int frameMax, short heartbeat)
+        public RabbitMQMainInfo(ushort chanellMax,int frameMax, short heartbeat)
         {
             ChannelMax = chanellMax;
             FrameMax = frameMax;

@@ -1,5 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Info;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using System.Threading.Tasks;
@@ -13,7 +13,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
         {
             _protocol = protocol;
         }
-        public async ValueTask SendChannelOpen(short channelId)
+        public async ValueTask SendChannelOpen(ushort channelId)
         {
             await _protocol.Writer.WriteAsync(new ChannelOpenWriter(), channelId);
         }
