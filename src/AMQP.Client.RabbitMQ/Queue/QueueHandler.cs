@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Queue
 {
+    //засейвить только AutoDelete Exclusive очереди?
     public class QueueHandler: QueueReaderWriter
     {
         private readonly SemaphoreSlim _semafore;
@@ -59,6 +60,17 @@ namespace AMQP.Client.RabbitMQ.Queue
             await _semafore.WaitAsync();
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
             var info = new QueueInfo(name);
+            await SendQueueDeclare(info);
+            var okInfo = await _declareOkSrc.Task;
+            _queues.Add(okInfo.Name, info);
+            _semafore.Release();
+            return okInfo;
+        }
+        public async ValueTask<QueueDeclareOk> DeclareQuorumAsync(string name)
+        {
+            await _semafore.WaitAsync();
+            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
+            var info = new QueueInfo(name,true, arguments:new Dictionary<string, object> { { "x-queue-type", "quorum" } });
             await SendQueueDeclare(info);
             var okInfo = await _declareOkSrc.Task;
             _queues.Add(okInfo.Name, info);

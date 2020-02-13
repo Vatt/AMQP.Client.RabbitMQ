@@ -31,9 +31,9 @@ namespace Test
             //{
             //    Task.Run(ShitRun);
             //}
-
-            var queueOk = await channel.QueueDeclareAsync("TestQueue", false, true, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk = await channel.QueueDeclareAsync("TestQueue", false, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             var queuePassiveOk = await channel.QueueDeclarePassiveAsync("TestQueuePassive");
+            var queueQuorumOk = await channel.QueueDeclareQuorumAsync("TestQueueQuorum");
             await channel.QueueDeclareNoWaitAsync("TestQueueNoWait", false, true, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
 
             await channel.TryCloseChannelAsync("Channel closing test");

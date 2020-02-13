@@ -22,6 +22,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         ValueTask<QueueDeclareOk> QueueDeclareAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments);
         ValueTask<QueueDeclareOk> QueueDeclarePassiveAsync(string name);
         ValueTask QueueDeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments);
+        ValueTask<QueueDeclareOk> QueueDeclareQuorumAsync(string name);
 
     }
     

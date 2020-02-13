@@ -148,6 +148,10 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return await _queueMethodHandler.DeclarePassiveAsync(name);
         }
+        public async ValueTask<QueueDeclareOk> QueueDeclareQuorumAsync(string name)
+        {
+            return await _queueMethodHandler.DeclareQuorumAsync(name);
+        }
 
         public async ValueTask QueueDeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
