@@ -26,17 +26,26 @@ namespace Test
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel.ExchangeDeleteAsync("TestExchange", true);
+            
             //for(int i = 0;i<16;i++)
             //{
             //    Task.Run(ShitRun);
             //}
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             var queuePassiveOk = await channel.QueueDeclarePassiveAsync("TestQueuePassive");
-            var queueQuorumOk = await channel.QueueDeclareQuorumAsync("TestQueueQuorum");
+//            var queueQuorumOk = await channel.QueueDeclareQuorumAsync("TestQueueQuorum");
+            
             await channel.QueueDeclareNoWaitAsync("TestQueueNoWait", false, true, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue", "TestExchange", "QWERTY");
+            var purged = await channel.QueuePurgeAsync("TestQueue");
+            await channel.QueuePurgeNoWaitAsync("TestQueue");
+            var deleted = await channel.QueueDeleteAsync("TestQueue");
+            await channel.QueueDeleteNoWaitAsync("TestQueue");
 
-            await channel.TryCloseChannelAsync("Channel closing test");
+            await channel.QueueUnbindAsync("TestQueue", "TestExchange", "QWERTY");
+
+            await channel.ExchangeDeleteAsync("TestExchange",false);
+            await channel.TryCloseChannelAsync("Channel closing test");            
             await connection.WaitEndReading();//for testing
         }
         static async void ShitRun()

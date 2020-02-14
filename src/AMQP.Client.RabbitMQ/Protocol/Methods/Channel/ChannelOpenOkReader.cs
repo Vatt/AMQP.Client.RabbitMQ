@@ -1,9 +1,8 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {
@@ -19,7 +18,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
             }
             reader.Advance(4);
             var result = reader.TryRead(out byte end);
-            if (end != 206 || result == false)
+            if (end != Constants.FrameEnd || result == false)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

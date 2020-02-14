@@ -16,7 +16,8 @@ namespace AMQP.Client.RabbitMQ.Queue
         private readonly SemaphoreSlim _semafore;
         private Dictionary<string, QueueInfo> _queues;
         private TaskCompletionSource<QueueDeclareOk> _declareOkSrc;
-        private TaskCompletionSource<bool> _deleteOkSrc;
+        private TaskCompletionSource<bool> _commonSrc;
+        private TaskCompletionSource<int> _purgeOrDeleteSrc;
         public QueueHandler(ushort channelId, RabbitMQProtocol protocol) : base(channelId, protocol)
         {
             _queues = new Dictionary<string, QueueInfo>();
@@ -31,7 +32,27 @@ namespace AMQP.Client.RabbitMQ.Queue
             {
                 case 11: //declare-ok
                     {
-                       _declareOkSrc.SetResult(await ReadDeclareOk());
+                       _declareOkSrc.SetResult(await ReadQueueDeclareOk());
+                        break;
+                    }
+                case 21://bind-ok
+                    {
+                        _commonSrc.SetResult(await ReadBindOkUnbindOk());
+                        break;
+                    }
+                case 51://unbind-ok
+                    {
+                        _commonSrc.SetResult(await ReadBindOkUnbindOk());
+                        break;
+                    }
+                case 31://purge-ok
+                    {
+                        _purgeOrDeleteSrc.SetResult(await ReadQueuePurgeOkDeleteOk());
+                        break;
+                    }
+                case 41: //delete-ok
+                    {
+                        _purgeOrDeleteSrc.SetResult(await ReadQueuePurgeOkDeleteOk());
                         break;
                     }
                 default:
@@ -70,12 +91,70 @@ namespace AMQP.Client.RabbitMQ.Queue
         {
             await _semafore.WaitAsync();
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
-            var info = new QueueInfo(name,true, arguments:new Dictionary<string, object> { { "x-queue-type", "quorum" } });
+            var info = new QueueInfo(name,true, arguments:new Dictionary<string, object> {{ "x-queue-type", "quorum" }});
             await SendQueueDeclare(info);
             var okInfo = await _declareOkSrc.Task;
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
             return okInfo;
         }
+        public async ValueTask<bool> QueueBindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        {
+            await _semafore.WaitAsync();
+            _commonSrc = new TaskCompletionSource<bool>();
+            var info = new QueueBindInfo(queueName, exchangeName, routingKey, false, arguments);
+            await SendQueueBind(info);
+            var result = await _commonSrc.Task;
+            _semafore.Release();
+            return result;
+        }
+
+        public async ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        {
+            var info = new QueueBindInfo(queueName, exchangeName, routingKey, true, arguments);
+            await SendQueueBind(info);
+        }
+        public async ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        {
+            await _semafore.WaitAsync();
+            _commonSrc = new TaskCompletionSource<bool>();
+            var info = new QueueUnbindInfo(queueName, exchangeName, routingKey, arguments);
+            await SendQueueUnbind(info);
+            var result = await _commonSrc.Task;
+            _semafore.Release();
+            return result;
+        }
+        public async ValueTask<int> QueuePurgeAsync(string queueName)
+        {
+            await _semafore.WaitAsync();
+            _purgeOrDeleteSrc = new TaskCompletionSource<int>();
+            var info = new QueuePurgeInfo(queueName, false);
+            await SendQueuePurge(info);
+            var result = await _purgeOrDeleteSrc.Task;
+            _semafore.Release();
+            return result;
+        }
+
+        public async ValueTask QueuePurgeNoWaitAsync(string queueName)
+        {
+            var info = new QueuePurgeInfo(queueName, true);
+            await SendQueuePurge(info);
+        }
+        public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        {
+            await _semafore.WaitAsync();
+            _purgeOrDeleteSrc = new TaskCompletionSource<int>();
+            var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, false);
+            await SendQueueDelete(info);
+            var result = await _purgeOrDeleteSrc.Task;
+            _semafore.Release();
+            return result;
+        }
+        public async ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        {
+            var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, true);
+            await SendQueueDelete(info);
+        }
     }
 }
+

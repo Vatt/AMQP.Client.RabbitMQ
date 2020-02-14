@@ -1,4 +1,4 @@
-﻿using AMQP.Client.RabbitMQ.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
 using System;
@@ -6,19 +6,22 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 
-namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
+namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    public class ExchangeDeleteOkReader : IMessageReader<bool>
+    public class QueuePurgeOkDeleteOkReader : IMessageReader<int>
     {
-        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out int message)
         {
-            message = false;
             SequenceReader<byte> reader = new SequenceReader<byte>(input);
-            if (!reader.TryRead(out byte endMarker))
+            if(!reader.TryReadBigEndian(out message))
             {
                 return false;
             }
-            if (endMarker != Constants.FrameEnd)
+            if(!reader.TryRead(out byte endMarker))
+            {
+                return false;
+            }
+            if(endMarker != Constants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

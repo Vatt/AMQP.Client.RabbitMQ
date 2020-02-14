@@ -17,7 +17,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
         }
         public async ValueTask<bool> ReadExchangeDeclareOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new ExchangeDeclareOkReader());
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader());
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь
@@ -31,7 +31,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
         }
         public async ValueTask<bool> ReadExchangeDeleteOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new ExchangeDeleteOkReader());
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader());
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь

@@ -39,7 +39,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
         }
         public async ValueTask<bool> ReadChannelCloseOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new CloseOkReader());
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader());
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь

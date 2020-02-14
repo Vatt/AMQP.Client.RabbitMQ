@@ -1,17 +1,22 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
 
-namespace AMQP.Client.RabbitMQ.Protocol.Methods
+namespace AMQP.Client.RabbitMQ.Protocol
 {
-    public class CloseOkReader : IMessageReader<bool>
+    public class NoPayloadReader : IMessageReader<bool>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
         {
+            message = false;
             SequenceReader<byte> reader = new SequenceReader<byte>(input);
-            reader.TryRead(out byte endMarker);
-            if(endMarker != 206)
+            if (!reader.TryRead(out var endMarker))
+            {
+                return false;
+            }
+            if (endMarker != Constants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
@@ -19,6 +24,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods
             examined = consumed;
             message = true;
             return true;
+
         }
     }
 }

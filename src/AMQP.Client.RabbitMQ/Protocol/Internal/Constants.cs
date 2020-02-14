@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AMQP.Client.RabbitMQ.Internal
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
     internal sealed class Constants
     {

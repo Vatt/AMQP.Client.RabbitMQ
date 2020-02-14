@@ -1,7 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Exchange;
-using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
@@ -156,6 +156,39 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask QueueDeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
             await _queueMethodHandler.DeclareNoWaitAsync(name, durable, exclusive, autoDelete, arguments);
+        }
+
+        public async ValueTask<bool> QueueBindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        {
+            return await _queueMethodHandler.QueueBindAsync(queueName, exchangeName, routingKey, arguments);
+        }
+
+        public async ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        {
+            await _queueMethodHandler.QueueBindNoWaitAsync(queueName,exchangeName,routingKey,arguments);
+        }
+        public async ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        {
+            return await _queueMethodHandler.QueueUnbindAsync(queueName, exchangeName, routingKey, arguments);
+        }
+
+        public async ValueTask<int> QueuePurgeAsync(string queueName)
+        {
+            return await _queueMethodHandler.QueuePurgeAsync(queueName);
+        }
+        public async ValueTask QueuePurgeNoWaitAsync(string queueName)
+        {
+            await _queueMethodHandler.QueuePurgeNoWaitAsync(queueName);
+        }
+
+        public async ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        {
+            await _queueMethodHandler.QueueDeleteNoWaitAsync(queueName, ifUnused, ifEmpty);
+        }
+
+        public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        {
+            return await _queueMethodHandler.QueueDeleteAsync(queueName, ifUnused, ifEmpty);
         }
     }
 }
