@@ -147,6 +147,7 @@ namespace AMQP.Client.RabbitMQ.Queue
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, false);
             await SendQueueDelete(info);
             var result = await _purgeOrDeleteSrc.Task;
+            _queues.Remove(queueName);
             _semafore.Release();
             return result;
         }
@@ -154,6 +155,7 @@ namespace AMQP.Client.RabbitMQ.Queue
         {
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, true);
             await SendQueueDelete(info);
+            _queues.Remove(queueName);
         }
     }
 }
