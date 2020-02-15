@@ -3,7 +3,6 @@ using System.IO.Pipelines;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Methods;
 using Bedrock.Framework;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -11,7 +10,7 @@ using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Channel;
 using System.Diagnostics;
-using AMQP.Client.RabbitMQ.Protocol.Methods;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -27,10 +26,8 @@ namespace AMQP.Client.RabbitMQ
         private TaskCompletionSource<bool> _endReading;
         private ConnectionContext _context;
         public readonly EndPoint RemoteEndPoint;
-        public IDuplexPipe Transport => _context.Transport;
         private Task _readingTask;
         private RabbitMQProtocol _protocol;
-        private Heartbeat _heartbeat;
         public RabbitMQServerInfo ServerInfo => Channel0.ServerInfo;
         public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
@@ -61,19 +58,16 @@ namespace AMQP.Client.RabbitMQ
                 _cts.Cancel();
                 return;
             }
-            _heartbeat = new Heartbeat(Transport.Output, new TimeSpan(MainInfo.Heartbeat), _cts.Token);
-           // _heartbeat.StartAsync();
             _channels = new RabbitMQChannelHandler(_protocol, MainInfo.ChannelMax);
 
         }
         private async Task StartReading()
         {
-
             var headerReader = new FrameHeaderReader();
             try
             {
                 while (true)
-                {
+                {                    
                     var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token);
                     _protocol.Reader.Advance();
                     if (result.IsCompleted)
@@ -94,16 +88,21 @@ namespace AMQP.Client.RabbitMQ
                                 await _channels.HandleFrameAsync(header);
                                 break;
                             }
+                       case 2:
+                            {
+                                await _channels.HandleFrameAsync(header);
+                                break;
+                            }
                        case 8:
                             {
-                                await _protocol.Reader.ReadAsync(new HeartbeatReader());
+                                await _protocol.Reader.ReadAsync(new NoPayloadReader());
                                 _protocol.Reader.Advance();
                                 await _protocol.Writer.WriteAsync(new HeartbeatWriter(),false);
                                 break;
                             }
                             
                             
-                        default: throw new Exception($"Frame type missmatch:{header.FrameType}");
+                        default: throw new Exception($"Frame type missmatch:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
                     }
                 }
             }catch(Exception e)

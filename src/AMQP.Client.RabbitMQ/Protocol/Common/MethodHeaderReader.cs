@@ -3,7 +3,7 @@ using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
 
-namespace AMQP.Client.RabbitMQ.Protocol
+namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     /* 
      *                      Method Frame

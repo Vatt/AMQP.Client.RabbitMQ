@@ -81,7 +81,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             }
             return ReadStringInternal(len, out longString);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        
         public bool ReadBool(out bool boolValue)
         {
             if (!ReadOctet(out byte val))
@@ -90,6 +90,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 return false;
             }
             boolValue =  Convert.ToBoolean(val);
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ReadTimestamp(out long timestamp)
+        {
+            if(!ReadLongLong(out timestamp)) { return false; }
             return true;
         }
         public bool ReadTable(out Dictionary<string, object> table )

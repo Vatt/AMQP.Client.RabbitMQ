@@ -1,4 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Exchange;
+﻿using AMQP.Client.RabbitMQ.Basic;
+using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Exchange;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
@@ -27,6 +29,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
+        private BasicHandler _basicHandler;
         internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, ushort id, Action<ushort> closeCallback) : base(protocol)
         {
             _channelId = id;
@@ -35,6 +38,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _managerCloseCallback = closeCallback;
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
             _queueMethodHandler = new QueueHandler(_channelId,_protocol);
+            _basicHandler = new BasicHandler(_channelId, _protocol);
         }
 
 
@@ -42,6 +46,23 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask HandleAsync(FrameHeader header)
         {
             Debug.Assert(header.Channel == _channelId);
+            switch(header.FrameType)
+            {
+                case Constants.FrameMethod:
+                    {
+                        await ProcessMethod();
+                        break;
+                    }
+                case Constants.FrameHeader:
+                    {
+                        await _basicHandler.HandleAsync(header);
+                        break;
+                    }
+                default: throw new Exception($"Frame type missmatch{nameof(RabbitMQDefaultChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
+            }
+        }
+        public async ValueTask ProcessMethod()
+        {
             var method = await ReadMethodHeader();
             switch (method.ClassId)
             {
@@ -58,6 +79,11 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 50://queue class
                     {
                         await _queueMethodHandler.HandleMethodAsync(method);
+                        break;
+                    }
+                case 60://basic class
+                    {
+                        await _basicHandler.HandleMethodHeader(method);
                         break;
                     }
                 default: throw new Exception($"{nameof(RabbitMQDefaultChannel)}.HandleAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
@@ -189,6 +215,17 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
         {
             return await _queueMethodHandler.QueueDeleteAsync(queueName, ifUnused, ifEmpty);
+        }
+
+        public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag)
+        {
+            await _basicHandler.SendBasicConsume(queueName, consumerTag);
+            return default;
+        }
+
+        public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag)
+        {
+            throw new NotImplementedException();
         }
     }
 }

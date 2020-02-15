@@ -16,16 +16,14 @@
     <OutputPath>../../Build/Release/AMQP.Client.RabbitMQ</OutputPath>
   </PropertyGroup>
 
+
+
   <ItemGroup>
     <None Include="..\..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Bedrock.Framework" Version="0.1.55-alpha.gda27b93d3b" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Internal\" />
   </ItemGroup>
 
 </Project>

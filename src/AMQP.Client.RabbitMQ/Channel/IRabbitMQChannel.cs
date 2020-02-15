@@ -1,4 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+﻿using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -30,6 +31,9 @@ namespace AMQP.Client.RabbitMQ.Channel
         ValueTask QueuePurgeNoWaitAsync(string queueName);
         ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false);
         ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false);
+
+        ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag);
+        ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag);
 
     }
     

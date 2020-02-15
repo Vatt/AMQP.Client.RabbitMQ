@@ -1,8 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using AMQP.Client.RabbitMQ.Protocol.Methods;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {

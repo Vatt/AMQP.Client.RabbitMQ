@@ -1,8 +1,11 @@
 ﻿using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Exchange;
+using AMQP.Client.RabbitMQ.Protocol;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 namespace Test
 {
@@ -12,10 +15,11 @@ namespace Test
 
         static async Task Main(string[] args)
         {
+            var size = Unsafe.SizeOf<ChunkedConsumeResult>();
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                                    .Heartbeat(60)
+                                    .Heartbeat(120)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
                                     .ConnectionName("AMQP.Client.RabbitMQ:Test")
@@ -26,48 +30,11 @@ namespace Test
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            
-            //for(int i = 0;i<16;i++)
-            //{
-            //    Task.Run(ShitRun);
-            //}
+
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            var queuePassiveOk = await channel.QueueDeclarePassiveAsync("TestQueuePassive");
-//            var queueQuorumOk = await channel.QueueDeclareQuorumAsync("TestQueueQuorum");
-            
-            await channel.QueueDeclareNoWaitAsync("TestQueueNoWait", false, true, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel.QueueBindAsync("TestQueue", "TestExchange", "QWERTY");
-            var purged = await channel.QueuePurgeAsync("TestQueue");
-            await channel.QueuePurgeNoWaitAsync("TestQueue");
-            var deleted = await channel.QueueDeleteAsync("TestQueue");
-            await channel.QueueDeleteNoWaitAsync("TestQueue");
-
-            await channel.QueueUnbindAsync("TestQueue", "TestExchange", "QWERTY");
-
-            await channel.ExchangeDeleteAsync("TestExchange",false);
-            await channel.TryCloseChannelAsync("Channel closing test");            
+            await channel.QueueBindAsync("TestQueue", "TestExchange");
+            await channel.CreateChunkedConsumer("TestQueue", "TestConsumer");
             await connection.WaitEndReading();//for testing
-        }
-        static async void ShitRun()
-        {
-            var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                                    .Heartbeat(60)
-                                    .ProductName("AMQP.Client.RabbitMQ")
-                                    .ProductVersion("0.0.1")
-                                    .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                                    .ClientInformation("TEST TEST TEST")
-                                    .ClientCopyright("©")
-                                    .Build();
-            await connection.StartAsync();
-            var channel = await connection.CreateChannel();
-            var rnd = new Random();
-            while (true)
-            {
-                await channel.ExchangeDeclareAsync($"TestExchange{rnd.Next()}", ExchangeType.Direct, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            }
-            await connection.WaitEndReading();
         }
 
     }
