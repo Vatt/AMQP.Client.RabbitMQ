@@ -38,6 +38,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                 throw new Exception($"{nameof(BasicHandler)}: cant signal to consume");
             }
             await consumer.Delivery(activeDeliver, result.Message);
+            activeDeliver = default;
             
         }
         public async ValueTask HandleMethodHeader(MethodHeader header)
@@ -77,6 +78,38 @@ namespace AMQP.Client.RabbitMQ.Basic
                     if(existedConsumer  is RabbitMQChunkedConsumer)
                     {
                         return (RabbitMQChunkedConsumer)existedConsumer;
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
+                    }
+                }
+                return consumer;
+            }
+            else
+            {
+                throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
+            }
+        }
+        public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+                                                                bool exclusive = false, Dictionary<string, object> arguments = null)
+        {
+            await _semaphore.WaitAsync();
+            _consumerCreateSrc = new TaskCompletionSource<string>();
+            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
+            var result = await _consumerCreateSrc.Task;
+            if (result.Equals(consumerTag))
+            {
+                var consumer = new RabbitMQConsumer(consumerTag, _protocol);
+                if (!_consumers.TryAdd(consumerTag, consumer))
+                {
+                    if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
+                    {
+                        throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
+                    }
+                    if (existedConsumer is RabbitMQConsumer)
+                    {
+                        return (RabbitMQConsumer)existedConsumer;
                     }
                     else
                     {

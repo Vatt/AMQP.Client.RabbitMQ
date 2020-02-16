@@ -226,7 +226,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            throw new NotImplementedException();
+            return await _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
     }
 }

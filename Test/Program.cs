@@ -31,14 +31,14 @@ namespace Test
 
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, false, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
 
-            var queueOk = await channel.QueueDeclareAsync("TestQueue", false, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
             var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:true);
             consumer.Received += (header, result) =>
             {
-               Console.WriteLine($"{consumer.ConsumerTag} received (chunk size:{result.Chunk.Length})(completed:{result.IsCompleted})");
+               Console.WriteLine($"{consumer.ConsumerTag} received (chunk size:{result.Chunk.Length})");
             };
             await connection.WaitEndReading();//for testing
         }
