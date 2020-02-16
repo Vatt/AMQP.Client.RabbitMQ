@@ -3,9 +3,11 @@ using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Exchange;
 using AMQP.Client.RabbitMQ.Protocol;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading.Tasks;
 namespace Test
 {
@@ -29,11 +31,15 @@ namespace Test
 
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, false, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
 
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, true, true, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
-            await channel.CreateChunkedConsumer("TestQueue", "TestConsumer");
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:true);
+            consumer.Received += (header, result) =>
+            {
+               Console.WriteLine($"{consumer.ConsumerTag} received (chunk size:{result.Chunk.Length})(completed:{result.IsCompleted})");
+            };
             await connection.WaitEndReading();//for testing
         }
 

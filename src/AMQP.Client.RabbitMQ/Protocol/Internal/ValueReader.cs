@@ -16,6 +16,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         {
             _reader = new SequenceReader<byte>(data);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Advance(long count)
+        {
+            _reader.Advance(count);
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadShortInt(out short shortint)
         {

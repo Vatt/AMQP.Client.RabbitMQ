@@ -1,7 +1,9 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {
@@ -13,6 +15,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
         {
             ConsumerTag = tag;
         }
-        internal abstract void Delivery(DeliverInfo info);
+        internal abstract ValueTask Delivery(DeliverInfo info, ContentHeader header);
     }
 }
