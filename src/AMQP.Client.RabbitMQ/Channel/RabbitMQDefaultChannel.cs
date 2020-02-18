@@ -64,6 +64,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask ProcessMethod()
         {
             var method = await ReadMethodHeader();
+            Debug.WriteLine($"{method.ClassId} {method.MethodId}");
             switch (method.ClassId)
             {
                 case 20://Channels class

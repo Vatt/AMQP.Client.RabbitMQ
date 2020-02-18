@@ -11,12 +11,13 @@ namespace AMQP.Client.RabbitMQ.Channel
         private static ushort _channelId = 0; //Interlocked?
         private readonly ConcurrentDictionary<ushort, RabbitMQDefaultChannel> _channels;
         private RabbitMQProtocol _protocol;
-        private ushort _maxChannels;
-        public RabbitMQChannelHandler(RabbitMQProtocol protocol, ushort maxChannels)
+        //        private ushort _maxChannels;
+        private RabbitMQChannelZero _channel0; 
+        public RabbitMQChannelHandler(RabbitMQProtocol protocol, RabbitMQChannelZero channel0)
         {
             _channels = new ConcurrentDictionary<ushort, RabbitMQDefaultChannel>();
             _protocol = protocol;
-            _maxChannels = maxChannels;
+            _channel0 = channel0;
         }
         public async ValueTask HandleFrameAsync(FrameHeader header)
         {
@@ -29,7 +30,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask<IRabbitMQDefaultChannel> CreateChannel()
         {
             var id = ++_channelId;
-            if (id > _maxChannels)
+            if (id > _channel0.MainInfo.ChannelMax)
             {
                 return default;
             }

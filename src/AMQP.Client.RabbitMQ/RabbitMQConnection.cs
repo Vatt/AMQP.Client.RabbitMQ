@@ -49,7 +49,7 @@ namespace AMQP.Client.RabbitMQ
             _connectionClosed = _cts.Token;
             _protocol = new RabbitMQProtocol(_context);
             Channel0 = new RabbitMQChannelZero(_builder, _protocol);
-
+            _channels = new RabbitMQChannelHandler(_protocol, Channel0);
             _readingTask = StartReading();
             bool openned = await Channel0.TryOpenChannelAsync();
             if(!openned)
@@ -58,7 +58,7 @@ namespace AMQP.Client.RabbitMQ
                 _cts.Cancel();
                 return;
             }
-            _channels = new RabbitMQChannelHandler(_protocol, MainInfo.ChannelMax);
+            
 
         }
         private async Task StartReading()

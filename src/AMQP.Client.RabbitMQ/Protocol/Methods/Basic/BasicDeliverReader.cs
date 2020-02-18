@@ -14,14 +14,20 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             message = default;
             ValueReader reader = new ValueReader(input);
-            if(!reader.ReadShortStr(out var consumerTag)) { return false; }
-            if(!reader.ReadLongLong(out var deliveryTag)) { return false; }
-            if(!reader.ReadBool(out bool redelivered)) { return false; }
-            if(!reader.ReadShortStr(out var exchangeName)) { return false; }
-            if(!reader.ReadShortStr(out var routingKey)) { return false; }
-            if(!reader.ReadOctet(out byte endMarker)) { return false; }
+            //if(!reader.ReadShortStr(out var consumerTag)) { return false; }
+            //if(!reader.ReadLongLong(out var deliveryTag)) { return false; }
+            //if(!reader.ReadBool(out bool redelivered)) { return false; }
+            //if(!reader.ReadShortStr(out var exchangeName)) { return false; }
+            //if(!reader.ReadShortStr(out var routingKey)) { return false; }
+            //if(!reader.ReadOctet(out byte endMarker)) { return false; }
+            reader.ReadShortStr(out var consumerTag);
+            reader.ReadLongLong(out var deliveryTag);
+            reader.ReadBool(out bool redelivered);
+            reader.ReadShortStr(out var exchangeName);
+            reader.ReadShortStr(out var routingKey);
+            reader.ReadOctet(out byte endMarker);
             if(endMarker != Constants.FrameEnd)
-            {
+            {                
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
             message = new DeliverInfo(consumerTag, deliveryTag, redelivered, exchangeName, routingKey);

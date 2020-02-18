@@ -39,7 +39,8 @@ namespace Test
             var id = 0;
             consumer.Received += (header, result) =>
             {
-              // Debug.WriteLine($"{consumer.ConsumerTag} received{id} (chunk size:{result.Chunk.Length})");
+                var len = result.Chunk.Length;
+                Debug.WriteLine($"{consumer.ConsumerTag} received{id} {len}");
                 id++;
             };
             await connection.WaitEndReading();//for testing

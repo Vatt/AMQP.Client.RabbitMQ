@@ -35,10 +35,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _protocol.Reader.Advance();
             while(_reader.Consumed < header.BodySize)
             {
-                var result = await _protocol.Reader.ReadAsync(_reader);
+                var result = await _protocol.Reader.ReadAsync(_reader);                
                 var chunk = new ChunkedConsumeResult(result.Message, _reader.Consumed == header.BodySize);                
                 Received?.Invoke(header, chunk);
                 _protocol.Reader.Advance();
+
 
             }
 
