@@ -31,7 +31,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private async ValueTask ReadBody(DeliverInfo info,ContentHeader header)
         {
             var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
-            _reader.Restart(headerResult.Message);
+            _reader.Restart(header);
             _protocol.Reader.Advance();
             while(_reader.Consumed < header.BodySize)
             {

@@ -13,17 +13,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     public class BodyFrameChunkedReader : IMessageReader<ReadOnlySequence<byte>>
     {
         public long Consumed { get; private set; } = 0;
-        private FrameHeader _header;
+        private ContentHeader _header;
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ReadOnlySequence<byte> message)
         {
             message = default;
             ValueReader reader = new ValueReader(input);
 
-            var readable = Math.Min((_header.PaylodaSize - Consumed), input.Length);
+            var readable = Math.Min((_header.BodySize - Consumed), input.Length);
             message = input.Slice(reader.Position, readable);
             Consumed += readable;
             reader.Advance(readable);
-            if (Consumed == _header.PaylodaSize)
+            if (Consumed == _header.BodySize)
             {
                 
                 reader.ReadOctet(out var endMarker);
@@ -33,13 +33,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
                 }
             }
 
-            
+
             consumed = reader.Position;
             examined = consumed;
             return true;
             
         }
-        public void Restart(FrameHeader header)
+        public void Restart(ContentHeader header)
         {
             Consumed = 0;
             _header = header;
