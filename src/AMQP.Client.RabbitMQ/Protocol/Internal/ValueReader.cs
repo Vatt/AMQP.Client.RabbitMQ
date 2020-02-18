@@ -64,7 +64,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_reader.UnreadSpan.Length >= length)
             {
-                stringValue = Encoding.UTF8.GetString(_reader.UnreadSpan.Slice(length));
+                stringValue = Encoding.UTF8.GetString(_reader.UnreadSpan.Slice(0, length));
                 _reader.Advance(length);
                 return true;
             }
