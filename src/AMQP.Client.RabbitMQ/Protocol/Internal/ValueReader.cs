@@ -125,11 +125,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if(!ReadLong(out int tabLen)) { return false; }
             if (tabLen == 0) { return true; }
-            if (_reader.UnreadSpan.Length < tabLen) { return false; }
+            if (_reader.Remaining < tabLen) { return false; }
 
             table = new Dictionary<string, object>();
-            int unreaded = _reader.UnreadSpan.Length;
-            while ((unreaded - _reader.UnreadSpan.Length) < tabLen)
+            long unreaded = _reader.Remaining;
+            while ((unreaded - _reader.Remaining) < tabLen)
             {
                 if (!ReadShortStr(out string name)) { return false; }
                 if (!ReadValue(out object value)) { return false; }
