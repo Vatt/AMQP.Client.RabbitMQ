@@ -29,11 +29,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         }
         public bool ReadShortInt(out ushort shortint)
         {
-            var span = _reader.CurrentSpan.Slice((int)_reader.Consumed, 2);
+            var span = _reader.UnreadSpan.Slice(0, sizeof(ushort));
             var result =  BinaryPrimitives.TryReadUInt16BigEndian(span, out shortint);
             if (result)
             {
-                _reader.Advance(2);
+                _reader.Advance(sizeof(ushort));
                 return true;
             }
             return false;
@@ -56,14 +56,29 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool ReadStringInternal(int length, out string stringValue)
         {
-            if (_reader.CurrentSpan.Length < _reader.CurrentSpanIndex + length)
+            if (_reader.Remaining < length)
             {
-                stringValue = String.Empty;
+                stringValue = string.Empty;
                 return false;
             }
-            var stringSpan = _reader.CurrentSpan.Slice(_reader.CurrentSpanIndex, length);
-            stringValue = Encoding.UTF8.GetString(stringSpan);
+
+            if (_reader.UnreadSpan.Length >= length)
+            {
+                stringValue = Encoding.UTF8.GetString(_reader.UnreadSpan.Slice(0, length));
+                _reader.Advance(length);
+                return true;
+            }
+
+            Span<byte> span = stackalloc byte[length];
+            if (!_reader.TryCopyTo(span))
+            {
+                stringValue = string.Empty;
+                return false;
+            }
+
+            stringValue = Encoding.UTF8.GetString(span);
             _reader.Advance(length);
+
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,9 +125,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if(!ReadLong(out int tabLen)) { return false; }
             if (tabLen == 0) { return true; }
-            var lengthBytes = tabLen + _reader.Consumed;
-             table = new Dictionary<string, object>();
-            while (_reader.Consumed < lengthBytes)
+            if (_reader.Remaining < tabLen) { return false; }
+
+            table = new Dictionary<string, object>();
+            long unreaded = _reader.Remaining;
+            while ((unreaded - _reader.Remaining) < tabLen)
             {
                 if (!ReadShortStr(out string name)) { return false; }
                 if (!ReadValue(out object value)) { return false; }
