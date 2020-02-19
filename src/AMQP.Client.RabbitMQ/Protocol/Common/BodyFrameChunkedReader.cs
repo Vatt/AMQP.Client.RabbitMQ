@@ -12,36 +12,71 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     public class BodyFrameChunkedReader : IMessageReader<ReadOnlySequence<byte>>
     {
-        public long Consumed { get; private set; } = 0;
+        private long _consumed = 0;
         private ContentHeader _header;
+        public bool IsComplete { get; private set; }
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ReadOnlySequence<byte> message)
         {
             message = default;
+            if (input.Length == 0) { return false; }
             ValueReader reader = new ValueReader(input);
 
-            var readable = Math.Min((_header.BodySize - Consumed), input.Length);
-            message = input.Slice(0,readable);
-            Consumed += readable;
-            reader.Advance(readable);
-            if (Consumed == _header.BodySize)
+            if (_consumed == _header.BodySize)
             {
-                
-                reader.ReadOctet(out var endMarker);
-                if (endMarker != Constants.FrameEnd)
+                // if (!TryReadEndMarker(ref reader)) { return false; }
+                if (!reader.ReadOctet(out byte marker)) { return false; }
+                if (marker != Constants.FrameEnd)
                 {
                     ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
                 }
+                consumed = reader.Position;
+                examined = consumed;
+                IsComplete = true;
+                return true;
             }
 
+            var readable = Math.Min((_header.BodySize - _consumed), input.Length);
+            message = input.Slice(reader.Position,readable);
+            _consumed += readable;
+            reader.Advance(readable);
+            if (_consumed == _header.BodySize)
+            {
+                //if (!TryReadEndMarker(ref reader)) { return false; }
+                if (!reader.ReadOctet(out byte marker)) 
+                {
+                    _consumed -= readable;
+                    return false; 
+                }
+                if (marker != Constants.FrameEnd)
+                {
+                    ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
+                }
+                consumed = reader.Position;
+                examined = consumed;
+                IsComplete = true;
+                return true;
+            }
 
+            IsComplete = false;
             consumed = reader.Position;
             examined = consumed;
             return true;
-            
+
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryReadEndMarker(ref ValueReader reader)
+        {
+            if (!reader.ReadOctet(out byte marker)) { return false; }
+            if (marker != Constants.FrameEnd)
+            {
+                ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
+            }
+            return true;
         }
         public void Restart(ContentHeader header)
         {
-            Consumed = 0;
+            _consumed = 0;
+            IsComplete = false;
             _header = header;
         }
     }

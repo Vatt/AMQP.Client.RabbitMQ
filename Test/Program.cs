@@ -21,7 +21,7 @@ namespace Test
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                                    .Heartbeat(120)
+                                    .Heartbeat(60)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
                                     .ConnectionName("AMQP.Client.RabbitMQ:Test")
@@ -40,7 +40,7 @@ namespace Test
             consumer.Received += (header, result) =>
             {
                 var len = result.Chunk.Length;
-                Debug.WriteLine($"{consumer.ConsumerTag} received{id} {len}");
+               // Debug.WriteLine($"{consumer.ConsumerTag} received{id} {len}");
                 id++;
             };
             await connection.WaitEndReading();//for testing

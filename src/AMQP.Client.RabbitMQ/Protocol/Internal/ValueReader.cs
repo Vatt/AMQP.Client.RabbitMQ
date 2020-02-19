@@ -29,6 +29,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         }
         public bool ReadShortInt(out ushort shortint)
         {
+            if (_reader.UnreadSpan.Length < sizeof(ushort))
+            {
+                shortint = default;
+                return false;
+            }
             var span = _reader.UnreadSpan.Slice(0, sizeof(ushort));
             var result =  BinaryPrimitives.TryReadUInt16BigEndian(span, out shortint);
             if (result)

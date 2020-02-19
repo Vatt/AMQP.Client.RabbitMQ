@@ -41,12 +41,12 @@ namespace AMQP.Client.RabbitMQ
             _builder = builder;
             _cts = new CancellationTokenSource();
             _endReading = new TaskCompletionSource<bool>();
+            _connectionClosed = _cts.Token;
         }
         
         public async Task StartAsync()
         { 
-            _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token);
-            _connectionClosed = _cts.Token;
+            _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token);            
             _protocol = new RabbitMQProtocol(_context);
             Channel0 = new RabbitMQChannelZero(_builder, _protocol);
             _channels = new RabbitMQChannelHandler(_protocol, Channel0);
@@ -75,7 +75,7 @@ namespace AMQP.Client.RabbitMQ
                         break;
                     }
                     var header = result.Message;
-                    Debug.WriteLine($"{header.FrameType} {header.Channel} {header.PaylodaSize}");
+                    //Debug.WriteLine($"{header.FrameType} {header.Channel} {header.PaylodaSize}");
                     switch (header.FrameType)
                     {
                         case 1:

@@ -30,20 +30,19 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _protocol.Reader.Advance();
             await ReadBody(info,result.Message);
         }
-        private async ValueTask ReadBody(DeliverInfo info,ContentHeader header)
+        private async ValueTask ReadBody(DeliverInfo info, ContentHeader header)
         {
             var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
             _protocol.Reader.Advance();
             _reader.Restart(header);
-            
-            while(_reader.Consumed < header.BodySize)
-            {
-                var result = await _protocol.Reader.ReadAsync(_reader);                
-                var chunk = new ChunkedConsumeResult(result.Message, _reader.Consumed == header.BodySize);
-                _protocol.Reader.Advance();
-                Received?.Invoke(header, chunk);
-                
 
+            //while(_reader.Consumed < header.BodySize)
+            while (!_reader.IsComplete)
+            {
+                var result = await _protocol.Reader.ReadAsync(_reader);
+                var chunk = new ChunkedConsumeResult(result.Message, _reader.IsComplete);
+                Received?.Invoke(header, chunk);
+                _protocol.Reader.Advance();
 
             }
 
