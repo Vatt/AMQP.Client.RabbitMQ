@@ -19,26 +19,30 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
         public event Action<ContentHeader, ChunkedConsumeResult> Received;
         public event Action Close;
-        internal RabbitMQChunkedConsumer(string consumerTag, RabbitMQProtocol protocol):base(consumerTag)
+        internal RabbitMQChunkedConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelid):base(consumerTag, channelid)
         {
             _protocol = protocol;
             _reader = new BodyFrameChunkedReader();
         }
-        internal override async ValueTask Delivery(DeliverInfo info,ContentHeader header)
+        internal override async ValueTask Delivery(DeliverInfo info)
         {
-            await ReadBody(info,header);
+            var result = await _protocol.Reader.ReadAsync(new ContentHeaderFullReader(ChannelId));
+            _protocol.Reader.Advance();
+            await ReadBody(info,result.Message);
         }
         private async ValueTask ReadBody(DeliverInfo info,ContentHeader header)
         {
             var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
-            _reader.Restart(header);
             _protocol.Reader.Advance();
+            _reader.Restart(header);
+            
             while(_reader.Consumed < header.BodySize)
             {
                 var result = await _protocol.Reader.ReadAsync(_reader);                
-                var chunk = new ChunkedConsumeResult(result.Message, _reader.Consumed == header.BodySize);                
-                Received?.Invoke(header, chunk);
+                var chunk = new ChunkedConsumeResult(result.Message, _reader.Consumed == header.BodySize);
                 _protocol.Reader.Advance();
+                Received?.Invoke(header, chunk);
+                
 
 
             }

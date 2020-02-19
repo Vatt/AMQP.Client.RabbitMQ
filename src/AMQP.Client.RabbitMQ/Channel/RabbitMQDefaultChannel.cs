@@ -53,11 +53,13 @@ namespace AMQP.Client.RabbitMQ.Channel
                         await ProcessMethod();
                         break;
                     }
+                    /*
                 case Constants.FrameHeader:
                     {
                         await _basicHandler.HandleAsync(header);
                         break;
                     }
+                    */
                 default: throw new Exception($"Frame type missmatch{nameof(RabbitMQDefaultChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
             }
         }

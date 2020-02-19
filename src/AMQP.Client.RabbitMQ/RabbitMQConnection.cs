@@ -44,7 +44,7 @@ namespace AMQP.Client.RabbitMQ
         }
         
         public async Task StartAsync()
-        {
+        { 
             _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token);
             _connectionClosed = _cts.Token;
             _protocol = new RabbitMQProtocol(_context);

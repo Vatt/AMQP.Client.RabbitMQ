@@ -9,19 +9,33 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class ContentHeaderReader : IMessageReader<ContentHeader>
+    public class ContentHeaderFullReader : IMessageReader<ContentHeader>
     {
+        private readonly ushort _channel; 
         private ushort m_bitCount = 0;
+        public ContentHeaderFullReader(ushort channelId)
+        {
+            _channel = channelId;
+        }
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ContentHeader message)
         {
             message = default;
             ValueReader reader = new ValueReader(input);
-            if(!reader.ReadShortInt(out ushort classId)) { return false; }
-            if(!reader.ReadShortInt(out ushort weight)) { return false; }
+            
+            if(!reader.ReadOctet(out var type)) { return false; }
+            if(!reader.ReadShortInt(out ushort channel)) { return false; }
+            if(!reader.ReadLong(out int payload)) { return false; }
+            if(type != Constants.FrameHeader && channel != _channel)
+            {
+                throw new Exception($"Missmatch FrameType ot Channel in{typeof(ContentHeaderFullReader)}");
+            }
+
+            if(!reader.ReadShortInt(out short classId)) { return false; }
+            if(!reader.ReadShortInt(out short weight)) { return false; }
             if(!reader.ReadLongLong(out long bodySize)) { return false; }
-            if(!reader.ReadShortInt(out ushort propertyFlags)) { return false; }
-            message = new ContentHeader(classId, weight, bodySize);
-            if(!ReadBitFlagsAndContinuation(propertyFlags,ref reader, ref message.ContentType, ref message.ContentEncoding, ref message.Headers,
+            if(!reader.ReadShortInt(out short propertyFlags)) { return false; }
+            message = new ContentHeader((ushort)classId, (ushort)weight, bodySize);
+            if(!ReadBitFlagsAndContinuation((ushort)propertyFlags,ref reader, ref message.ContentType, ref message.ContentEncoding, ref message.Headers,
                                             ref message.DeliveryMode, ref message.Priority, ref message.CorrelationId, ref message.ReplyTo,
                                             ref message.Expiration, ref message.MessageId, ref message.Timestamp, ref message.Type, ref message.UserId,
                                             ref message.AppId, ref message.ClusterId))

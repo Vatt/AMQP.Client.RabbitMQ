@@ -18,15 +18,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out MethodHeader message)
         {
-            //class-id method-id:short short
-            if (input.Length < 4)
-            {
-                message = default;
-                return false;
-            }
+            message = default;
             SequenceReader<byte> reader = new SequenceReader<byte>(input);
-            reader.TryReadBigEndian(out short classId);
-            reader.TryReadBigEndian(out short methodId);
+            if(!reader.TryReadBigEndian(out short classId)){ return false; }
+            if (!reader.TryReadBigEndian(out short methodId)){ return false; }
             message = new MethodHeader(classId, methodId);
             consumed = reader.Position;
             examined = consumed;

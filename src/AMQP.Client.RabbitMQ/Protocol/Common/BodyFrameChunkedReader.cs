@@ -19,9 +19,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             message = default;
             ValueReader reader = new ValueReader(input);
 
-            //var readable = Math.Min((_header.BodySize - Consumed), input.Length);
-            var readable = Math.Min(1024, input.Length);
-            message = input.Slice(reader.Position, readable);
+            var readable = Math.Min((_header.BodySize - Consumed), input.Length);
+            message = input.Slice(0,readable);
             Consumed += readable;
             reader.Advance(readable);
             if (Consumed == _header.BodySize)

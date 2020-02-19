@@ -43,9 +43,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
                 return false;
             }
             reader.ReadOctet(out byte type);
-            reader.ReadShortInt(out ushort channel);
+            reader.ReadShortInt(out short channel);
             reader.ReadLong(out int payloadSize);
-            message = new FrameHeader(type, channel, payloadSize);
+            message = new FrameHeader(type, (ushort)channel, payloadSize);
 
             consumed = reader.Position;
             examined = consumed;

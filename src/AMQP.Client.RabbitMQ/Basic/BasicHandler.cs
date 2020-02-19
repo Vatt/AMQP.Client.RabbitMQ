@@ -16,30 +16,12 @@ namespace AMQP.Client.RabbitMQ.Basic
     internal class BasicHandler : BasicReaderWriter
     {
         private Dictionary<string, ConsumerBase> _consumers;
-        private DeliverInfo activeDeliver;
         private TaskCompletionSource<string> _consumerCreateSrc;
         private SemaphoreSlim  _semaphore;
         public BasicHandler(ushort channelId,RabbitMQProtocol protocol):base(channelId,protocol)
         {
             _consumers = new Dictionary<string, ConsumerBase>();
             _semaphore = new SemaphoreSlim(1);
-        }
-        public async ValueTask HandleAsync(FrameHeader header)
-        {
-            Debug.Assert(header.FrameType == Constants.FrameHeader && header.Channel == _channelId);
-            var result = await _protocol.Reader.ReadAsync(new ContentHeaderReader());
-            _protocol.Reader.Advance();
-            if(result.IsCompleted)
-            {
-                //TODO: сделать чтонибудь
-            }
-            if(!_consumers.TryGetValue(activeDeliver.ConsumerTag,out var consumer))
-            {
-                throw new Exception($"{nameof(BasicHandler)}: cant signal to consume");
-            }
-            await consumer.Delivery(activeDeliver, result.Message);
-            activeDeliver = default;
-            
         }
         public async ValueTask HandleMethodHeader(MethodHeader header)
         {
@@ -48,7 +30,12 @@ namespace AMQP.Client.RabbitMQ.Basic
             {
                 case 60://deliver method
                     {
-                        activeDeliver = await ReadBasicDeliver();
+                        var deliver = await ReadBasicDeliver();
+                        if (!_consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
+                        {
+                            throw new Exception($"{nameof(BasicHandler)}: cant signal to consume");
+                        }
+                        await consumer.Delivery(deliver);
                         break;
                     }
                 case 21:// consume-ok 
@@ -59,6 +46,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                 default: throw new Exception($"{nameof(BasicHandler)}.HandleMethodAsync: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
             }
         }
+        
         public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
@@ -68,7 +56,7 @@ namespace AMQP.Client.RabbitMQ.Basic
             var result = await _consumerCreateSrc.Task;
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol);
+                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId);
                 if(!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
@@ -100,7 +88,7 @@ namespace AMQP.Client.RabbitMQ.Basic
             var result = await _consumerCreateSrc.Task;
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _protocol);
+                var consumer = new RabbitMQConsumer(consumerTag, _protocol,_channelId);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
