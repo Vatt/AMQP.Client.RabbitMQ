@@ -23,7 +23,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             ValueReader reader = new ValueReader(input);
             
             if(!reader.ReadOctet(out var type)) { return false; }
-            if(!reader.ReadShortInt(out ushort channel)) { return false; }
+            if(!reader.ReadShortInt(out short channel)) { return false; }
             if(!reader.ReadLong(out int payload)) { return false; }
             if(type != Constants.FrameHeader && channel != _channel)
             {
