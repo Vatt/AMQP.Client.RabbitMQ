@@ -20,6 +20,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ContentHeader message)
         {
             message = default;
+            m_bitCount = 0;
             ValueReader reader = new ValueReader(input);
             
             if(!reader.ReadOctet(out var type)) { return false; }
