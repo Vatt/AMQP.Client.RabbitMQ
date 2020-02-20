@@ -11,6 +11,9 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Channel;
 using System.Diagnostics;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using System.Collections.Concurrent;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using System.Runtime.CompilerServices;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -19,7 +22,9 @@ namespace AMQP.Client.RabbitMQ
         private static readonly Bedrock.Framework.Client _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider())
                                                                     .UseSockets()
                                                                     .Build();
-        
+        private static ushort _channelId = 0; //Interlocked?
+        private readonly ConcurrentDictionary<ushort, RabbitMQDefaultChannel> _channels;
+        private RabbitMQChannelZero Channel0;
         private readonly object _lockObj = new object();
         private CancellationToken _connectionClosed;
         private CancellationTokenSource _cts;
@@ -32,8 +37,6 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
 
-        private RabbitMQChannelZero Channel0;
-        private RabbitMQChannelHandler _channels;
         private readonly RabbitMQConnectionBuilder _builder;
         public RabbitMQConnection(RabbitMQConnectionBuilder builder)
         {
@@ -42,6 +45,7 @@ namespace AMQP.Client.RabbitMQ
             _cts = new CancellationTokenSource();
             _endReading = new TaskCompletionSource<bool>();
             _connectionClosed = _cts.Token;
+            _channels = new ConcurrentDictionary<ushort, RabbitMQDefaultChannel>();
         }
         
         public async Task StartAsync()
@@ -49,7 +53,6 @@ namespace AMQP.Client.RabbitMQ
             _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token);            
             _protocol = new RabbitMQProtocol(_context);
             Channel0 = new RabbitMQChannelZero(_builder, _protocol);
-            _channels = new RabbitMQChannelHandler(_protocol, Channel0);
             _readingTask = StartReading();
             bool openned = await Channel0.TryOpenChannelAsync();
             if(!openned)
@@ -85,12 +88,12 @@ namespace AMQP.Client.RabbitMQ
                                     await Channel0.HandleAsync(header);
                                     break;
                                 }
-                                await _channels.HandleFrameAsync(header);
+                                await ProcessChannel(header);
                                 break;
                             }
                        case 2:
                             {
-                                await _channels.HandleFrameAsync(header);
+                                await ProcessChannel(header);
                                 break;
                             }
                        case 8:
@@ -115,9 +118,37 @@ namespace AMQP.Client.RabbitMQ
             }
   
         }
+
         public async ValueTask<IRabbitMQDefaultChannel> CreateChannel()
         {
-            return await _channels.CreateChannel();
+            var id = ++_channelId;
+            if (id > Channel0.MainInfo.ChannelMax)
+            {
+                return default;
+            }
+            var channel = new RabbitMQDefaultChannel(_protocol, id, CloseChannelPrivate);
+            _channels[id] = channel;
+            var openned = await channel.TryOpenChannelAsync();
+            if (!openned)
+            {
+                if (!_channels.TryRemove(id, out RabbitMQDefaultChannel _))
+                {
+                    //TODO: сделать что нибудь
+                }
+                return default;
+            }
+            return channel;
+        }
+        private void CloseChannelPrivate(ushort id)
+        {
+            if (!_channels.TryRemove(id, out RabbitMQDefaultChannel channel))
+            {
+                //TODO: сделать что нибудь
+            }
+            if (channel != null && channel.IsOpen)
+            {
+                //TODO: сделать что нибудь
+            }
         }
 
         public async ValueTask CloseConnectionAsync()
@@ -130,6 +161,16 @@ namespace AMQP.Client.RabbitMQ
         public async Task WaitEndReading()
         {
             await _endReading.Task;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private async ValueTask ProcessChannel(FrameHeader header)
+        {
+            if (!_channels.TryGetValue(header.Channel, out RabbitMQDefaultChannel channel))
+            {
+                throw new Exception($"{nameof(RabbitMQConnection)}: channel-id({header.Channel}) missmatch");
+            }
+            await channel.HandleAsync(header);
         }
     }
 }
