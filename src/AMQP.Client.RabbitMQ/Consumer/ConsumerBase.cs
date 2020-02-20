@@ -15,6 +15,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public readonly string ConsumerTag;
         public readonly ushort ChannelId;
         protected readonly RabbitMQProtocol _protocol;
+        public event Action Closed;
         public bool IsClosed { get; protected set; }
         internal ConsumerBase(string tag, ushort channel, RabbitMQProtocol protocol)
         {
@@ -27,9 +28,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
         {
             var result = await _protocol.Reader.ReadAsync(new ContentHeaderFullReader(ChannelId));
             _protocol.Reader.Advance();
-            await ReadBodyMessage(info, result.Message);
+            await ReadBodyMessage(new RabbitMQDeliver(info,ChannelId,_protocol), result.Message);
         }
-        internal abstract ValueTask ReadBodyMessage(DeliverInfo info, ContentHeader header);
+        internal abstract ValueTask ReadBodyMessage(RabbitMQDeliver deliver, ContentHeader header);
 
     }
 }

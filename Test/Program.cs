@@ -18,6 +18,7 @@ namespace Test
 
         static async Task Main(string[] args)
         {
+            var size = Unsafe.SizeOf<RabbitMQDeliver>();
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
@@ -35,19 +36,23 @@ namespace Test
 
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
-            //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:true);
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
-            var id = 0;
-            consumer.Received += (header, result) =>
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:false);
+            //var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:false);
+            long chunkLen = 0;
+            consumer.Received += async (deliver, result) =>
             {
-                var len = result.Length;
-                if (len != 16*1024)
+                chunkLen += result.Chunk.Length;
+
+                if (result.IsCompleted)
                 {
-                    throw new Exception($"Wrong consume length: {len}");
+                    if (chunkLen != 16 * 1024)
+                    {
+                        throw new Exception($"Wrong consume length: {chunkLen}");
+                    }
+                    chunkLen = 0;
+                    await deliver.Ack(false);
                 }
                 
-               // Debug.WriteLine($"{consumer.ConsumerTag} received{id} {len}");
-                id++;
             };
             await connection.WaitEndReading();//for testing
         }

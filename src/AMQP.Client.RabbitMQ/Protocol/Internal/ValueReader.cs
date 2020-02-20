@@ -8,6 +8,29 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
+    //internal static class SequenceReaderExtensions
+    //{
+    //    public static bool TryReadBigEndian(ref this SequenceReader<byte> reader, out ushort value)
+    //    {
+    //        if (!BitConverter.IsLittleEndian)
+    //        {
+    //            return reader.TryRead(out value);
+    //        }
+
+    //        return TryReadReverseEndianness(ref reader, out value);
+    //    }
+    //    private static bool TryReadReverseEndianness(ref SequenceReader<byte> reader, out ushort value)
+    //    {
+    //        if (reader.TryRead(out value))
+    //        {
+    //            value = BinaryPrimitives.ReverseEndianness(value);
+    //            return true;
+    //        }
+
+    //        return false;
+    //    }
+    //}
+
     internal ref struct ValueReader 
     {
         private SequenceReader<byte> _reader;

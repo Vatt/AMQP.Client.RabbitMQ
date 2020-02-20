@@ -16,15 +16,15 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
         private byte[] _activeDeliver;
         private int _deliverPosition;
-        public event Action<ContentHeader, byte[]> Received;
-        public event Action Close;
+        public event Action<RabbitMQDeliver, byte[]> Received;
+        
         internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol,ushort channelId) 
             :base(consumerTag, channelId, protocol)
         {
             _reader = new BodyFrameChunkedReader();
             _deliverPosition = 0;
         }
-        internal override async ValueTask ReadBodyMessage(DeliverInfo info, ContentHeader header)
+        internal override async ValueTask ReadBodyMessage(RabbitMQDeliver deliver, ContentHeader header)
         {
             var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
             _protocol.Reader.Advance();
@@ -36,7 +36,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 Copy(result.Message);
                 _protocol.Reader.Advance();
             }
-            Received?.Invoke(header, _activeDeliver);
+            Received?.Invoke(deliver, _activeDeliver);
             ArrayPool<byte>.Shared.Return(_activeDeliver);
             _activeDeliver = null;
         }
