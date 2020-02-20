@@ -5,6 +5,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,28 +13,46 @@ namespace AMQP.Client.RabbitMQ.Consumer
 {
     public class RabbitMQConsumer : ConsumerBase
     {
-        private readonly RabbitMQProtocol _protocol;
-        private readonly BodyFrameReader _reader;
+        private readonly BodyFrameChunkedReader _reader;
+        private byte[] _activeDeliver;
+        private int _deliverPosition;
         public event Action<ContentHeader, byte[]> Received;
         public event Action Close;
-        internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol,ushort channelId) : base(consumerTag, channelId)
+        internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol,ushort channelId) 
+            :base(consumerTag, channelId, protocol)
         {
-            _protocol = protocol;
-            _reader = new BodyFrameReader();
+            _reader = new BodyFrameChunkedReader();
+            _deliverPosition = 0;
         }
-        internal override async ValueTask Delivery(DeliverInfo info)
+        internal override async ValueTask ReadBodyMessage(DeliverInfo info, ContentHeader header)
         {
-            //добавить чтение ContentHeader
-            /*var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
+            var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
             _protocol.Reader.Advance();
-            byte[] buffer = ArrayPool<byte>.Shared.Rent((int)header.BodySize);
-            _reader.Reset(headerResult.Message, buffer);
-            await _protocol.Reader.ReadAsync(_reader);
-            _protocol.Reader.Advance();
-            Received?.Invoke(header, buffer);            
-            ArrayPool<byte>.Shared.Return(buffer);
-            */
-            throw new NotImplementedException();
+            Restart(header);
+
+            while (!_reader.IsComplete)
+            {
+                var result = await _protocol.Reader.ReadAsync(_reader);
+                Copy(result.Message);
+                _protocol.Reader.Advance();
+            }
+            Received?.Invoke(header, _activeDeliver);
+            ArrayPool<byte>.Shared.Return(_activeDeliver);
+            _activeDeliver = null;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Copy(ReadOnlySequence<byte> message)
+        {
+            var span = new Span<byte>(_activeDeliver, _deliverPosition, (int)message.Length);
+            message.CopyTo(span);
+            _deliverPosition += (int)message.Length;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Restart(ContentHeader header)
+        {
+            _deliverPosition = 0;
+            _activeDeliver = ArrayPool<byte>.Shared.Rent((int)header.BodySize);
+            _reader.Restart(header);
         }
     }
 }

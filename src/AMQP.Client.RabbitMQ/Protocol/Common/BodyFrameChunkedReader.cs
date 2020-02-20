@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     public class BodyFrameChunkedReader : IMessageReader<ReadOnlySequence<byte>>
     {
-        private long _consumed = 0;
+        public long _consumed = 0;
         private ContentHeader _header;
         public bool IsComplete { get; private set; }
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ReadOnlySequence<byte> message)
@@ -23,7 +23,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
             if (_consumed == _header.BodySize)
             {
-                // if (!TryReadEndMarker(ref reader)) { return false; }
                 if (!reader.ReadOctet(out byte marker)) { return false; }
                 if (marker != Constants.FrameEnd)
                 {
@@ -39,9 +38,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             message = input.Slice(reader.Position,readable);
             _consumed += readable;
             reader.Advance(readable);
+
             if (_consumed == _header.BodySize)
             {
-                //if (!TryReadEndMarker(ref reader)) { return false; }
                 if (!reader.ReadOctet(out byte marker)) 
                 {
                     _consumed -= readable;
@@ -62,16 +61,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             examined = consumed;
             return true;
 
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool TryReadEndMarker(ref ValueReader reader)
-        {
-            if (!reader.ReadOctet(out byte marker)) { return false; }
-            if (marker != Constants.FrameEnd)
-            {
-                ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
-            }
-            return true;
         }
         public void Restart(ContentHeader header)
         {

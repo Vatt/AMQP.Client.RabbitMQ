@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Connections;
-using System.IO.Pipelines;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,12 +87,12 @@ namespace AMQP.Client.RabbitMQ
                                     await Channel0.HandleAsync(header);
                                     break;
                                 }
-                                await ProcessChannel(header);
+                                await ProcessChannels(header);
                                 break;
                             }
                        case 2:
                             {
-                                await ProcessChannel(header);
+                                await ProcessChannels(header);
                                 break;
                             }
                        case 8:
@@ -164,7 +163,7 @@ namespace AMQP.Client.RabbitMQ
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private async ValueTask ProcessChannel(FrameHeader header)
+        private async ValueTask ProcessChannels(FrameHeader header)
         {
             if (!_channels.TryGetValue(header.Channel, out RabbitMQDefaultChannel channel))
             {

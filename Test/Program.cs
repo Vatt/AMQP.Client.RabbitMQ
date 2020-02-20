@@ -35,11 +35,17 @@ namespace Test
 
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:true);
+            //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:true);
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
             var id = 0;
             consumer.Received += (header, result) =>
             {
-                var len = result.Chunk.Length;
+                var len = result.Length;
+                if (len != 16*1024)
+                {
+                    throw new Exception($"Wrong consume length: {len}");
+                }
+                
                // Debug.WriteLine($"{consumer.ConsumerTag} received{id} {len}");
                 id++;
             };
