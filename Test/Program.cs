@@ -45,12 +45,12 @@ namespace Test
 
                 if (result.IsCompleted)
                 {
-                    if (chunkLen != 16 * 1024)
+                    if (chunkLen != 32)
                     {
                         throw new Exception($"Wrong consume length: {chunkLen}");
                     }
                     chunkLen = 0;
-                    await deliver.Ack(false);
+                    await deliver.Ack(true);
                 }
                 
             };

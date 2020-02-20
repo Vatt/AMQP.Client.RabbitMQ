@@ -22,9 +22,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
         {
             await _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(Info.DeliverTag, multiple));
         }
-        public async ValueTask Reject()
+        public async ValueTask Reject(bool requeue)
         {
-
+            await _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(Info.DeliverTag,requeue));
         }
 
 
