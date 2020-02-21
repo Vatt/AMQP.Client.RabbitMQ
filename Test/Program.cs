@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -18,7 +19,6 @@ namespace Test
 
         static async Task Main(string[] args)
         {
-            var size = Unsafe.SizeOf<RabbitMQDeliver>();
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
@@ -29,30 +29,41 @@ namespace Test
                                     .ClientInformation("TEST TEST TEST")
                                     .ClientCopyright("©")
                                     .Build();
-
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
 
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:false);
-            //var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:false);
+            //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer",noAck:false);
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:false);
             long chunkLen = 0;
+            //consumer.Received += async (deliver, result) =>
+            //{
+            //    chunkLen += result.Chunk.Length;
+
+            //    if (result.IsCompleted)
+            //    {
+            //        if (chunkLen != 32)
+            //        {
+            //            throw new Exception($"Wrong consume length: {chunkLen}");
+            //        }
+            //        chunkLen = 0;
+            //        await deliver.Ack(true);
+            //    }
+
+            //};
             consumer.Received += async (deliver, result) =>
             {
-                chunkLen += result.Chunk.Length;
+                chunkLen += result.Length;
 
-                if (result.IsCompleted)
+                if (chunkLen != 32)
                 {
-                    if (chunkLen != 32)
-                    {
-                        throw new Exception($"Wrong consume length: {chunkLen}");
-                    }
-                    chunkLen = 0;
-                    await deliver.Ack(true);
+                    throw new Exception($"Wrong consume length: {chunkLen}");
                 }
-                
+                chunkLen = 0;
+                await deliver.Ack(true);
+
             };
             await connection.WaitEndReading();//for testing
         }
