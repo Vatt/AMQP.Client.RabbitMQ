@@ -32,27 +32,27 @@ namespace AMQP.Client.RabbitMQ.Queue
             {
                 case 11: //declare-ok
                     {
-                       _declareOkSrc.SetResult(await ReadQueueDeclareOk());
+                       _declareOkSrc.SetResult(await ReadQueueDeclareOk().ConfigureAwait(false));
                         break;
                     }
                 case 21://bind-ok
                     {
-                        _commonSrc.SetResult(await ReadBindOkUnbindOk());
+                        _commonSrc.SetResult(await ReadBindOkUnbindOk().ConfigureAwait(false));
                         break;
                     }
                 case 51://unbind-ok
                     {
-                        _commonSrc.SetResult(await ReadBindOkUnbindOk());
+                        _commonSrc.SetResult(await ReadBindOkUnbindOk().ConfigureAwait(false));
                         break;
                     }
                 case 31://purge-ok
                     {
-                        _purgeOrDeleteSrc.SetResult(await ReadQueuePurgeOkDeleteOk());
+                        _purgeOrDeleteSrc.SetResult(await ReadQueuePurgeOkDeleteOk().ConfigureAwait(false));
                         break;
                     }
                 case 41: //delete-ok
                     {
-                        _purgeOrDeleteSrc.SetResult(await ReadQueuePurgeOkDeleteOk());
+                        _purgeOrDeleteSrc.SetResult(await ReadQueuePurgeOkDeleteOk().ConfigureAwait(false));
                         break;
                     }
                 default:
@@ -62,11 +62,11 @@ namespace AMQP.Client.RabbitMQ.Queue
         }
         public async ValueTask<QueueDeclareOk> DeclareAsync(string name, bool durable, bool exclusive,bool autoDelete, Dictionary<string, object> arguments)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
             var info = new QueueInfo(name, durable, exclusive, autoDelete, arguments: arguments);
-            await SendQueueDeclare(info);
-            var okInfo = await _declareOkSrc.Task;
+            await SendQueueDeclare(info).ConfigureAwait(false);
+            var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
             return okInfo;
@@ -74,79 +74,79 @@ namespace AMQP.Client.RabbitMQ.Queue
         public async ValueTask DeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
             var info = new QueueInfo(name, durable, exclusive, autoDelete, nowait:true, arguments: arguments);
-            await SendQueueDeclare(info);
+            await SendQueueDeclare(info).ConfigureAwait(false);
         }
         public async ValueTask<QueueDeclareOk> DeclarePassiveAsync(string name)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
             var info = new QueueInfo(name);
-            await SendQueueDeclare(info);
-            var okInfo = await _declareOkSrc.Task;
+            await SendQueueDeclare(info).ConfigureAwait(false);
+            var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
             return okInfo;
         }
         public async ValueTask<QueueDeclareOk> DeclareQuorumAsync(string name)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
             var info = new QueueInfo(name,true, arguments:new Dictionary<string, object> {{ "x-queue-type", "quorum" }});
-            await SendQueueDeclare(info);
-            var okInfo = await _declareOkSrc.Task;
+            await SendQueueDeclare(info).ConfigureAwait(false);
+            var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
             return okInfo;
         }
         public async ValueTask<bool> QueueBindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>();
             var info = new QueueBindInfo(queueName, exchangeName, routingKey, false, arguments);
-            await SendQueueBind(info);
-            var result = await _commonSrc.Task;
+            await SendQueueBind(info).ConfigureAwait(false);
+            var result = await _commonSrc.Task.ConfigureAwait(false);
             _semafore.Release();
             return result;
         }
 
-        public async ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        public ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
             var info = new QueueBindInfo(queueName, exchangeName, routingKey, true, arguments);
-            await SendQueueBind(info);
+            return SendQueueBind(info);
         }
         public async ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>();
             var info = new QueueUnbindInfo(queueName, exchangeName, routingKey, arguments);
-            await SendQueueUnbind(info);
-            var result = await _commonSrc.Task;
+            await SendQueueUnbind(info).ConfigureAwait(false);
+            var result = await _commonSrc.Task.ConfigureAwait(false);
             _semafore.Release();
             return result;
         }
         public async ValueTask<int> QueuePurgeAsync(string queueName)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _purgeOrDeleteSrc = new TaskCompletionSource<int>();
             var info = new QueuePurgeInfo(queueName, false);
-            await SendQueuePurge(info);
-            var result = await _purgeOrDeleteSrc.Task;
+            await SendQueuePurge(info).ConfigureAwait(false);
+            var result = await _purgeOrDeleteSrc.Task.ConfigureAwait(false);
             _semafore.Release();
             return result;
         }
 
-        public async ValueTask QueuePurgeNoWaitAsync(string queueName)
+        public ValueTask QueuePurgeNoWaitAsync(string queueName)
         {
             var info = new QueuePurgeInfo(queueName, true);
-            await SendQueuePurge(info);
+            return SendQueuePurge(info);
         }
         public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _purgeOrDeleteSrc = new TaskCompletionSource<int>();
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, false);
-            await SendQueueDelete(info);
-            var result = await _purgeOrDeleteSrc.Task;
+            await SendQueueDelete(info).ConfigureAwait(false);
+            var result = await _purgeOrDeleteSrc.Task.ConfigureAwait(false);
             _queues.Remove(queueName);
             _semafore.Release();
             return result;
@@ -154,7 +154,7 @@ namespace AMQP.Client.RabbitMQ.Queue
         public async ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
         {
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, true);
-            await SendQueueDelete(info);
+            await SendQueueDelete(info).ConfigureAwait(false);
             _queues.Remove(queueName);
         }
     }

@@ -25,13 +25,13 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
         internal override async ValueTask ReadBodyMessage(RabbitMQDeliver deliver, ContentHeader header)
         {
-            var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader());
+            var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             _reader.Restart(header);
 
             while (!_reader.IsComplete)
             {
-                var result = await _protocol.Reader.ReadAsync(_reader);
+                var result = await _protocol.Reader.ReadAsync(_reader).ConfigureAwait(false);
                 var chunk = new ChunkedConsumeResult(result.Message, _reader.IsComplete);
                 Received?.Invoke(deliver, chunk);
                 _protocol.Reader.Advance();

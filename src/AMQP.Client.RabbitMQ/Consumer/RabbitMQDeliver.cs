@@ -18,16 +18,13 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _protocol = protocol;
             _channelId = channelId;
         }
-        public async ValueTask Ack(bool multiple = false)
+        public ValueTask Ack(bool multiple = false)
         {
-            await _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(Info.DeliverTag, multiple));
+            return _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(Info.DeliverTag, multiple));
         }
-        public async ValueTask Reject(bool requeue)
+        public ValueTask Reject(bool requeue)
         {
-            await _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(Info.DeliverTag,requeue));
+            return _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(Info.DeliverTag,requeue));
         }
-
-
-
     }
 }
