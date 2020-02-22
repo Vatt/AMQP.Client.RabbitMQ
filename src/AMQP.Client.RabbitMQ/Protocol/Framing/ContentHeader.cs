@@ -60,7 +60,29 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
             AppId = default;
             ClusterId = default;
         }
-        public void SetProperties(ContentHeaderProperties properties)
+
+        public ContentHeader(ushort classId, ushort weight, long bodySize, ref ContentHeaderProperties properties)
+        {
+            ClassId = classId;
+            Weight = weight;
+            BodySize = bodySize;
+            ContentType = properties.ContentType;
+            ContentEncoding = properties.ContentEncoding;
+            Headers = properties.Headers;
+            DeliveryMode = properties.DeliveryMode;
+            Priority = properties.Priority;
+            CorrelationId = properties.CorrelationId;
+            ReplyTo = properties.ReplyTo;
+            Expiration = properties.Expiration;
+            MessageId = properties.MessageId;
+            Timestamp = properties.Timestamp;
+            Type = properties.Type;
+            UserId = properties.UserId;
+            AppId = properties.AppId;
+            ClusterId = properties.ClusterId;
+        }
+
+        public void SetProperties(ref ContentHeaderProperties properties)
         {
             ContentType = properties.ContentType;
             ContentEncoding = properties.ContentEncoding;

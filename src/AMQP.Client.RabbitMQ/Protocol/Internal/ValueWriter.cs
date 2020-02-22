@@ -10,7 +10,7 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
-    
+
     internal ref struct ValueWriter
     {
 
@@ -24,7 +24,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         private Span<byte> _span;
         private int _buffered;
         public int Written { get; private set; }
-        
+
         internal readonly ref struct Reserved
         {
             private readonly Span<byte> _reserved1;
@@ -41,7 +41,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             }
             public void Write(Span<byte> source)
             {
-                if(_reserved2==null)
+                if (_reserved2 == null)
                 {
                     WriteSingleSpan(source);
                 }
@@ -58,11 +58,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             private void WriteMultiSpan(Span<byte> source)
             {
                 Debug.Assert(source.Length == _reserved1.Length + _reserved2.Length);
-                source.Slice(0,_reserved1.Length).CopyTo(_reserved1);
+                source.Slice(0, _reserved1.Length).CopyTo(_reserved1);
                 source.Slice(_reserved1.Length, _reserved2.Length).CopyTo(_reserved2);
             }
         }
-        
+
         public ValueWriter(IBufferWriter<byte> writer)
         {
             m_needBitFlush = false;
@@ -80,7 +80,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 //TODO: do something
             }
-            if(_span.Length == 0)
+            if (_span.Length == 0)
             {
                 GetNextSpan();
             }
@@ -93,7 +93,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                     GetNextSpan();
                 }
                 return reserved;
-            }else
+            }
+            else
             {
                 var secondLen = length - _span.Length;
                 var first = _span.Slice(0, _span.Length);
@@ -115,12 +116,15 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             }
 
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<byte> source)
         {
-            BitFlush();
             WriteBytes(source);
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Advance(int count)
         {
@@ -128,6 +132,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             Written += count;
             _span = _span.Slice(count);
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetNextSpan(int size = 0)
         {
@@ -137,6 +143,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             }
             _span = _output.GetSpan(size);
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteBytes(ReadOnlySpan<byte> source)
         {
@@ -155,6 +163,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 Advance(writable);
             }
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteOctet(byte value)
         {
@@ -166,13 +176,16 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             _span[0] = value;
             Advance(1);
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteType(char type)
         {
             BitFlush();
             WriteOctet((byte)type);
         }
-  
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortIntTyped(short shortint)
         {
@@ -180,7 +193,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             WriteType('U');
             WriteShortInt(shortint);
         }
-   
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortInt(short shortint)
         {
@@ -198,6 +212,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 Advance(sizeof(short));
             }
         }
+
+
         public void WriteShortInt(ushort shortint)
         {
             BitFlush();
@@ -215,6 +231,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             }
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongTyped(int longInt)
         {
@@ -222,6 +239,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             WriteType('I');
             WriteLong(longInt);
         }
+
+
         public void WriteLong(int longInt)
         {
             BitFlush();
@@ -237,12 +256,16 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 Advance(sizeof(int));
             }
         }
+
+
         public void WriteLongLongTyped(long longlong)
         {
             BitFlush();
             WriteType('L');
             WriteLongLong(longlong);
         }
+
+
         public void WriteLongLong(long longlong)
         {
             BitFlush();
@@ -258,6 +281,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 Advance(sizeof(long));
             }
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortStrTyped(string str)
         {
@@ -265,44 +290,80 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             WriteType('s');
             WriteShortStr(str);
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteShortStr(string str)
         {
             BitFlush();
-            if (str.Length > byte.MaxValue)
+
+            int length = Encoding.UTF8.GetMaxByteCount(str.Length);
+            if (_span.Length >= length + sizeof(byte))
             {
-                WriterThrowHelper.ThrowIfValueWriterOutOfRange();
+                int byteCount = Encoding.UTF8.GetBytes(str, _span.Slice(sizeof(byte)));
+                if (byteCount > 255)
+                {
+                    WriterThrowHelper.ThrowIfValueWriterOutOfRange();
+                }
+                _span[0] = (byte)byteCount;
+                Advance(byteCount + sizeof(byte));
             }
-            ReadOnlySpan<byte> data = Encoding.UTF8.GetBytes(str);
-            WriteOctet((byte)data.Length);
-            WriteBytes(data);
+            else
+            {
+                if (str.Length > byte.MaxValue)
+                {
+                    WriterThrowHelper.ThrowIfValueWriterOutOfRange();
+                }
+                ReadOnlySpan<byte> data = Encoding.UTF8.GetBytes(str);
+                WriteOctet((byte)data.Length);
+                WriteBytes(data);
+            }
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongStrTyped(string str)
         {
-            BitFlush();
             WriteType('S');
             WriteLongStr(str);
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteLongStr(string str)
         {
             BitFlush();
-            ReadOnlySpan<byte> data = Encoding.UTF8.GetBytes(str);
-            WriteLong(data.Length);
-            WriteBytes(data);
+
+            int length = Encoding.UTF8.GetMaxByteCount(str.Length);
+            if (_span.Length >= length + sizeof(int))
+            {
+                int byteCount = Encoding.UTF8.GetBytes(str, _span.Slice(sizeof(int)));
+                BinaryPrimitives.WriteInt32BigEndian(_span, byteCount);
+                Advance(byteCount + sizeof(int));
+            }
+            else
+            {
+                ReadOnlySpan<byte> data = Encoding.UTF8.GetBytes(str);
+                WriteLong(data.Length);
+                WriteBytes(data);
+            }
         }
+
+
         public void WriteBoolTyped(bool b)
         {
             BitFlush();
             WriteType('t');
             WriteBool(b);
         }
+
+
         public void WriteBool(bool b)
         {
             WriteOctet(Convert.ToByte(b));
         }
-        
+
+
         public void WriteBit(bool value)
         {
             if (m_bitMask > 0x80)
@@ -320,6 +381,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             m_bitMask = m_bitMask << 1;
             m_needBitFlush = true;
         }
+
+
         public void BitFlush()
         {
             if (_span.Length == 0)
@@ -333,12 +396,15 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 ResetBitAccumulator();
             }
         }
+
+
         private void ResetBitAccumulator()
         {
             m_needBitFlush = false;
             m_bitAccumulator = 0;
             m_bitMask = 1;
         }
+
         private void WriteValue(object value)
         {
             BitFlush();
@@ -363,7 +429,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                     {
                         WriteLongStrTyped(str);
                         break;
-                    } 
+                    }
                 case Dictionary<string, object> table:
                     {
                         WriteTableTyped(table);

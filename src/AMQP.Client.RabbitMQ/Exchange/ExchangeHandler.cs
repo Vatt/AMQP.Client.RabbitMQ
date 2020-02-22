@@ -35,12 +35,12 @@ namespace AMQP.Client.RabbitMQ.Exchange
             {
                 case 11: //declare-ok
                     {
-                        _declareOkSrc.SetResult(await ReadExchangeDeclareOk());
+                        _declareOkSrc.SetResult(await ReadExchangeDeclareOk().ConfigureAwait(false));
                         break;
                     }
                 case 21:
                     {
-                        _deleteOkSrc.SetResult(await ReadExchangeDeleteOk());
+                        _deleteOkSrc.SetResult(await ReadExchangeDeleteOk().ConfigureAwait(false));
                         break;
                     }
                 default:
@@ -48,28 +48,28 @@ namespace AMQP.Client.RabbitMQ.Exchange
 
             }
         }
-        public async ValueTask<bool> DeclareAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
+        public ValueTask<bool> DeclareAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
         {
             var info = new ExchangeInfo(name, type, durable: durable, autoDelete: autoDelete, arguments: arguments);
-            return await DeclarePrivateAsync(info);
+            return DeclarePrivateAsync(info);
         }
-        public async ValueTask DeclareNoWaitAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
+        public ValueTask DeclareNoWaitAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
         {
             var info = new ExchangeInfo(name, type, durable: durable, autoDelete: autoDelete, nowait: true, arguments: arguments);
-            await SendExchangeDeclareAsync(info);
+            return SendExchangeDeclareAsync(info);
         }
-        public async ValueTask<bool> DeclarePassiveAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
+        public ValueTask<bool> DeclarePassiveAsync(string name, string type, bool durable, bool autoDelete, Dictionary<string, object> arguments = null)
         {
             var info = new ExchangeInfo(name, type, durable: durable, autoDelete: autoDelete, passive: true, arguments: arguments);
-            return await DeclarePrivateAsync(info);
+            return DeclarePrivateAsync(info);
         }
         private async ValueTask<bool> DeclarePrivateAsync(ExchangeInfo info)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<bool>();
             
-            await SendExchangeDeclareAsync(info);
-            var result = await _declareOkSrc.Task;
+            await SendExchangeDeclareAsync(info).ConfigureAwait(false);
+            var result = await _declareOkSrc.Task.ConfigureAwait(false);
             if (result)
             {
                 _exchanges.Add(info.Name, info);
@@ -83,11 +83,11 @@ namespace AMQP.Client.RabbitMQ.Exchange
         }
         public async ValueTask<bool> DeleteAsync(string name, bool ifUnused = false)
         {
-            await _semafore.WaitAsync();
+            await _semafore.WaitAsync().ConfigureAwait(false);
             _deleteOkSrc = new TaskCompletionSource<bool>();
             var info = new ExchangeDeleteInfo(name, ifUnused);
-            await SendExchangeDeleteAsync(info);
-            var result = await _deleteOkSrc.Task;
+            await SendExchangeDeleteAsync(info).ConfigureAwait(false);
+            var result = await _deleteOkSrc.Task.ConfigureAwait(false);
             if (result)
             {
                 _exchanges.Remove(info.Name);
@@ -102,7 +102,7 @@ namespace AMQP.Client.RabbitMQ.Exchange
         public async ValueTask DeleteNoWaitAsync(string name, bool ifUnused = false)
         {
             var info = new ExchangeDeleteInfo(name, ifUnused);
-            await SendExchangeDeleteAsync(info);
+            await SendExchangeDeleteAsync(info).ConfigureAwait(false);
             _exchanges.Remove(info.Name);
 
         }

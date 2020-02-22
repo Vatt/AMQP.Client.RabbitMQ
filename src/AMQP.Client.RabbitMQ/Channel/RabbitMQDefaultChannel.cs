@@ -66,28 +66,28 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         public async ValueTask ProcessMethod()
         {
-            var method = await ReadMethodHeader();
+            var method = await ReadMethodHeader().ConfigureAwait(false);
             //Debug.WriteLine($"{method.ClassId} {method.MethodId}");
             switch (method.ClassId)
             {
                 case 20://Channels class
                     {
-                        await HandleMethodAsync(method);
+                        await HandleMethodAsync(method).ConfigureAwait(false);
                         break;
                     }
                 case 40://Exchange class
                     {
-                        await _exchangeMethodHandler.HandleMethodAsync(method);
+                        await _exchangeMethodHandler.HandleMethodAsync(method).ConfigureAwait(false);
                         break;
                     }
                 case 50://queue class
                     {
-                        await _queueMethodHandler.HandleMethodAsync(method);
+                        await _queueMethodHandler.HandleMethodAsync(method).ConfigureAwait(false);
                         break;
                     }
                 case 60://basic class
                     {
-                        await _basicHandler.HandleMethodHeader(method);
+                        await _basicHandler.HandleMethodHeader(method).ConfigureAwait(false);
                         break;
                     }
                 default: throw new Exception($"{nameof(RabbitMQDefaultChannel)}.HandleAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
@@ -100,7 +100,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 11:
                     {
-                        _isOpen = await ReadChannelOpenOk();
+                        _isOpen = await ReadChannelOpenOk().ConfigureAwait(false);
                         _openSrc.SetResult(_isOpen);
 
                         break;
@@ -115,7 +115,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                     */
                 case 41:
                     {
-                        var result = await ReadChannelCloseOk();
+                        var result = await ReadChannelCloseOk().ConfigureAwait(false);
                         _isOpen = false;
                         _closeSrc.SetResult(_isOpen);
                         break;
@@ -127,111 +127,111 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         public async Task<bool> TryOpenChannelAsync()
         {
-            await SendChannelOpen(_channelId);
-            return await _openSrc.Task;
+            await SendChannelOpen(_channelId).ConfigureAwait(false);
+            return await _openSrc.Task.ConfigureAwait(false);
         }
         public async Task<bool> TryCloseChannelAsync(string reason)
         {
-            await SendChannelClose(new CloseInfo(ChannelId, Constants.ReplySuccess, reason, 20, 41));
-            var result = await _closeSrc.Task;
+            await SendChannelClose(new CloseInfo(ChannelId, Constants.ReplySuccess, reason, 20, 41)).ConfigureAwait(false);
+            var result = await _closeSrc.Task.ConfigureAwait(false);
             _managerCloseCallback(_channelId);
             return result;
         }
         public async Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
-            await SendChannelClose(new CloseInfo(_channelId, replyCode, replyText, failedClassId, failedMethodId));
-            var result = await _closeSrc.Task;
+            await SendChannelClose(new CloseInfo(_channelId, replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
+            var result = await _closeSrc.Task.ConfigureAwait(false);
             _managerCloseCallback(_channelId);
             return result;
         }
-        public async ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
+        public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
         {
-            return await _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);
+            return _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);
         }
-        public async ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
+        public ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
         {
-            await _exchangeMethodHandler.DeclareNoWaitAsync(name, type, durable, autoDelete, arguments);
+            return _exchangeMethodHandler.DeclareNoWaitAsync(name, type, durable, autoDelete, arguments);
         }
-        public async ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
+        public ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
         {
-            return await _exchangeMethodHandler.DeclarePassiveAsync(name, type, durable, autoDelete, arguments);
+            return _exchangeMethodHandler.DeclarePassiveAsync(name, type, durable, autoDelete, arguments);
         }
+
 
 
 
-
-        public async ValueTask<bool> ExchangeDeleteAsync(string name, bool ifUnused = false)
+        public ValueTask<bool> ExchangeDeleteAsync(string name, bool ifUnused = false)
         {
-            return await _exchangeMethodHandler.DeleteAsync(name, ifUnused);
+            return _exchangeMethodHandler.DeleteAsync(name, ifUnused);
         }
 
-        public async ValueTask ExchangeDeleteNoWaitAsync(string name, bool ifUnused = false)
+        public ValueTask ExchangeDeleteNoWaitAsync(string name, bool ifUnused = false)
         {
-            await _exchangeMethodHandler.DeleteNoWaitAsync(name, ifUnused);
+            return _exchangeMethodHandler.DeleteNoWaitAsync(name, ifUnused);
         }
 
-        public async ValueTask<QueueDeclareOk> QueueDeclareAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
+        public ValueTask<QueueDeclareOk> QueueDeclareAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
-            return await _queueMethodHandler.DeclareAsync(name, durable, exclusive, autoDelete, arguments);
+            return _queueMethodHandler.DeclareAsync(name, durable, exclusive, autoDelete, arguments);
         }
 
-        public async ValueTask<QueueDeclareOk> QueueDeclarePassiveAsync(string name)
+        public ValueTask<QueueDeclareOk> QueueDeclarePassiveAsync(string name)
         {
-            return await _queueMethodHandler.DeclarePassiveAsync(name);
+            return _queueMethodHandler.DeclarePassiveAsync(name);
         }
-        public async ValueTask<QueueDeclareOk> QueueDeclareQuorumAsync(string name)
+        public ValueTask<QueueDeclareOk> QueueDeclareQuorumAsync(string name)
         {
-            return await _queueMethodHandler.DeclareQuorumAsync(name);
-        }
-
-        public async ValueTask QueueDeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
-        {
-            await _queueMethodHandler.DeclareNoWaitAsync(name, durable, exclusive, autoDelete, arguments);
+            return _queueMethodHandler.DeclareQuorumAsync(name);
         }
 
-        public async ValueTask<bool> QueueBindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        public ValueTask QueueDeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
-            return await _queueMethodHandler.QueueBindAsync(queueName, exchangeName, routingKey, arguments);
+            return _queueMethodHandler.DeclareNoWaitAsync(name, durable, exclusive, autoDelete, arguments);
         }
 
-        public async ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
+        public ValueTask<bool> QueueBindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            await _queueMethodHandler.QueueBindNoWaitAsync(queueName,exchangeName,routingKey,arguments);
-        }
-        public async ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
-        {
-            return await _queueMethodHandler.QueueUnbindAsync(queueName, exchangeName, routingKey, arguments);
+            return _queueMethodHandler.QueueBindAsync(queueName, exchangeName, routingKey, arguments);
         }
 
-        public async ValueTask<int> QueuePurgeAsync(string queueName)
+        public ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            return await _queueMethodHandler.QueuePurgeAsync(queueName);
+            return _queueMethodHandler.QueueBindNoWaitAsync(queueName,exchangeName,routingKey,arguments);
         }
-        public async ValueTask QueuePurgeNoWaitAsync(string queueName)
+        public ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            await _queueMethodHandler.QueuePurgeNoWaitAsync(queueName);
-        }
-
-        public async ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
-        {
-            await _queueMethodHandler.QueueDeleteNoWaitAsync(queueName, ifUnused, ifEmpty);
+            return _queueMethodHandler.QueueUnbindAsync(queueName, exchangeName, routingKey, arguments);
         }
 
-        public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        public ValueTask<int> QueuePurgeAsync(string queueName)
         {
-            return await _queueMethodHandler.QueueDeleteAsync(queueName, ifUnused, ifEmpty);
+            return _queueMethodHandler.QueuePurgeAsync(queueName);
+        }
+        public ValueTask QueuePurgeNoWaitAsync(string queueName)
+        {
+            return _queueMethodHandler.QueuePurgeNoWaitAsync(queueName);
         }
 
-        public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        public ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        {
+            return _queueMethodHandler.QueueDeleteNoWaitAsync(queueName, ifUnused, ifEmpty);
+        }
+
+        public ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
+        {
+            return _queueMethodHandler.QueueDeleteAsync(queueName, ifUnused, ifEmpty);
+        }
+
+        public ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return await _basicHandler.CreateChunkedConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
+            return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
 
-        public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        public ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return await _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
+            return _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
 
         public RabbitMQPublisher CreatePublisher()
