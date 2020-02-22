@@ -28,7 +28,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if(!reader.ReadLong(out int payload)) { return false; }
             if(type != Constants.FrameHeader && channel != _channel)
             {
-                throw new Exception($"Missmatch FrameType ot Channel in{typeof(ContentHeaderFullReader)}");
+                throw new Exception($"Missmatch FrameType or Channel in{typeof(ContentHeaderFullReader)}");
             }
 
             if(!reader.ReadShortInt(out short classId)) { return false; }

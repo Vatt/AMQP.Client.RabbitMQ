@@ -23,11 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bedrock.Framework" Version="0.1.55-alpha.gda27b93d3b" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Publisher\" />
+    <PackageReference Include="Bedrock.Framework" Version="0.1.57-alpha.g91856b10da" />
+    <PackageReference Include="Bedrock.Framework.Experimental" Version="0.1.57-alpha.g91856b10da" />
   </ItemGroup>
 
 </Project>

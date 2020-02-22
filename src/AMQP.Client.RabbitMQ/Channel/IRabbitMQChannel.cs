@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using AMQP.Client.RabbitMQ.Publisher;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -36,6 +37,8 @@ namespace AMQP.Client.RabbitMQ.Channel
                                                                  bool exclusive = false, Dictionary<string, object> arguments = null);
         ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                    bool exclusive = false, Dictionary<string, object> arguments = null);
+
+        RabbitMQPublisher CreatePublisher();
 
     }
     

@@ -18,7 +18,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _protocol = protocol;
             _channelId = channelId;
         }
-        public async ValueTask Ack(bool multiple)
+        public async ValueTask Ack(bool multiple = false)
         {
             await _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(Info.DeliverTag, multiple));
         }

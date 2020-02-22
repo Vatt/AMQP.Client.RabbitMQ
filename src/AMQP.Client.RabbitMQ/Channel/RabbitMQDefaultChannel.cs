@@ -7,6 +7,7 @@ using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using AMQP.Client.RabbitMQ.Publisher;
 using AMQP.Client.RabbitMQ.Queue;
 using System;
 using System.Collections.Generic;
@@ -43,7 +44,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
 
 
-        public async ValueTask HandleAsync(FrameHeader header)
+        public async ValueTask HandleFrameHeaderAsync(FrameHeader header)
         {
             Debug.Assert(header.Channel == _channelId);
             switch(header.FrameType)
@@ -124,6 +125,11 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             }
         }
+        public async Task<bool> TryOpenChannelAsync()
+        {
+            await SendChannelOpen(_channelId);
+            return await _openSrc.Task;
+        }
         public async Task<bool> TryCloseChannelAsync(string reason)
         {
             await SendChannelClose(new CloseInfo(ChannelId, Constants.ReplySuccess, reason, 20, 41));
@@ -150,11 +156,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return await _exchangeMethodHandler.DeclarePassiveAsync(name, type, durable, autoDelete, arguments);
         }
-        public async Task<bool> TryOpenChannelAsync()
-        {
-            await SendChannelOpen(_channelId);
-            return await _openSrc.Task;
-        }
+
 
 
 
@@ -230,6 +232,11 @@ namespace AMQP.Client.RabbitMQ.Channel
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             return await _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
+        }
+
+        public RabbitMQPublisher CreatePublisher()
+        {
+            return new RabbitMQPublisher(_channelId, _protocol);
         }
     }
 }

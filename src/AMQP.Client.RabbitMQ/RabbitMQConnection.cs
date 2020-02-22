@@ -77,7 +77,7 @@ namespace AMQP.Client.RabbitMQ
                         break;
                     }
                     var header = result.Message;
-                    //Debug.WriteLine($"{header.FrameType} {header.Channel} {header.PaylodaSize}");
+                   // Debug.WriteLine($"{header.FrameType} {header.Channel} {header.PaylodaSize}");
                     switch (header.FrameType)
                     {
                         case 1:
@@ -169,7 +169,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 throw new Exception($"{nameof(RabbitMQConnection)}: channel-id({header.Channel}) missmatch");
             }
-            await channel.HandleAsync(header);
+            await channel.HandleFrameHeaderAsync(header);
         }
     }
 }
