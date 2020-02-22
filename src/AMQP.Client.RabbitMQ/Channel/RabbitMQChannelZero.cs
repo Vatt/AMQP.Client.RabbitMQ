@@ -11,7 +11,7 @@ namespace AMQP.Client.RabbitMQ.Channel
     /*
      * Zero channel is a service channel 
      */
-    internal class RabbitMQChannelZero : ConnectionReaderWriter,IRabbitMQChannel
+    internal class RabbitMQChannelZero : ConnectionReaderWriter, IRabbitMQChannel
     {
         private static readonly byte[] _protocolMsg = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
         public RabbitMQServerInfo ServerInfo { get; private set; }
@@ -44,8 +44,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 1:
                     {
-                        var method = await ReadMethodHeader();
-                        await HandleMethod(method);
+                        var method = await ReadMethodHeader().ConfigureAwait(false);
+                        await HandleMethod(method).ConfigureAwait(false);
                         break;
                     }
             }
@@ -58,21 +58,21 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 10 when method.MethodId == 10:
                     {
-                        ServerInfo = await ReadStartAsync();
-                        await SendStartOk(ClientInfo,_connectionInfo);
+                        ServerInfo = await ReadStartAsync().ConfigureAwait(false);
+                        await SendStartOk(ClientInfo,_connectionInfo).ConfigureAwait(false);
                         break;
                     }
 
                 case 10 when method.MethodId == 30:
                     {
-                        MainInfo = await ProcessTuneMethodAsync();
-                        await SendTuneOk(MainInfo);
-                        await SendOpen(_connectionInfo.VHost);
+                        MainInfo = await ProcessTuneMethodAsync().ConfigureAwait(false);
+                        await SendTuneOk(MainInfo).ConfigureAwait(false);
+                        await SendOpen(_connectionInfo.VHost).ConfigureAwait(false);
                         break;
                     }
                 case 10 when method.MethodId == 41:
                     {
-                        _isOpen = await ReadOpenOkAsync();
+                        _isOpen = await ReadOpenOkAsync().ConfigureAwait(false);
                         _openOkSrc.SetResult(_isOpen);
                         break;
                     }
@@ -89,7 +89,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         private async ValueTask<RabbitMQMainInfo> ProcessTuneMethodAsync()
         {
-            var info = await ReadTuneMethodAsync();
+            var info = await ReadTuneMethodAsync().ConfigureAwait(false);
             var mainInfo = MainInfo;
             if ((mainInfo.ChannelMax > info.ChannelMax) || (mainInfo.ChannelMax == 0 && info.ChannelMax != 0))
             {
@@ -104,19 +104,19 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public async Task<bool> TryOpenChannelAsync()
         {
-            await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg);
-            return await _openOkSrc.Task;
+            await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg).ConfigureAwait(false);
+            return await _openOkSrc.Task.ConfigureAwait(false);
         }
 
-        public async Task<bool> TryCloseChannelAsync(string reason)
+        public Task<bool> TryCloseChannelAsync(string reason)
         {
             //тиснуть сюда Close, CloseOK методы
-            return default;
+            return Task.FromResult(false);
         }
-        public async Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
+        public Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             //тиснуть сюда Close, CloseOK методы
-            return default;
+            return Task.FromResult(false);
         }
     }
 }

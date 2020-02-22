@@ -30,17 +30,18 @@ namespace AMQP.Client.RabbitMQ.Basic
             {
                 case 60://deliver method
                     {
-                        var deliver = await ReadBasicDeliver();
+                        var deliver = await ReadBasicDeliver().ConfigureAwait(false);
                         if (!_consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
                         {
                             throw new Exception($"{nameof(BasicHandler)}: cant signal to consume");
                         }
-                        await consumer.Delivery(deliver);
+                        await consumer.Delivery(deliver).ConfigureAwait(false);
                         break;
                     }
                 case 21:// consume-ok 
                     {
-                        _consumerCreateSrc.SetResult(await ReadBasicConsumeOk());
+                        var result = await ReadBasicConsumeOk().ConfigureAwait(false);
+                        _consumerCreateSrc.SetResult(result);
                         break;
                     }
                 default: throw new Exception($"{nameof(BasicHandler)}.HandleMethodAsync: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
@@ -52,8 +53,8 @@ namespace AMQP.Client.RabbitMQ.Basic
         {
             await _semaphore.WaitAsync();
             _consumerCreateSrc = new TaskCompletionSource<string>();
-            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
-            var result = await _consumerCreateSrc.Task;
+            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
+            var result = await _consumerCreateSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
                 var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId);
@@ -82,10 +83,10 @@ namespace AMQP.Client.RabbitMQ.Basic
         public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync().ConfigureAwait(false);
             _consumerCreateSrc = new TaskCompletionSource<string>();
-            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
-            var result = await _consumerCreateSrc.Task;
+            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
+            var result = await _consumerCreateSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
                 var consumer = new RabbitMQConsumer(consumerTag, _protocol,_channelId);

@@ -28,21 +28,20 @@ namespace AMQP.Client.RabbitMQ.Publisher
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             
             var writer = _protocol.Context.Transport.Output;
-            await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info);
+            await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
             callback(writer);
             var oneByte = writer.GetMemory(1);
             oneByte.Span[0] = Constants.FrameEnd;
-            await writer.FlushAsync();
-
+            await writer.FlushAsync().ConfigureAwait(false);
         }
+
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, byte[] message)
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
-            var content = new ContentHeader(60, 0, message.Length);
-            content.SetProperties(properties);
-            await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info);
-            await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content);
-            await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message);
+            var content = new ContentHeader(60, 0, message.Length, ref properties);
+            await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
+            await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
+            await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);
         }
     }
 }
