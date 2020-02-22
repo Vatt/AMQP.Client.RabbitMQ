@@ -38,7 +38,7 @@ namespace AMQP.Client.RabbitMQ.Publisher
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, byte[] message)
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
-            var content = new ContentHeader(60, 0, message.Length, ref properties);
+            var content = new ContentHeader(60, message.Length, ref properties);
             await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
             await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
             await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);

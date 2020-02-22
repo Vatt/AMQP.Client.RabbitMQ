@@ -40,10 +40,14 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
         public string UserId;
         public string AppId;
         public string ClusterId;
-        public ContentHeader(ushort classId,ushort weight, long bodySize)
+        public ContentHeader(ushort classId, ushort weight, long bodySize):this(classId,bodySize)
+        {
+            Weight = weight;
+        }
+        public ContentHeader(ushort classId, long bodySize)
         {
             ClassId = classId;
-            Weight = weight;
+            Weight = 0;
             BodySize = bodySize;
             ContentType = default;
             ContentEncoding = default;
@@ -61,10 +65,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
             ClusterId = default;
         }
 
-        public ContentHeader(ushort classId, ushort weight, long bodySize, ref ContentHeaderProperties properties)
+        public ContentHeader(ushort classId, long bodySize, ref ContentHeaderProperties properties)
         {
             ClassId = classId;
-            Weight = weight;
+            Weight = 0;
             BodySize = bodySize;
             ContentType = properties.ContentType;
             ContentEncoding = properties.ContentEncoding;

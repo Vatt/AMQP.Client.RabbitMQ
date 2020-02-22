@@ -47,20 +47,20 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteBitFlagsAndContinuation(ref ContentHeader message,ref ValueWriter writer)
         {
-            if (message.ContentType != null) { WritePresence(true, ref writer); }
-            if (message.ContentEncoding != null) { WritePresence(true, ref writer); }
-            if (message.Headers != null) { WritePresence(true, ref writer); }
-            if (message.DeliveryMode != 0) { WritePresence(true, ref writer); }
-            if (message.Priority != 0) { WritePresence(true, ref writer); }
-            if (message.CorrelationId != null) { WritePresence(true, ref writer); }
-            if (message.ReplyTo != null) { WritePresence(true, ref writer); }
-            if (message.Expiration != null) { WritePresence(true, ref writer); }
-            if (message.MessageId != null) { WritePresence(true, ref writer); }
-            if (message.Timestamp != 0) { WritePresence(true, ref writer); }
-            if (message.Type != null) { WritePresence(true, ref writer); }
-            if (message.UserId != null) { WritePresence(true, ref writer); }
-            if (message.AppId != null) { WritePresence(true, ref writer); }
-            if (message.ClusterId != null) { WritePresence(true, ref writer); }
+            if (message.ContentType != null) { WritePresence(true); }
+            if (message.ContentEncoding != null) { WritePresence(true); }
+            if (message.Headers != null) { WritePresence(true); }
+            if (message.DeliveryMode != 0) { WritePresence(true); }
+            if (message.Priority != 0) { WritePresence(true); }
+            if (message.CorrelationId != null) { WritePresence(true); }
+            if (message.ReplyTo != null) { WritePresence(true); }
+            if (message.Expiration != null) { WritePresence(true); }
+            if (message.MessageId != null) { WritePresence(true); }
+            if (message.Timestamp != 0) { WritePresence(true); }
+            if (message.Type != null) { WritePresence(true); }
+            if (message.UserId != null) { WritePresence(true); }
+            if (message.AppId != null) { WritePresence(true); }
+            if (message.ClusterId != null) { WritePresence(true); }
             writer.WriteShortInt(m_flagWord);
             if (message.ContentType != null) { writer.WriteShortStr(message.ContentType); }
             if (message.ContentEncoding != null) { writer.WriteShortStr(message.ContentEncoding); }
@@ -78,25 +78,14 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (message.ClusterId != null) { writer.WriteShortStr(message.ClusterId); }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WritePresence(bool present, ref ValueWriter writer)
+        private void WritePresence(bool present)
         {
-            //if (m_bitCount == 15)
-            //{
-            //    EmitFlagWord(true,ref writer);
-            //}
-
             if (present)
             {
                 int bit = 15 - m_bitCount;
                 m_flagWord = (ushort)(m_flagWord | (1 << bit));
             }
             m_bitCount++;
-        }
-        private void EmitFlagWord(bool continuationBit, ref ValueWriter writer)
-        {
-            writer.WriteShortInt((ushort)(continuationBit ? (m_flagWord | 1) : m_flagWord));
-            m_flagWord = 0;
-            m_bitCount = 0;
         }
     }
 }

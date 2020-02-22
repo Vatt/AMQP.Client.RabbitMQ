@@ -55,16 +55,16 @@ namespace Test
             ContentHeaderProperties properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
             properties.CorrelationId = Guid.NewGuid().ToString();
-            for (var i = 0; i < 50000; i++)
+            for (var i = 0; i < 500000; i++)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[512]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
 
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:false);
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
             consumer.Received += async (deliver, result) =>
             {
-                await deliver.Ack();
+                //await deliver.Ack();
             };
             await connection.WaitEndReading();
         }
@@ -90,7 +90,7 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32*1024]);
             }
             
         }
@@ -108,8 +108,8 @@ namespace Test
                         .Build();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
-            consumer.Received += async (deliver, result) =>
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
+            consumer.Received +=  (deliver, result) =>
             {
                 //await deliver.Ack();
             };
