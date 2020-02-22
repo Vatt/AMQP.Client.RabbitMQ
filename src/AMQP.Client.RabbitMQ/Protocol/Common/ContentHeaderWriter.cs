@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
@@ -31,7 +32,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             writer.WriteShortInt(message.Weight);
             writer.WriteLongLong(message.BodySize);
             
-            WriteBitFlagsAndContinuation(message, ref writer);
+            WriteBitFlagsAndContinuation(ref message, ref writer);
 
 
             var payloadSize = writer.Written - checkpoint;
@@ -43,7 +44,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
             writer.Commit();
         }
-        private void WriteBitFlagsAndContinuation(ContentHeader message,ref ValueWriter writer)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteBitFlagsAndContinuation(ref ContentHeader message,ref ValueWriter writer)
         {
             if (message.ContentType != null) { WritePresence(true, ref writer); }
             if (message.ContentEncoding != null) { WritePresence(true, ref writer); }
@@ -75,6 +77,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (message.AppId != null) { writer.WriteShortStr(message.AppId); }
             if (message.ClusterId != null) { writer.WriteShortStr(message.ClusterId); }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WritePresence(bool present, ref ValueWriter writer)
         {
             //if (m_bitCount == 15)

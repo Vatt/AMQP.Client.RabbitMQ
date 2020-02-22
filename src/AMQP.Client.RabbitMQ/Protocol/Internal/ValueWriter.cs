@@ -188,11 +188,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(short))
             {
-                //byte[] bytes = ArrayPool<byte>.Shared.Rent(2);
                 byte[] bytes = new byte[2];
                 BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
-                //ArrayPool<byte>.Shared.Return(bytes);
             }
             else
             {
@@ -206,11 +204,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(ushort))
             {
-                //byte[] bytes = ArrayPool<byte>.Shared.Rent(2);
                 byte[] bytes = new byte[2];
                 BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
-                //ArrayPool<byte>.Shared.Return(bytes);
             }
             else
             {
@@ -231,11 +227,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(int))
             {
-                //byte[] bytes = ArrayPool<byte>.Shared.Rent(4);
                 byte[] bytes = new byte[4];
                 BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);
                 WriteBytes(bytes);
-                //ArrayPool<byte>.Shared.Return(bytes);
             }
             else
             {
@@ -254,11 +248,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(long))
             {
-                //byte[] bytes = ArrayPool<byte>.Shared.Rent(8);
                 byte[] bytes = new byte[8];
                 BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
                 WriteBytes(bytes);
-                //ArrayPool<byte>.Shared.Return(bytes);
             }
             else
             {
