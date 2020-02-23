@@ -8,6 +8,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Publisher
@@ -18,11 +19,13 @@ namespace AMQP.Client.RabbitMQ.Publisher
         private readonly ushort _channelId;
         private readonly RabbitMQProtocol _protocol;
         private readonly int _maxFrameSize;
-        internal RabbitMQPublisher(ushort channelId, RabbitMQProtocol protocol, int maxFrameSize)
+        private readonly SemaphoreSlim _semaphore;
+        internal RabbitMQPublisher(ushort channelId, RabbitMQProtocol protocol, int maxFrameSize, SemaphoreSlim semaphore)
         {
             _channelId = channelId;
             _protocol = protocol;
             _maxFrameSize = maxFrameSize;
+            _semaphore = semaphore;
         }
         
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties , Action<IBufferWriter<byte>> callback)
@@ -39,6 +42,7 @@ namespace AMQP.Client.RabbitMQ.Publisher
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
+            await _semaphore.WaitAsync();
             await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
             await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
             if (content.BodySize < _maxFrameSize)
@@ -55,6 +59,7 @@ namespace AMQP.Client.RabbitMQ.Publisher
                     written += writable;
                 }
             }
+            _semaphore.Release();
         }
     }
 }
