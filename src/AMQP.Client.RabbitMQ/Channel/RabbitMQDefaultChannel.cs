@@ -30,7 +30,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public ushort ChannelId => _channelId;
         public bool IsOpen => _isOpen;
         private RabbitMQMainInfo _mainInfo;
-        private SemaphoreSlim publishSemaphore;
+        private SemaphoreSlim _writerSemaphore;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
@@ -41,7 +41,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _isOpen = false;
             _managerCloseCallback = closeCallback;
             _mainInfo = info;
-            publishSemaphore = new SemaphoreSlim(1);
+            _writerSemaphore = new SemaphoreSlim(1);
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
             _queueMethodHandler = new QueueHandler(_channelId,_protocol);
             _basicHandler = new BasicHandler(_channelId, _protocol);
@@ -241,7 +241,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public RabbitMQPublisher CreatePublisher()
         {
-            return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, publishSemaphore);
+            return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, _writerSemaphore);
         }
     }
 }
