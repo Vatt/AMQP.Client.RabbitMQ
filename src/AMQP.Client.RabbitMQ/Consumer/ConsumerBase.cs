@@ -26,11 +26,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal async ValueTask Delivery(DeliverInfo info)
         {
-            var result = await _protocol.Reader.ReadAsync(new ContentHeaderFullReader(ChannelId)).ConfigureAwait(false);
+            var contentResult = await _protocol.Reader.ReadAsync(new ContentHeaderFullReader(ChannelId)).ConfigureAwait(false);
             _protocol.Reader.Advance();
-            await ReadBodyMessage(new RabbitMQDeliver(info,ChannelId,_protocol), result.Message).ConfigureAwait(false);
+            await ProcessBodyMessage(new RabbitMQDeliver(info,ChannelId,_protocol), contentResult.Message.BodySize).ConfigureAwait(false);
         }
-        internal abstract ValueTask ReadBodyMessage(RabbitMQDeliver deliver, ContentHeader header);
+        internal abstract ValueTask ProcessBodyMessage(RabbitMQDeliver deliver, long contentBodySize);
 
     }
 }

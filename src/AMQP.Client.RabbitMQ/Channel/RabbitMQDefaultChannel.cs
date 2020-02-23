@@ -6,6 +6,7 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using AMQP.Client.RabbitMQ.Publisher;
 using AMQP.Client.RabbitMQ.Queue;
@@ -27,16 +28,17 @@ namespace AMQP.Client.RabbitMQ.Channel
         private readonly RabbitMQProtocol _protocol;
         public ushort ChannelId => _channelId;
         public bool IsOpen => _isOpen;
-
+        private RabbitMQMainInfo _mainInfo;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, ushort id, Action<ushort> closeCallback) : base(protocol)
+        internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, ushort id, RabbitMQMainInfo info, Action<ushort> closeCallback) : base(protocol)
         {
             _channelId = id;
             _protocol = protocol;
             _isOpen = false;
             _managerCloseCallback = closeCallback;
+            _mainInfo = info;
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
             _queueMethodHandler = new QueueHandler(_channelId,_protocol);
             _basicHandler = new BasicHandler(_channelId, _protocol);
@@ -51,7 +53,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case Constants.FrameMethod:
                     {
-                        await ProcessMethod();
+                        await ProcessMethod().ConfigureAwait(false); 
                         break;
                     }
                     /*
@@ -236,7 +238,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public RabbitMQPublisher CreatePublisher()
         {
-            return new RabbitMQPublisher(_channelId, _protocol);
+            return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax);
         }
     }
 }

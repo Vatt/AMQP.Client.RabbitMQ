@@ -5,6 +5,7 @@ using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -12,38 +13,48 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     public class BodyFrameChunkedReader : IMessageReader<ReadOnlySequence<byte>>
     {
-        public long _consumed = 0;
-        private ContentHeader _header;
-        public bool IsComplete { get; private set; }
+        public long _localConsumed = 0;
+        public long _contentConsumed = 0;
+        private int _payloadSize;
+        private long _contentBodySize;
+        private readonly ushort _channelId;
+        private bool needHead;
+        public bool IsComplete => _contentConsumed == _contentBodySize;
+        public BodyFrameChunkedReader(ushort channelId)
+        {
+            _channelId = channelId;
+        }
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ReadOnlySequence<byte> message)
         {
             message = default;
             if (input.Length == 0) { return false; }
             ValueReader reader = new ValueReader(input);
 
-            if (_consumed == _header.BodySize)
+            if(needHead)
             {
-                if (!reader.ReadOctet(out byte marker)) { return false; }
-                if (marker != Constants.FrameEnd)
-                {
-                    ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
+                if (!ReadHeader(out var type, out ushort channel, out _payloadSize, ref reader))
+                { 
+                    return false;
                 }
-                consumed = reader.Position;
-                examined = consumed;
-                IsComplete = true;
-                return true;
+                if (type != Constants.FrameBody || channel != _channelId)
+                {
+                    throw new Exception($"{nameof(BodyFrameChunkedReader)}: frame type or channel id missmatch");
+                }
+                
             }
 
-            var readable = Math.Min((_header.BodySize - _consumed), input.Length);
-            message = input.Slice(reader.Position,readable);
-            _consumed += readable;
+            var readable = Math.Min((_payloadSize - _localConsumed), reader.Remaining);
+            message = input.Slice(reader.Position, readable);
+            _localConsumed += readable;
+            _contentConsumed += readable;
             reader.Advance(readable);
 
-            if (_consumed == _header.BodySize)
+            if (_localConsumed == _payloadSize)
             {
                 if (!reader.ReadOctet(out byte marker)) 
                 {
-                    _consumed -= readable;
+                    _localConsumed -= readable;
+                    _contentConsumed -= readable;
                     return false; 
                 }
                 if (marker != Constants.FrameEnd)
@@ -52,21 +63,42 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
                 }
                 consumed = reader.Position;
                 examined = consumed;
-                IsComplete = true;
+                needHead = true;
+                _localConsumed = 0;
                 return true;
             }
-
-            IsComplete = false;
+            if (needHead) { needHead = false; }
             consumed = reader.Position;
             examined = consumed;
             return true;
 
         }
-        public void Restart(ContentHeader header)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ReadHeader(out byte type, out ushort channel, out int payloadSize, ref ValueReader reader)
         {
-            _consumed = 0;
-            IsComplete = false;
-            _header = header;
+            channel = default;
+            payloadSize = default;
+            if (!reader.ReadOctet(out type)) 
+            { 
+                return false; 
+            }
+            if (!reader.ReadShortInt(out channel)) 
+            {
+                return false; 
+            }
+            if (!reader.ReadLong(out payloadSize))
+            { 
+                return false; 
+            }
+            return true;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Restart(long contentBodySize)
+        {
+            _localConsumed = 0;
+            _contentConsumed = 0;
+            needHead = true;
+            _contentBodySize = contentBodySize;
         }
     }
 }

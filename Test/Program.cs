@@ -27,10 +27,10 @@ namespace Test
             //Utf8JsonWriter
             //Utf8JsonReader
             //JsonSerializer 
-            await RunDefault();
+            //await RunDefault();
             
-            //Task.WaitAll(Task.Run(StartConsumer),
-            //             Task.Run(StartPublisher));
+            Task.WaitAll(Task.Run(StartConsumer),
+                         Task.Run(StartPublisher));
         }
         private static async Task RunDefault()
         {
@@ -55,10 +55,10 @@ namespace Test
             ContentHeaderProperties properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
             properties.CorrelationId = Guid.NewGuid().ToString();
-            for (var i = 0; i < 500000; i++)
+            for (var i = 0; i < 40000; i++)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
             }
 
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
@@ -90,7 +90,7 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32*1024]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1*1024*1024]);
             }
             
         }
@@ -99,7 +99,7 @@ namespace Test
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                        .Heartbeat(60 * 10)
+                        .Heartbeat(60*10)
                         .ProductName("AMQP.Client.RabbitMQ")
                         .ProductVersion("0.0.1")
                         .ConnectionName("AMQP.Client.RabbitMQ:Test")

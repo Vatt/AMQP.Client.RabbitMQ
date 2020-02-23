@@ -8,18 +8,18 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class BodyFrameWriter : IMessageWriter<byte[]>
+    public class BodyFrameWriter : IMessageWriter<ReadOnlyMemory<byte>>
     {
         private readonly ushort _channelId;
         public BodyFrameWriter(ushort channelId)
         {
             _channelId = channelId;
         }
-        public void WriteMessage(byte[] message, IBufferWriter<byte> output)
+        public void WriteMessage(ReadOnlyMemory<byte> message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             FrameWriter.WriteFrameHeader(Constants.FrameBody, _channelId, message.Length, ref writer);
-            writer.WriteBytes(message);
+            writer.WriteBytes(message.Span);
             writer.WriteOctet(Constants.FrameEnd);
             writer.Commit();
         }

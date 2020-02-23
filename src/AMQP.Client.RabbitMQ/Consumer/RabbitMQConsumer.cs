@@ -5,6 +5,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,21 +22,22 @@ namespace AMQP.Client.RabbitMQ.Consumer
         internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId)
             : base(consumerTag, channelId, protocol)
         {
-            _reader = new BodyFrameChunkedReader();
+            _reader = new BodyFrameChunkedReader(channelId);
             _deliverPosition = 0;
         }
-        internal override async ValueTask ReadBodyMessage(RabbitMQDeliver deliver, ContentHeader header)
+        internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver, long contentBodySize)
         {
-            var headerResult = await _protocol.Reader.ReadAsync(new FrameHeaderReader()).ConfigureAwait(false);
-            _protocol.Reader.Advance();
-            Restart(header);
-
+            _deliverPosition = 0;
+            _activeDeliver = ArrayPool<byte>.Shared.Rent((int)contentBodySize);
+            _reader.Restart(contentBodySize);
+         
             while (!_reader.IsComplete)
-            {
+            {                
                 var result = await _protocol.Reader.ReadAsync(_reader).ConfigureAwait(false);
                 Copy(result.Message);
                 _protocol.Reader.Advance();
             }
+            
             Received?.Invoke(deliver, _activeDeliver);
             ArrayPool<byte>.Shared.Return(_activeDeliver);
             _activeDeliver = null;
@@ -46,13 +48,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
             var span = new Span<byte>(_activeDeliver, _deliverPosition, (int)message.Length);
             message.CopyTo(span);
             _deliverPosition += (int)message.Length;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Restart(ContentHeader header)
-        {
-            _deliverPosition = 0;
-            _activeDeliver = ArrayPool<byte>.Shared.Rent((int)header.BodySize);
-            _reader.Restart(header);
         }
     }
 }
