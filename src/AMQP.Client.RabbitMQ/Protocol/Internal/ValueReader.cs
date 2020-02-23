@@ -52,20 +52,48 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         }
         public bool ReadShortInt(out ushort shortint)
         {
-            if (_reader.UnreadSpan.Length < sizeof(ushort))
+            if (_reader.Remaining < sizeof(ushort))
             {
                 shortint = default;
                 return false;
             }
-            var span = _reader.UnreadSpan.Slice(0, sizeof(ushort));
-            var result =  BinaryPrimitives.TryReadUInt16BigEndian(span, out shortint);
-            if (result)
+
+
+            if (_reader.UnreadSpan.Length >= sizeof(ushort))
             {
-                _reader.Advance(sizeof(ushort));
-                return true;
+                var span = _reader.UnreadSpan.Slice(0, sizeof(ushort));
+                if (BinaryPrimitives.TryReadUInt16BigEndian(span, out shortint))
+                {
+                    _reader.Advance(sizeof(ushort));
+                    return true;
+                }
+                else
+                {
+                    shortint = default;
+                    return false;
+                }
             }
+
+            Span<byte> buffer = stackalloc byte[sizeof(ushort)];
+            if (_reader.TryCopyTo(buffer))
+            {
+                if (BinaryPrimitives.TryReadUInt16BigEndian(buffer, out shortint))
+                {
+                    _reader.Advance(sizeof(ushort));
+                    return true;
+                }
+                else
+                {
+                    shortint = default;
+                    return false;
+                }
+            }
+
+            shortint = default;
             return false;
         }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadOctet(out byte octet)
         {
