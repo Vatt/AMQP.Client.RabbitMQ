@@ -29,6 +29,7 @@ namespace Test
             //Utf8JsonReader
             //JsonSerializer 
             //await RunDefault();
+
             await ChannelTest();
             //Task.WaitAll(Task.Run(StartConsumer),
             //             Task.Run(StartPublisher));
@@ -72,7 +73,7 @@ namespace Test
             var publisher2 = channel2.CreatePublisher();
 
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
-            consumer1.Received += async  (deliver, result) =>
+            consumer1.Received += async (deliver, result) =>
             {
                 if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
                 {
@@ -80,7 +81,7 @@ namespace Test
                 }
                 var properties = new ContentHeaderProperties();
                 properties.AppId = "testapp2";
-                await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
+                await publisher2.Publish("TestExchange2", string.Empty, false, false, ref properties, body2);
             };
 
             var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
@@ -93,7 +94,7 @@ namespace Test
 
                 var properties = new ContentHeaderProperties();
                 properties.AppId = "testapp1";
-                await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
+                await publisher1.Publish("TestExchange", string.Empty, false, false, ref properties, body1);
             };
 
             var firtsTask = Task.Run(async () =>
@@ -102,7 +103,7 @@ namespace Test
                 properties.AppId = "testapp1";
                 while (true)
                 {
-                    await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
+                    await publisher1.Publish("TestExchange", string.Empty, false, false, ref properties, body1);
                 }
             });
             var secondTask = Task.Run(async () =>
@@ -111,7 +112,7 @@ namespace Test
                 properties.AppId = "testapp2";
                 while (true)
                 {
-                    await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
+                    await publisher2.Publish("TestExchange2", string.Empty, false, false, ref properties, body2);
                 }
             });
 
@@ -175,7 +176,7 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, ref properties, new byte[32]);
             }
             
         }

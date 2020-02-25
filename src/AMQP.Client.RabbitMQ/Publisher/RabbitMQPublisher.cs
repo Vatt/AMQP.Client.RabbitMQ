@@ -22,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Publisher
             _semaphore = semaphore;
         }
         
-        public ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
+        public ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ref  ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
