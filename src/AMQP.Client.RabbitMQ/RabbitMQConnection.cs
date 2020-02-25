@@ -126,6 +126,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 return default;
             }
+            //var channel = new RabbitMQDefaultChannel(_protocol, id, MainInfo, CloseChannelPrivate);
             var channel = new RabbitMQDefaultChannel(_protocol, id, MainInfo, CloseChannelPrivate);
             _channels[id] = channel;
             var openned = await channel.TryOpenChannelAsync().ConfigureAwait(false);

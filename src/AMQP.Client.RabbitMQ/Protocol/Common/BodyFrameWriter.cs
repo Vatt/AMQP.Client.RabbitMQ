@@ -23,5 +23,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             writer.WriteOctet(Constants.FrameEnd);
             writer.Commit();
         }
+        internal void WriteMessage(ref ReadOnlyMemory<byte> message, ref ValueWriter writer)
+        {
+            FrameWriter.WriteFrameHeader(Constants.FrameBody, _channelId, message.Length, ref writer);
+            writer.WriteBytes(message.Span);
+            writer.WriteOctet(Constants.FrameEnd);
+            writer.Commit();
+        }
     }
 }

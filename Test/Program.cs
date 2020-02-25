@@ -38,7 +38,7 @@ namespace Test
             var addresses = Dns.GetHostAddresses("centos0.mshome.net");
             var address = addresses.First();
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("guest", "guest", "/")
+            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
                                     .Heartbeat(60)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
@@ -72,7 +72,7 @@ namespace Test
             var publisher2 = channel2.CreatePublisher();
 
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
-            consumer1.Received += async (deliver, result) =>
+            consumer1.Received += async  (deliver, result) =>
             {
                 if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
                 {
@@ -96,7 +96,6 @@ namespace Test
                 await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
             };
 
-            
             var firtsTask = Task.Run(async () =>
             {
                 ContentHeaderProperties properties = new ContentHeaderProperties();
@@ -115,7 +114,6 @@ namespace Test
                     await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
                 }
             });
-
 
             await connection.WaitEndReading();
         }
@@ -145,7 +143,7 @@ namespace Test
             for (var i = 0; i < 40000; i++)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
             }
 
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
@@ -177,7 +175,7 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1*1024*1024]);
+                publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             
         }
