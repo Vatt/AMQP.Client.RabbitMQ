@@ -72,16 +72,16 @@ namespace Test
             var publisher1 = channel1.CreatePublisher();
             var publisher2 = channel2.CreatePublisher();
 
+            var propertiesConsume = new ContentHeaderProperties();
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer1.Received += async (deliver, result) =>
             {
                 if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
                 {
                     Debugger.Break();
-                }
-                var properties = new ContentHeaderProperties();
-                properties.AppId = "testapp2";
-                await publisher2.Publish("TestExchange2", string.Empty, false, false, ref properties, body2);
+                }                
+                propertiesConsume.AppId = "testapp2";
+                await publisher2.Publish("TestExchange2", string.Empty, false, false, ref propertiesConsume, body2);
             };
 
             var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
@@ -92,14 +92,14 @@ namespace Test
                     Debugger.Break();
                 }
 
-                var properties = new ContentHeaderProperties();
-                properties.AppId = "testapp1";
-                await publisher1.Publish("TestExchange", string.Empty, false, false, ref properties, body1);
-            };
 
+                propertiesConsume.AppId = "testapp1";
+                await publisher1.Publish("TestExchange", string.Empty, false, false, ref propertiesConsume, body1);
+            };
+            ContentHeaderProperties properties = new ContentHeaderProperties();
             var firtsTask = Task.Run(async () =>
             {
-                ContentHeaderProperties properties = new ContentHeaderProperties();
+                
                 properties.AppId = "testapp1";
                 while (true)
                 {
@@ -108,7 +108,6 @@ namespace Test
             });
             var secondTask = Task.Run(async () =>
             {
-                ContentHeaderProperties properties = new ContentHeaderProperties();
                 properties.AppId = "testapp2";
                 while (true)
                 {
