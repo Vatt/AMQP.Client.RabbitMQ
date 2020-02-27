@@ -30,9 +30,9 @@ namespace Test
             //JsonSerializer 
             //await RunDefault();
 
-            //await ChannelTest();
-            Task.WaitAny(Task.Run(StartConsumer),
-                         Task.Run(StartPublisher));
+            await ChannelTest();
+            //Task.WaitAny(Task.Run(StartConsumer),
+            //             Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {
@@ -59,6 +59,8 @@ namespace Test
             var queueOk2 = await channel2.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel2.QueueBindAsync("TestQueue2", "TestExchange2");
 
+            await channel1.QoS(0, 10, false);
+            await channel2.QoS(0, 10, false);
 
             var body1 = new byte[1024];
             body1.AsSpan(0, 512).Fill(69);

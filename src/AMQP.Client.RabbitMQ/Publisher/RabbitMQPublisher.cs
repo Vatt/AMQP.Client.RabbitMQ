@@ -27,12 +27,11 @@ namespace AMQP.Client.RabbitMQ.Publisher
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
-            //return _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message));
             if (message.Length <= _maxFrameSize)
             {
-                await _semaphore.WaitAsync();
+                //await _semaphore.WaitAsync();
                 await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message));
-                _semaphore.Release();
+                //_semaphore.Release();
                 return;
             }
 
