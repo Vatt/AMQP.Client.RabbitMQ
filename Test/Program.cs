@@ -23,16 +23,18 @@ namespace Test
 
         static async Task Main(string[] args)
         {
-
+            //using Microsoft.Extensions.ObjectPool;
+            //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
+            //запилить пропертисы в сраный словарь
 
             //Utf8JsonWriter
             //Utf8JsonReader
             //JsonSerializer 
             //await RunDefault();
 
-            await ChannelTest();
-            //Task.WaitAny(Task.Run(StartConsumer),
-            //             Task.Run(StartPublisher));
+            //await ChannelTest();
+            Task.WaitAny(Task.Run(StartConsumer),
+                         Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {

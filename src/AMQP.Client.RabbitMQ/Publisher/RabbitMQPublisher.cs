@@ -30,16 +30,16 @@ namespace AMQP.Client.RabbitMQ.Publisher
             if (message.Length <= _maxFrameSize)
             {
                 //await _semaphore.WaitAsync();
-                await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message));
+                await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message)).ConfigureAwait(false);
                 //_semaphore.Release();
                 return;
             }
 
 
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync().ConfigureAwait(false);
 
             int written = 0;
-            await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content));
+            await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content)).ConfigureAwait(false);
             while (written < content.BodySize)
             {
 
@@ -53,7 +53,7 @@ namespace AMQP.Client.RabbitMQ.Publisher
                     batchCnt++;
                     written += writable;
                 }
-                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), batch);
+                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), batch).ConfigureAwait(false);
             }
 
             _semaphore.Release();
