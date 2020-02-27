@@ -242,5 +242,10 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, _writerSemaphore);
         }
+
+        public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
+        {
+            return _basicHandler.QoS(prefetchSize, prefetchCount, global);
+        }
     }
 }

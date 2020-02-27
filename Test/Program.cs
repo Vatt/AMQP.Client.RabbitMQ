@@ -31,7 +31,7 @@ namespace Test
             //await RunDefault();
 
             //await ChannelTest();
-            Task.WaitAll(Task.Run(StartConsumer),
+            Task.WaitAny(Task.Run(StartConsumer),
                          Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
@@ -183,8 +183,8 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             
         }
@@ -202,6 +202,9 @@ namespace Test
                         .Build();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
+
+            //await channel.QoS(0, ushort.MaxValue, true);
+
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
@@ -211,12 +214,13 @@ namespace Test
             var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
+            //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer.Received += async (deliver, result) =>
             {
                 if(result.IsCompleted)
                 {
-                    await deliver.Ack();
+                   // await deliver.Ack(true);
                 }
                 
             };

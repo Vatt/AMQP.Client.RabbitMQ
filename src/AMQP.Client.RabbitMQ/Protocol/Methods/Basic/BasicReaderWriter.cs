@@ -44,5 +44,19 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             return result.Message;
 
         }
+        public ValueTask SendBasicQoS(ref QoSInfo info)
+        {
+            return _protocol.Writer.WriteAsync(new BasicQoSWriter(_channelId), info);
+        }
+        public async ValueTask<bool> ReadBasicQoSOk()
+        {
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader());
+            _protocol.Reader.Advance();
+            if(result.IsCompleted)
+            {
+                //TODO: сделать чтонибудь
+            }
+            return result.Message;
+        }
     }
 }
