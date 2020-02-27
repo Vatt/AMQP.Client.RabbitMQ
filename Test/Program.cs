@@ -30,9 +30,9 @@ namespace Test
             //JsonSerializer 
             //await RunDefault();
 
-            await ChannelTest();
-            //Task.WaitAll(Task.Run(StartConsumer),
-            //             Task.Run(StartPublisher));
+            //await ChannelTest();
+            Task.WaitAll(Task.Run(StartConsumer),
+                         Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {
@@ -81,7 +81,7 @@ namespace Test
                     Debugger.Break();
                 }                
                 propertiesConsume.AppId = "testapp2";
-                await publisher2.Publish("TestExchange2", string.Empty, false, false, ref propertiesConsume, body2);
+                await publisher2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
             };
 
             var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
@@ -94,7 +94,7 @@ namespace Test
 
 
                 propertiesConsume.AppId = "testapp1";
-                await publisher1.Publish("TestExchange", string.Empty, false, false, ref propertiesConsume, body1);
+                await publisher1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
             };
             ContentHeaderProperties properties = new ContentHeaderProperties();
             var firtsTask = Task.Run(async () =>
@@ -103,7 +103,7 @@ namespace Test
                 properties.AppId = "testapp1";
                 while (true)
                 {
-                    await publisher1.Publish("TestExchange", string.Empty, false, false, ref properties, body1);
+                    await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
                 }
             });
             var secondTask = Task.Run(async () =>
@@ -111,7 +111,7 @@ namespace Test
                 properties.AppId = "testapp2";
                 while (true)
                 {
-                    await publisher2.Publish("TestExchange2", string.Empty, false, false, ref properties, body2);
+                    await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
                 }
             });
 
@@ -143,13 +143,13 @@ namespace Test
             for (var i = 0; i < 40000; i++)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
             }
 
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
             consumer.Received += async (deliver, result) =>
             {
-                //await deliver.Ack();
+                await deliver.Ack();
             };
             await connection.WaitEndReading();
         }
@@ -167,6 +167,14 @@ namespace Test
                         .Build();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue", "TestExchange");
+
+
+            await channel.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
             var publisher = channel.CreatePublisher();
             ContentHeaderProperties properties = new ContentHeaderProperties();
@@ -175,7 +183,8 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, ref properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             
         }
@@ -184,7 +193,7 @@ namespace Test
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                        .Heartbeat(60*10)
+                        .Heartbeat(60)
                         .ProductName("AMQP.Client.RabbitMQ")
                         .ProductVersion("0.0.1")
                         .ConnectionName("AMQP.Client.RabbitMQ:Test")
@@ -193,10 +202,23 @@ namespace Test
                         .Build();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
-            consumer.Received +=  (deliver, result) =>
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue", "TestExchange");
+
+
+            await channel.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue2", "TestExchange2");
+
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
+            consumer.Received += async (deliver, result) =>
             {
-                //await deliver.Ack();
+                if(result.IsCompleted)
+                {
+                    await deliver.Ack();
+                }
+                
             };
             await connection.WaitEndReading();
         }

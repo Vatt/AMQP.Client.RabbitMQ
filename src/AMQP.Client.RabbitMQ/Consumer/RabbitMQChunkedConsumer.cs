@@ -7,6 +7,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -17,8 +18,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
 
         public event Action<RabbitMQDeliver, ChunkedConsumeResult> Received;
-        internal RabbitMQChunkedConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId)
-            :base(consumerTag, channelId, protocol)
+        internal RabbitMQChunkedConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId, SemaphoreSlim semaphore)
+            :base(consumerTag, channelId, protocol, semaphore)
         {
             _reader = new BodyFrameChunkedReader(channelId);
         }

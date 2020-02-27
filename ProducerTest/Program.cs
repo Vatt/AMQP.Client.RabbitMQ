@@ -31,7 +31,7 @@ namespace ProducerTest
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024]);
-                await publisher.Publish("TestExchange", string.Empty, false, false, ref properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
         }
     }

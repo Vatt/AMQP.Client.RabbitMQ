@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -19,8 +20,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private int _deliverPosition;
         public event Action<RabbitMQDeliver, byte[]> Received;
 
-        internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId)
-            : base(consumerTag, channelId, protocol)
+        internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId, SemaphoreSlim semaphore)
+            : base(consumerTag, channelId, protocol, semaphore)
         {
             _reader = new BodyFrameChunkedReader(channelId);
             _deliverPosition = 0;

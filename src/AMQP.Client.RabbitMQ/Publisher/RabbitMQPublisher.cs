@@ -3,13 +3,14 @@ using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Publisher
 {
     public class RabbitMQPublisher
-    { 
+    {
         private readonly ushort _channelId;
         private readonly RabbitMQProtocol _protocol;
         private readonly int _maxFrameSize;
@@ -21,18 +22,63 @@ namespace AMQP.Client.RabbitMQ.Publisher
             _maxFrameSize = maxFrameSize;
             _semaphore = semaphore;
         }
-        
-        public ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ref  ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
+
+        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
             //return _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message));
             if (message.Length <= _maxFrameSize)
             {
-                return _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message));
+                await _semaphore.WaitAsync();
+                await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message));
+                _semaphore.Release();
+                return;
             }
-            throw new NotImplementedException("message.Length > _maxFrameSize");
 
+
+            await _semaphore.WaitAsync();
+
+            int written = 0;
+            await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content));
+            while (written < content.BodySize)
+            {
+
+                var batch = new List<ReadOnlyMemory<byte>>(4);
+                int batchCnt = 0;
+                
+                while (batchCnt < 4 && written < content.BodySize)
+                {
+                    int writable = Math.Min(_maxFrameSize, (int)content.BodySize - written);
+                    batch.Add(message.Slice(written, writable));
+                    batchCnt++;
+                    written += writable;
+                }
+                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), batch);
+            }
+
+            _semaphore.Release();
+
+            //var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
+            //var content = new ContentHeader(60, message.Length, ref properties);
+            //await _semaphore.WaitAsync();
+            //await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
+            //await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
+            //if (content.BodySize < _maxFrameSize)
+            //{
+            //    await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);
+            //}
+            //else
+            //{
+            //    long written = 0;
+            //    while (written < content.BodySize)
+            //    {
+            //        var writable = Math.Min(_maxFrameSize, content.BodySize - written);
+            //        await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message.Slice((int)written, (int)writable));
+            //        written += writable;
+            //    }
+            //}
+            //_semaphore.Release();
         }
     }
 }

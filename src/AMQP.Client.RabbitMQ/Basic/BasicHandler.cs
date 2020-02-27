@@ -18,10 +18,12 @@ namespace AMQP.Client.RabbitMQ.Basic
         private Dictionary<string, ConsumerBase> _consumers;
         private TaskCompletionSource<string> _consumerCreateSrc;
         private SemaphoreSlim  _semaphore;
-        public BasicHandler(ushort channelId,RabbitMQProtocol protocol):base(channelId,protocol)
+        private SemaphoreSlim  _writerSemaphore;
+        public BasicHandler(ushort channelId,RabbitMQProtocol protocol, SemaphoreSlim writerSemaphore) :base(channelId,protocol)
         {
             _consumers = new Dictionary<string, ConsumerBase>();
             _semaphore = new SemaphoreSlim(1);
+            _writerSemaphore = writerSemaphore;
         }
         public async ValueTask HandleMethodHeader(MethodHeader header)
         {
@@ -57,7 +59,7 @@ namespace AMQP.Client.RabbitMQ.Basic
             var result = await _consumerCreateSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId);
+                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId, _writerSemaphore);
                 if(!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
@@ -89,7 +91,7 @@ namespace AMQP.Client.RabbitMQ.Basic
             var result = await _consumerCreateSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _protocol,_channelId);
+                var consumer = new RabbitMQConsumer(consumerTag, _protocol, _channelId, _writerSemaphore);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
