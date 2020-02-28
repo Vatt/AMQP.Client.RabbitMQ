@@ -20,17 +20,17 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private int _deliverPosition;
         public event Action<RabbitMQDeliver, byte[]> Received;
 
-        internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId, SemaphoreSlim semaphore)
-            : base(consumerTag, channelId, protocol, semaphore)
+        internal RabbitMQConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId)
+            : base(consumerTag, channelId, protocol)
         {
             _reader = new BodyFrameChunkedReader(channelId);
             _deliverPosition = 0;
         }
-        internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver, long contentBodySize)
+        internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver)
         {
             _deliverPosition = 0;
-            _activeDeliver = ArrayPool<byte>.Shared.Rent((int)contentBodySize);
-            _reader.Restart(contentBodySize);
+            _activeDeliver = ArrayPool<byte>.Shared.Rent((int)deliver.Header.BodySize);
+            _reader.Restart(deliver.Header.BodySize);
          
             while (!_reader.IsComplete)
             {                

@@ -3,6 +3,7 @@ using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Exchange;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Publisher;
 using System;
 using System.Buffers;
@@ -23,6 +24,8 @@ namespace Test
 
         static async Task Main(string[] args)
         {
+            var size = Unsafe.SizeOf<ContentHeader>();
+            var size1 = Unsafe.SizeOf<RabbitMQDeliver>();
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
             //запилить пропертисы в сраный словарь
@@ -76,7 +79,7 @@ namespace Test
             var publisher1 = channel1.CreatePublisher();
             var publisher2 = channel2.CreatePublisher();
 
-            var propertiesConsume = new ContentHeaderProperties();
+            var propertiesConsume = ContentHeaderProperties.Default();
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer1.Received += async (deliver, result) =>
             {
@@ -84,7 +87,7 @@ namespace Test
                 {
                     Debugger.Break();
                 }                
-                propertiesConsume.AppId = "testapp2";
+                propertiesConsume.AppId( "testapp2" );
                 await publisher2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
             };
 
@@ -97,14 +100,14 @@ namespace Test
                 }
 
 
-                propertiesConsume.AppId = "testapp1";
+                propertiesConsume.AppId("testapp1" );
                 await publisher1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
             };
-            ContentHeaderProperties properties = new ContentHeaderProperties();
+            var properties  = ContentHeaderProperties.Default();
             var firtsTask = Task.Run(async () =>
             {
                 
-                properties.AppId = "testapp1";
+                properties.AppId( "testapp1" );
                 while (true)
                 {
                     await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
@@ -112,7 +115,7 @@ namespace Test
             });
             var secondTask = Task.Run(async () =>
             {
-                properties.AppId = "testapp2";
+                properties.AppId( "testapp2" );
                 while (true)
                 {
                     await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
@@ -141,19 +144,18 @@ namespace Test
             await channel.QueueBindAsync("TestQueue", "TestExchange");
     
             var publisher = channel.CreatePublisher();
-            ContentHeaderProperties properties = new ContentHeaderProperties();
-            properties.AppId = "testapp";
-            properties.CorrelationId = Guid.NewGuid().ToString();
+            var properties = ContentHeaderProperties.Default();
+            properties.AppId( "testapp" );
             for (var i = 0; i < 40000; i++)
             {
-                properties.CorrelationId = Guid.NewGuid().ToString();
+                properties.CorrelationId( Guid.NewGuid().ToString() );
                 await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
             }
 
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
             consumer.Received += async (deliver, result) =>
             {
-                await deliver.Ack();
+                await channel.Ack(deliver.DeliveryTag);
             };
             await connection.WaitEndReading();
         }
@@ -181,14 +183,13 @@ namespace Test
             await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
             var publisher = channel.CreatePublisher();
-            ContentHeaderProperties properties = new ContentHeaderProperties();
-            properties.AppId = "testapp";
-            properties.CorrelationId = Guid.NewGuid().ToString();
+            var properties = ContentHeaderProperties.Default();
+            properties.AppId( "testapp" );
             while(true)
             {
-                properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                properties.CorrelationId( Guid.NewGuid().ToString() );
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             
         }
@@ -224,9 +225,9 @@ namespace Test
             {
                 if(result.IsCompleted)
                 {
-                   // await deliver.Ack(true);
+                    // await channel.Ack(deliver.DeliveryTag, true);
                 }
-                
+
             };
             await connection.WaitEndReading();
         }

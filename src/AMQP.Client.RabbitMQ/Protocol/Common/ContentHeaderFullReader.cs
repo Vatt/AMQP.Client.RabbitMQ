@@ -36,10 +36,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if(!reader.ReadLongLong(out long bodySize)) { return false; }
             if(!reader.ReadShortInt(out short propertyFlags)) { return false; }
             message = new ContentHeader((ushort)classId, (ushort)weight, bodySize);
-            if(!ReadBitFlagsAndContinuation((ushort)propertyFlags,ref reader, ref message.ContentType, ref message.ContentEncoding, ref message.Headers,
-                                            ref message.DeliveryMode, ref message.Priority, ref message.CorrelationId, ref message.ReplyTo,
-                                            ref message.Expiration, ref message.MessageId, ref message.Timestamp, ref message.Type, ref message.UserId,
-                                            ref message.AppId, ref message.ClusterId))
+            if(!ReadBitFlagsAndContinuation((ushort)propertyFlags,ref reader, ref message.Properties))
             {
                 return false;
             }
@@ -58,10 +55,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
         }
         private bool ReadBitFlagsAndContinuation(ushort flags, ref ValueReader reader,
-                                                 ref string m_contentType, ref string m_contentEncoding,ref Dictionary<string, object> m_headers,
-                                                 ref byte m_deliveryMode, ref byte m_priority, ref string m_correlationId, ref string m_replyTo,
-                                                 ref string m_expiration, ref string m_messageId, ref long m_timestamp,ref string m_type,
-                                                 ref string m_userId, ref string m_appId, ref string m_clusterId)
+                                                 ref ContentHeaderProperties properties)
         {
             var m_contentType_present = ReadPresence(flags);
             var m_contentEncoding_present = ReadPresence(flags);
@@ -78,20 +72,76 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             var m_appId_present = ReadPresence(flags);
             var m_clusterId_present = ReadPresence(flags);
 
-            if (m_contentType_present) { if (!reader.ReadShortStr(out m_contentType)) { return false; } }
-            if (m_contentEncoding_present) { if (!reader.ReadShortStr(out m_contentEncoding)) { return false; } }
-            if (m_headers_present) { if (!reader.ReadTable(out m_headers)) { return false; } }
-            if (m_deliveryMode_present) { if (!reader.ReadOctet(out m_deliveryMode)) { return false; } }
-            if (m_priority_present) { if (!reader.ReadOctet(out m_priority)) { return false; } }
-            if (m_correlationId_present) { if (!reader.ReadShortStr(out m_correlationId)) { return false; } }
-            if (m_replyTo_present) { if (!reader.ReadShortStr(out m_replyTo)) { return false; } }
-            if (m_expiration_present) { if (!reader.ReadShortStr(out m_expiration)) { return false; } }
-            if (m_messageId_present) { if (!reader.ReadShortStr(out m_messageId)) { return false; } }
-            if (m_timestamp_present) { if (!reader.ReadTimestamp(out m_timestamp)) { return false; } }
-            if (m_type_present) { if (!reader.ReadShortStr(out m_type)) { return false; } }
-            if (m_userId_present) { if (!reader.ReadShortStr(out m_userId)) { return false; } }
-            if (m_appId_present) { if (!reader.ReadShortStr(out m_appId)) { return false; } }
-            if (m_clusterId_present) { if (!reader.ReadShortStr(out m_clusterId)) { return false; } }
+            if (m_contentType_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_contentType)){return false;}
+                properties.ContentType(m_contentType);
+            }
+            if (m_contentEncoding_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_contentEncoding)){ return false; }
+                properties.ContentEncoding(m_contentEncoding);
+            }
+            if (m_headers_present)
+            { 
+                if (!reader.ReadTable(out var m_headers)) { return false; }
+                properties.Headers(m_headers);
+            }
+            if (m_deliveryMode_present)
+            { 
+                if (!reader.ReadOctet(out var m_deliveryMode)) { return false; }
+                properties.DeliveryMode(m_deliveryMode);
+            }
+            if (m_priority_present) 
+            { 
+                if (!reader.ReadOctet(out var  m_priority)) { return false; }
+                properties.Priority(m_priority);
+            }
+            if (m_correlationId_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_correlationId)) { return false; }
+                properties.CorrelationId(m_correlationId);
+            }
+            if (m_replyTo_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_replyTo)) { return false; }
+                properties.ReplyTo(m_replyTo);
+            }
+            if (m_expiration_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_expiration)) { return false; }
+                properties.Expiration(m_expiration);
+            }
+            if (m_messageId_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_messageId)) { return false; }
+                properties.MessageId(m_messageId);
+            }
+            if (m_timestamp_present) 
+            { 
+                if (!reader.ReadTimestamp(out var m_timestamp)) { return false; }
+                properties.Timestamp(m_timestamp);
+            }
+            if (m_type_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_type)) { return false; }
+                properties.Type(m_type);
+            }
+            if (m_userId_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_userId)) { return false; }
+                properties.UserId(m_userId);
+            }
+            if (m_appId_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_appId)) { return false; }
+                properties.AppId(m_appId);
+            }
+            if (m_clusterId_present) 
+            { 
+                if (!reader.ReadShortStr(out var m_clusterId)) { return false; }
+                properties.ClusterId(m_clusterId);
+            }
 
             return true;
         }

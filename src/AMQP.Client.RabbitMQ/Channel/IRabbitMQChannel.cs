@@ -37,7 +37,8 @@ namespace AMQP.Client.RabbitMQ.Channel
                                                                  bool exclusive = false, Dictionary<string, object> arguments = null);
         ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                    bool exclusive = false, Dictionary<string, object> arguments = null);
-
+        ValueTask Ack(long deliveryTag, bool multiple = false);
+        ValueTask Reject(long deliveryTag, bool requeue);
         RabbitMQPublisher CreatePublisher();
 
         ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global);

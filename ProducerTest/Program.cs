@@ -24,12 +24,11 @@ namespace ProducerTest
             var channel = await connection.CreateChannel();
 
             var publisher = channel.CreatePublisher();
-            ContentHeaderProperties properties = new ContentHeaderProperties();
-            properties.AppId = "testapp";
-            properties.CorrelationId = Guid.NewGuid().ToString();
+            var properties = ContentHeaderProperties.Default();
+            properties.AppId("testapp");
             while (true)
             {
-                properties.CorrelationId = Guid.NewGuid().ToString();
+                properties.CorrelationId(Guid.NewGuid().ToString());
                 //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024]);
                 await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }

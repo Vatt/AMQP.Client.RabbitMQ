@@ -5,6 +5,7 @@ using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
@@ -247,5 +248,16 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return _basicHandler.QoS(prefetchSize, prefetchCount, global);
         }
+
+        public ValueTask Ack(long deliveryTag, bool multiple = false)
+        {
+            return _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(deliveryTag, multiple));
+        }
+
+        public ValueTask Reject(long deliveryTag, bool requeue)
+        {
+            return _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(deliveryTag, requeue));
+        }
+
     }
 }

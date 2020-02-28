@@ -65,7 +65,7 @@ namespace AMQP.Client.RabbitMQ.Basic
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId, _writerSemaphore);
+                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol, _channelId);
                 if(!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
@@ -99,7 +99,7 @@ namespace AMQP.Client.RabbitMQ.Basic
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _protocol, _channelId, _writerSemaphore);
+                var consumer = new RabbitMQConsumer(consumerTag, _protocol, _channelId);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))

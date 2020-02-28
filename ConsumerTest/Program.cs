@@ -24,7 +24,7 @@ namespace ConsumerTest
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer.Received += async (deliver, result) =>
             {
-                //await deliver.Ack();
+                //await channel.Ack(deliver.DeliveryTag);
             };
             await connection.WaitEndReading();
         }
