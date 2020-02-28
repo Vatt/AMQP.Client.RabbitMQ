@@ -4,6 +4,7 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Framing
 {
+    //TODO: сделать ContentHeaderProperties словарем 
     public struct ContentHeaderProperties
     {
         public string ContentType;

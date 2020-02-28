@@ -1,60 +1,85 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO.Pipelines;
-using System.Text;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Publisher
 {
     public class RabbitMQPublisher
     {
-        //Может быть нужно локнуться?
         private readonly ushort _channelId;
         private readonly RabbitMQProtocol _protocol;
         private readonly int _maxFrameSize;
-        internal RabbitMQPublisher(ushort channelId, RabbitMQProtocol protocol, int maxFrameSize)
+        private readonly SemaphoreSlim _semaphore;
+        private readonly int _batchSize = 4;
+        private readonly ReadOnlyMemory<byte>[] _batch;
+        internal RabbitMQPublisher(ushort channelId, RabbitMQProtocol protocol, int maxFrameSize, SemaphoreSlim semaphore)
         {
             _channelId = channelId;
             _protocol = protocol;
             _maxFrameSize = maxFrameSize;
-        }
-        
-        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties , Action<IBufferWriter<byte>> callback)
-        {
-            var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
-            var content = new ContentHeader(60, 0, ref properties);
-
-            await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
-            await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
-            
+            _semaphore = semaphore;
+            _batch = new ReadOnlyMemory<byte>[_batchSize];
         }
 
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
-            await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
-            await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
-            if (content.BodySize < _maxFrameSize)
+            if (message.Length <= _maxFrameSize)
             {
-                await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);
+                //await _semaphore.WaitAsync();
+                await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message)).ConfigureAwait(false);
+                //_semaphore.Release();
+                return;
             }
-            else
+
+
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+            int written = 0;
+            await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content)).ConfigureAwait(false);
+            while (written < content.BodySize)
             {
-                long written = 0;
-                while(written < content.BodySize)
+                int batchCnt = 0;                
+                while (batchCnt < _batchSize && written < content.BodySize)
                 {
-                    var writable = Math.Min(_maxFrameSize, content.BodySize - written);
-                    await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message.Slice((int)written, (int)writable));
+                    int writable = Math.Min(_maxFrameSize, (int)content.BodySize - written);
+                    _batch[batchCnt] = message.Slice(written, writable);
+                    batchCnt++;
                     written += writable;
                 }
+                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _batch).ConfigureAwait(false);
+                _batch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
+
+            _semaphore.Release();
+
+            //var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
+            //var content = new ContentHeader(60, message.Length, ref properties);
+            //await _semaphore.WaitAsync();
+            //await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
+            //await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
+            //if (content.BodySize < _maxFrameSize)
+            //{
+            //    await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);
+            //}
+            //else
+            //{
+            //    long written = 0;
+            //    while (written < content.BodySize)
+            //    {
+            //        var writable = Math.Min(_maxFrameSize, content.BodySize - written);
+            //        await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message.Slice((int)written, (int)writable));
+            //        written += writable;
+            //    }
+            //}
+            //_semaphore.Release();
         }
     }
 }

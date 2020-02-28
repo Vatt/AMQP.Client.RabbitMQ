@@ -15,9 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsumerTest", "ConsumerTest\ConsumerTest.csproj", "{EEFBD141-2B1C-40A9-8688-51557346DE87}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsumerTest", "ConsumerTest\ConsumerTest.csproj", "{EEFBD141-2B1C-40A9-8688-51557346DE87}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProducerTest", "ProducerTest\ProducerTest.csproj", "{75EA9814-3820-4003-9658-FC623EA708DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProducerTest", "ProducerTest\ProducerTest.csproj", "{75EA9814-3820-4003-9658-FC623EA708DE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -13,6 +13,7 @@ using AMQP.Client.RabbitMQ.Queue;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
@@ -25,10 +26,10 @@ namespace AMQP.Client.RabbitMQ.Channel
         private Action<ushort> _managerCloseCallback;
         private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _closeSrc =  new TaskCompletionSource<bool>();
-        private readonly RabbitMQProtocol _protocol;
         public ushort ChannelId => _channelId;
         public bool IsOpen => _isOpen;
         private RabbitMQMainInfo _mainInfo;
+        private SemaphoreSlim _writerSemaphore;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
@@ -39,9 +40,10 @@ namespace AMQP.Client.RabbitMQ.Channel
             _isOpen = false;
             _managerCloseCallback = closeCallback;
             _mainInfo = info;
+            _writerSemaphore = new SemaphoreSlim(1);
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
             _queueMethodHandler = new QueueHandler(_channelId,_protocol);
-            _basicHandler = new BasicHandler(_channelId, _protocol);
+            _basicHandler = new BasicHandler(_channelId, _protocol, _writerSemaphore);
         }
 
 
@@ -225,20 +227,25 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
 
         public ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
-                                                                              bool exclusive = false, Dictionary<string, object> arguments = null)
+                                                                        bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
 
         public ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
-                                                                bool exclusive = false, Dictionary<string, object> arguments = null)
+                                                            bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             return _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
 
         public RabbitMQPublisher CreatePublisher()
         {
-            return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax);
+            return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, _writerSemaphore);
+        }
+
+        public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
+        {
+            return _basicHandler.QoS(prefetchSize, prefetchCount, global);
         }
     }
 }

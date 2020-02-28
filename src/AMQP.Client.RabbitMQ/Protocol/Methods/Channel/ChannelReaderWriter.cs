@@ -6,7 +6,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {
     public class ChannelReaderWriter
     {
-        private RabbitMQProtocol _protocol;
+        protected RabbitMQProtocol _protocol;
         public ChannelReaderWriter(RabbitMQProtocol protocol)
         {
             _protocol = protocol;

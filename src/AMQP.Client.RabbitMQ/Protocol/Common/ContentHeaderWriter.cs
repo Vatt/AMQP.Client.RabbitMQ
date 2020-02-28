@@ -44,6 +44,30 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
             writer.Commit();
         }
+        internal void WriteMessage(ref ContentHeader message, ref ValueWriter writer)
+        {
+            m_bitCount = 0;
+            m_flagWord = 0;
+            writer.WriteOctet(Constants.FrameHeader);
+            writer.WriteShortInt(_channelId);
+            var reserved = writer.Reserve(4);
+            var checkpoint = writer.Written;
+            writer.WriteShortInt(message.ClassId);
+            writer.WriteShortInt(message.Weight);
+            writer.WriteLongLong(message.BodySize);
+
+            WriteBitFlagsAndContinuation(ref message, ref writer);
+
+
+            var payloadSize = writer.Written - checkpoint;
+            writer.WriteOctet(Constants.FrameEnd);
+
+            Span<byte> span = stackalloc byte[4];
+            BinaryPrimitives.WriteInt32BigEndian(span, payloadSize);
+            reserved.Write(span);
+
+            writer.Commit();
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteBitFlagsAndContinuation(ref ContentHeader message,ref ValueWriter writer)
         {

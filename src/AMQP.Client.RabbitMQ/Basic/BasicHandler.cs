@@ -16,12 +16,15 @@ namespace AMQP.Client.RabbitMQ.Basic
     internal class BasicHandler : BasicReaderWriter
     {
         private Dictionary<string, ConsumerBase> _consumers;
-        private TaskCompletionSource<string> _consumerCreateSrc;
-        private SemaphoreSlim  _semaphore;
-        public BasicHandler(ushort channelId,RabbitMQProtocol protocol):base(channelId,protocol)
+        private TaskCompletionSource<string> _consumeOkSrc;
+        private TaskCompletionSource<bool> _commonSrc;
+        private readonly SemaphoreSlim  _semaphore;
+        private readonly SemaphoreSlim _writerSemaphore;
+        public BasicHandler(ushort channelId,RabbitMQProtocol protocol, SemaphoreSlim writerSemaphore) :base(channelId,protocol)
         {
             _consumers = new Dictionary<string, ConsumerBase>();
             _semaphore = new SemaphoreSlim(1);
+            _writerSemaphore = writerSemaphore;
         }
         public async ValueTask HandleMethodHeader(MethodHeader header)
         {
@@ -41,7 +44,12 @@ namespace AMQP.Client.RabbitMQ.Basic
                 case 21:// consume-ok 
                     {
                         var result = await ReadBasicConsumeOk().ConfigureAwait(false);
-                        _consumerCreateSrc.SetResult(result);
+                        _consumeOkSrc.SetResult(result);
+                        break;
+                    }
+                case 11:
+                    {
+                        _commonSrc.SetResult(await ReadBasicQoSOk());
                         break;
                     }
                 default: throw new Exception($"{nameof(BasicHandler)}.HandleMethodAsync: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
@@ -52,12 +60,12 @@ namespace AMQP.Client.RabbitMQ.Basic
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             await _semaphore.WaitAsync();
-            _consumerCreateSrc = new TaskCompletionSource<string>();
+            _consumeOkSrc = new TaskCompletionSource<string>();
             await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
-            var result = await _consumerCreateSrc.Task.ConfigureAwait(false);
+            var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId);
+                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol,_channelId, _writerSemaphore);
                 if(!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
@@ -66,6 +74,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                     }
                     if(existedConsumer  is RabbitMQChunkedConsumer)
                     {
+                        _semaphore.Release();
                         return (RabbitMQChunkedConsumer)existedConsumer;
                     }
                     else
@@ -73,6 +82,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                         throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
                     }
                 }
+                _semaphore.Release();
                 return consumer;
             }
             else
@@ -84,12 +94,12 @@ namespace AMQP.Client.RabbitMQ.Basic
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
-            _consumerCreateSrc = new TaskCompletionSource<string>();
+            _consumeOkSrc = new TaskCompletionSource<string>();
             await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
-            var result = await _consumerCreateSrc.Task.ConfigureAwait(false);
+            var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _protocol,_channelId);
+                var consumer = new RabbitMQConsumer(consumerTag, _protocol, _channelId, _writerSemaphore);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
@@ -98,6 +108,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                     }
                     if (existedConsumer is RabbitMQConsumer)
                     {
+                        _semaphore.Release();
                         return (RabbitMQConsumer)existedConsumer;
                     }
                     else
@@ -105,12 +116,22 @@ namespace AMQP.Client.RabbitMQ.Basic
                         throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
                     }
                 }
+                _semaphore.Release();
                 return consumer;
             }
             else
             {
                 throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
             }
+        }
+        public async ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
+        {
+            await _semaphore.WaitAsync();
+            _commonSrc = new TaskCompletionSource<bool>();
+            var info = new QoSInfo(prefetchSize, prefetchCount, global);
+            await SendBasicQoS(ref info).ConfigureAwait(false);
+            var result = await _commonSrc.Task;
+            _semaphore.Release();
         }
 
     }

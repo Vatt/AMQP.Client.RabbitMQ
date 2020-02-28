@@ -40,6 +40,8 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         RabbitMQPublisher CreatePublisher();
 
+        ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global);
+
     }
     
 }

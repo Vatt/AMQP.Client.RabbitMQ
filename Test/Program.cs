@@ -9,6 +9,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -22,15 +23,103 @@ namespace Test
 
         static async Task Main(string[] args)
         {
-
+            //using Microsoft.Extensions.ObjectPool;
+            //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
+            //запилить пропертисы в сраный словарь
 
             //Utf8JsonWriter
             //Utf8JsonReader
             //JsonSerializer 
             //await RunDefault();
-            
-            Task.WaitAll(Task.Run(StartConsumer),
+
+            //await ChannelTest();
+            Task.WaitAny(Task.Run(StartConsumer),
                          Task.Run(StartPublisher));
+        }
+        public static async Task ChannelTest()
+        {
+            var addresses = Dns.GetHostAddresses("centos0.mshome.net");
+            var address = addresses.First();
+            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
+            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
+                                    .Heartbeat(60)
+                                    .ProductName("AMQP.Client.RabbitMQ")
+                                    .ProductVersion("0.0.1")
+                                    .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                                    .ClientInformation("TEST TEST TEST")
+                                    .ClientCopyright("©")
+                                    .Build();
+            await connection.StartAsync();
+            var channel1 = await connection.CreateChannel();
+            var channel2 = await connection.CreateChannel();
+            await channel1.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk1 = await channel1.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel1.QueueBindAsync("TestQueue", "TestExchange");
+
+
+            await channel2.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk2 = await channel2.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel2.QueueBindAsync("TestQueue2", "TestExchange2");
+
+            await channel1.QoS(0, 10, false);
+            await channel2.QoS(0, 10, false);
+
+            var body1 = new byte[1024];
+            body1.AsSpan(0, 512).Fill(69);
+            body1.AsSpan(512).Fill(42);
+
+            var body2 = new byte[2048];
+            body2.AsSpan(0, 1024).Fill(96);
+            body2.AsSpan(1024).Fill(24);
+
+
+            var publisher1 = channel1.CreatePublisher();
+            var publisher2 = channel2.CreatePublisher();
+
+            var propertiesConsume = new ContentHeaderProperties();
+            var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
+            consumer1.Received += async (deliver, result) =>
+            {
+                if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
+                {
+                    Debugger.Break();
+                }                
+                propertiesConsume.AppId = "testapp2";
+                await publisher2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
+            };
+
+            var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
+            consumer2.Received += async (deliver, result) =>
+            {
+                if (result.Length != 2048 || result[0] != 96 || result[2048 - 1] != 24)
+                {
+                    Debugger.Break();
+                }
+
+
+                propertiesConsume.AppId = "testapp1";
+                await publisher1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
+            };
+            ContentHeaderProperties properties = new ContentHeaderProperties();
+            var firtsTask = Task.Run(async () =>
+            {
+                
+                properties.AppId = "testapp1";
+                while (true)
+                {
+                    await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
+                }
+            });
+            var secondTask = Task.Run(async () =>
+            {
+                properties.AppId = "testapp2";
+                while (true)
+                {
+                    await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
+                }
+            });
+
+            await connection.WaitEndReading();
         }
         private static async Task RunDefault()
         {
@@ -64,7 +153,7 @@ namespace Test
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
             consumer.Received += async (deliver, result) =>
             {
-                //await deliver.Ack();
+                await deliver.Ack();
             };
             await connection.WaitEndReading();
         }
@@ -73,7 +162,42 @@ namespace Test
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                        .Heartbeat(60 * 10)
+                        .Heartbeat(60)
+                        .ProductName("AMQP.Client.RabbitMQ")
+                        .ProductVersion("0.0.1")
+                        .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                        .ClientInformation("TEST TEST TEST")
+                        .ClientCopyright("©")
+                        .Build();
+            await connection.StartAsync();
+            var channel = await connection.CreateChannel();
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue", "TestExchange");
+
+
+            await channel.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue2", "TestExchange2");
+
+            var publisher = channel.CreatePublisher();
+            ContentHeaderProperties properties = new ContentHeaderProperties();
+            properties.AppId = "testapp";
+            properties.CorrelationId = Guid.NewGuid().ToString();
+            while(true)
+            {
+                properties.CorrelationId = Guid.NewGuid().ToString();
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+            }
+            
+        }
+        private static async Task StartConsumer()
+        {
+            var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
+            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
+            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
+                        .Heartbeat(60)
                         .ProductName("AMQP.Client.RabbitMQ")
                         .ProductVersion("0.0.1")
                         .ConnectionName("AMQP.Client.RabbitMQ:Test")
@@ -83,35 +207,26 @@ namespace Test
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
 
-            var publisher = channel.CreatePublisher();
-            ContentHeaderProperties properties = new ContentHeaderProperties();
-            properties.AppId = "testapp";
-            properties.CorrelationId = Guid.NewGuid().ToString();
-            while(true)
-            {
-                properties.CorrelationId = Guid.NewGuid().ToString();
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1*1024*1024]);
-            }
-            
-        }
-        private static async Task StartConsumer()
-        {
-            var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                        .Heartbeat(60*10)
-                        .ProductName("AMQP.Client.RabbitMQ")
-                        .ProductVersion("0.0.1")
-                        .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                        .ClientInformation("TEST TEST TEST")
-                        .ClientCopyright("©")
-                        .Build();
-            await connection.StartAsync();
-            var channel = await connection.CreateChannel();
+            //await channel.QoS(0, ushort.MaxValue, true);
+
+            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue", "TestExchange");
+
+
+            await channel.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            await channel.QueueBindAsync("TestQueue2", "TestExchange2");
+
+            //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
             var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
-            consumer.Received +=  (deliver, result) =>
+            consumer.Received += async (deliver, result) =>
             {
-                //await deliver.Ack();
+                if(result.IsCompleted)
+                {
+                   // await deliver.Ack(true);
+                }
+                
             };
             await connection.WaitEndReading();
         }
