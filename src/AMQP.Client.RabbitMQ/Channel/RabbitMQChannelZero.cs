@@ -15,6 +15,7 @@ namespace AMQP.Client.RabbitMQ.Channel
     internal class RabbitMQChannelZero : ConnectionReaderWriter, IRabbitMQChannel
     {
         private static readonly byte[] _protocolMsg = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
+        private static byte[] _heartbeatFrame => new byte[8] { 8, 0, 0, 0, 0, 0, 0, 206 };
         public RabbitMQServerInfo ServerInfo { get; private set; }
         public RabbitMQClientInfo ClientInfo { get; private set; }
 
@@ -109,7 +110,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg).ConfigureAwait(false);
             _heartbeat = new Timer(async (obj) =>
             {
-                await _protocol.Writer.WriteAsync(new HeartbeatWriter(), false);
+                await _protocol.Writer.WriteAsync(new ByteWriter(), _heartbeatFrame);
             }, null, 0, MainInfo.Heartbeat);
 
             return await _openOkSrc.Task.ConfigureAwait(false);

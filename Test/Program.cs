@@ -79,16 +79,19 @@ namespace Test
             var publisher1 = channel1.CreatePublisher();
             var publisher2 = channel2.CreatePublisher();
 
-            var propertiesConsume = ContentHeaderProperties.Default();
+            
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer1.Received += async (deliver, result) =>
             {
                 if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
                 {
                     Debugger.Break();
-                }                
+                }
+                //await channel1.Ack(deliver.DeliveryTag, true);
+                var propertiesConsume = ContentHeaderProperties.Default();
                 propertiesConsume.AppId( "testapp2" );
                 await publisher2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
+                
             };
 
             var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
@@ -98,15 +101,15 @@ namespace Test
                 {
                     Debugger.Break();
                 }
-
-
+                //await channel2.Ack(deliver.DeliveryTag, true);
+                var propertiesConsume = ContentHeaderProperties.Default();
                 propertiesConsume.AppId("testapp1" );
-                await publisher1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
+                await publisher1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);                
             };
-            var properties  = ContentHeaderProperties.Default();
+            
             var firtsTask = Task.Run(async () =>
             {
-                
+                var properties = ContentHeaderProperties.Default();
                 properties.AppId( "testapp1" );
                 while (true)
                 {
@@ -115,6 +118,7 @@ namespace Test
             });
             var secondTask = Task.Run(async () =>
             {
+                var properties = ContentHeaderProperties.Default();
                 properties.AppId( "testapp2" );
                 while (true)
                 {
@@ -188,8 +192,8 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             
         }
@@ -220,12 +224,12 @@ namespace Test
             await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
             //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
             consumer.Received += async (deliver, result) =>
             {
                 if(result.IsCompleted)
                 {
-                    // await channel.Ack(deliver.DeliveryTag, true);
+                    await channel.Ack(deliver.DeliveryTag, false);
                 }
 
             };
