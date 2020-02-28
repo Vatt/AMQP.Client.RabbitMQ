@@ -74,6 +74,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                     }
                     if(existedConsumer  is RabbitMQChunkedConsumer)
                     {
+                        _semaphore.Release();
                         return (RabbitMQChunkedConsumer)existedConsumer;
                     }
                     else
@@ -81,6 +82,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                         throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
                     }
                 }
+                _semaphore.Release();
                 return consumer;
             }
             else
@@ -106,6 +108,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                     }
                     if (existedConsumer is RabbitMQConsumer)
                     {
+                        _semaphore.Release();
                         return (RabbitMQConsumer)existedConsumer;
                     }
                     else
@@ -113,6 +116,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                         throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
                     }
                 }
+                _semaphore.Release();
                 return consumer;
             }
             else
