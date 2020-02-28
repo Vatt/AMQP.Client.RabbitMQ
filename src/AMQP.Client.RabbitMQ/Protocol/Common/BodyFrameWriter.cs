@@ -17,6 +17,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         }
         public void WriteMessage(ReadOnlyMemory<byte> message, IBufferWriter<byte> output)
         {
+            if(message.IsEmpty) { return;  }
             ValueWriter writer = new ValueWriter(output);
             FrameWriter.WriteFrameHeader(Constants.FrameBody, _channelId, message.Length, ref writer);
             writer.WriteBytes(message.Span);

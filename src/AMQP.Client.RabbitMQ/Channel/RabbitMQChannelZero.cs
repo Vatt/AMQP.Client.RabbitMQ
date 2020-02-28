@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
+using System.Threading;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
@@ -27,7 +28,8 @@ namespace AMQP.Client.RabbitMQ.Channel
         public ushort ChannelId => _channelId;
 
         private readonly RabbitMQConnectionInfo _connectionInfo;
-        
+        private Timer _heartbeat;
+
 
         internal RabbitMQChannelZero(RabbitMQConnectionBuilder builder, RabbitMQProtocol protocol):base(protocol)
         {
@@ -105,6 +107,11 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async Task<bool> TryOpenChannelAsync()
         {
             await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg).ConfigureAwait(false);
+            _heartbeat = new Timer(async (obj) =>
+            {
+                await _protocol.Writer.WriteAsync(new HeartbeatWriter(), false);
+            }, null, 0, MainInfo.Heartbeat);
+
             return await _openOkSrc.Task.ConfigureAwait(false);
         }
 

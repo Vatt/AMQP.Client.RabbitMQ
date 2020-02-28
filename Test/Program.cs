@@ -162,7 +162,7 @@ namespace Test
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
             var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
-                        .Heartbeat(60 * 10)
+                        .Heartbeat(60)
                         .ProductName("AMQP.Client.RabbitMQ")
                         .ProductVersion("0.0.1")
                         .ConnectionName("AMQP.Client.RabbitMQ:Test")
@@ -187,8 +187,8 @@ namespace Test
             while(true)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             
         }

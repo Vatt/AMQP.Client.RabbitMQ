@@ -31,7 +31,7 @@ namespace AMQP.Client.RabbitMQ
         private ConnectionContext _context;
         public readonly EndPoint RemoteEndPoint;
         private Task _readingTask;
-        private RabbitMQProtocol _protocol;
+        private RabbitMQProtocol _protocol;        
         public RabbitMQServerInfo ServerInfo => Channel0.ServerInfo;
         public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
@@ -44,7 +44,7 @@ namespace AMQP.Client.RabbitMQ
             _cts = new CancellationTokenSource();
             _endReading = new TaskCompletionSource<bool>();
             _connectionClosed = _cts.Token;
-            _channels = new ConcurrentDictionary<ushort, RabbitMQDefaultChannel>();
+            _channels = new ConcurrentDictionary<ushort, RabbitMQDefaultChannel>();                       
         }
 
         public async Task StartAsync()
@@ -60,8 +60,6 @@ namespace AMQP.Client.RabbitMQ
                 _cts.Cancel();
                 return;
             }
-
-
         }
         private async Task StartReading()
         {
@@ -99,7 +97,7 @@ namespace AMQP.Client.RabbitMQ
                             {
                                 await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
                                 _protocol.Reader.Advance();
-                                await _protocol.Writer.WriteAsync(new HeartbeatWriter(), false).ConfigureAwait(false);
+                                //await _protocol.Writer.WriteAsync(new HeartbeatWriter(), false).ConfigureAwait(false);
                                 break;
                             }
 

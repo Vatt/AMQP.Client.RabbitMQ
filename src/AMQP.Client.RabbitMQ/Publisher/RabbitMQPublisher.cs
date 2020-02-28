@@ -3,7 +3,9 @@ using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,12 +17,15 @@ namespace AMQP.Client.RabbitMQ.Publisher
         private readonly RabbitMQProtocol _protocol;
         private readonly int _maxFrameSize;
         private readonly SemaphoreSlim _semaphore;
+        private readonly int _batchSize = 4;
+        private readonly ReadOnlyMemory<byte>[] _batch;
         internal RabbitMQPublisher(ushort channelId, RabbitMQProtocol protocol, int maxFrameSize, SemaphoreSlim semaphore)
         {
             _channelId = channelId;
             _protocol = protocol;
             _maxFrameSize = maxFrameSize;
             _semaphore = semaphore;
+            _batch = new ReadOnlyMemory<byte>[_batchSize];
         }
 
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
@@ -37,23 +42,20 @@ namespace AMQP.Client.RabbitMQ.Publisher
 
 
             await _semaphore.WaitAsync().ConfigureAwait(false);
-
             int written = 0;
             await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content)).ConfigureAwait(false);
             while (written < content.BodySize)
             {
-
-                var batch = new List<ReadOnlyMemory<byte>>(4);
-                int batchCnt = 0;
-                
-                while (batchCnt < 4 && written < content.BodySize)
+                int batchCnt = 0;                
+                while (batchCnt < _batchSize && written < content.BodySize)
                 {
                     int writable = Math.Min(_maxFrameSize, (int)content.BodySize - written);
-                    batch.Add(message.Slice(written, writable));
+                    _batch[batchCnt] = message.Slice(written, writable);
                     batchCnt++;
                     written += writable;
                 }
-                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), batch).ConfigureAwait(false);
+                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _batch).ConfigureAwait(false);
+                _batch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
 
             _semaphore.Release();
