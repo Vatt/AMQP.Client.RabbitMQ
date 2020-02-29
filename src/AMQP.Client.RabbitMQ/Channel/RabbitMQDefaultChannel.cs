@@ -1,6 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Handlers;
 using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods;
@@ -8,7 +9,6 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using AMQP.Client.RabbitMQ.Publisher;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,7 +22,10 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         private readonly ushort _channelId;
         private bool _isOpen;
-        private Action<ushort> _managerCloseCallback;
+        private readonly int _batchSize = 4;
+        private readonly ReadOnlyMemory<byte>[] _batch;
+
+        private Action<ushort> _handlerCloseCallback;
         private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _closeSrc =  new TaskCompletionSource<bool>();
         public ushort ChannelId => _channelId;
@@ -37,7 +40,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _channelId = id;
             _protocol = protocol;
             _isOpen = false;
-            _managerCloseCallback = closeCallback;
+            _handlerCloseCallback = closeCallback;
             _mainInfo = info;
             _writerSemaphore = new SemaphoreSlim(1);
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
@@ -133,25 +136,28 @@ namespace AMQP.Client.RabbitMQ.Channel
             await SendChannelOpen(_channelId).ConfigureAwait(false);
             return await _openSrc.Task.ConfigureAwait(false);
         }
-        public async Task<bool> TryCloseChannelAsync(string reason)
+        public Task<bool> CloseChannelAsync(string reason)
         {
-            await SendChannelClose(new CloseInfo(ChannelId, Constants.ReplySuccess, reason, 20, 41)).ConfigureAwait(false);
-            var result = await _closeSrc.Task.ConfigureAwait(false);
-            _managerCloseCallback(_channelId);
-            return result;
+            return CloseChannelAsync(Constants.ReplySuccess, reason, 20, 41);
         }
-        public async Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
+        public async Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
+            await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             await SendChannelClose(new CloseInfo(_channelId, replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
             var result = await _closeSrc.Task.ConfigureAwait(false);
-            _managerCloseCallback(_channelId);
+            await ChannelClosePrivate().ConfigureAwait(false);
+            _writerSemaphore.Release();
             return result;
         }
-        private void CloseChannel()
+        private async ValueTask ChannelClosePrivate()
         {
-            
+            _isOpen = false;
+            await _basicHandler.CloseHandler().ConfigureAwait(false);
+            _basicHandler = null;
+            _exchangeMethodHandler = null;
+            _queueMethodHandler = null;
+            _protocol = null;
         }
-
         public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
         {
             return _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);
@@ -164,10 +170,6 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return _exchangeMethodHandler.DeclarePassiveAsync(name, type, durable, autoDelete, arguments);
         }
-
-
-
-
         public ValueTask<bool> ExchangeDeleteAsync(string name, bool ifUnused = false)
         {
             return _exchangeMethodHandler.DeleteAsync(name, ifUnused);
@@ -241,12 +243,13 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
-
+        /*
         public RabbitMQPublisher CreatePublisher()
         {
-            return new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, _writerSemaphore);
+            var publisher = new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, _writerSemaphore);
+            return publisher;
         }
-
+        */
         public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {
             return _basicHandler.QoS(prefetchSize, prefetchCount, global);
@@ -254,13 +257,75 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public ValueTask Ack(long deliveryTag, bool multiple = false)
         {
+            if (!IsOpen)
+            {
+                return default;
+            }
             return _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(deliveryTag, multiple));
         }
 
         public ValueTask Reject(long deliveryTag, bool requeue)
         {
+            if (!IsOpen)
+            {
+                return default;
+            }
             return _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(deliveryTag, requeue));
         }
+        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
+        {
+            if (!IsOpen)
+            {
+                throw new Exception($"{nameof(RabbitMQDefaultChannel)}.{nameof(Publish)}: publisher is canceled");
+            }
+            var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
+            var content = new ContentHeader(60, message.Length, ref properties);
+            if (message.Length <= _mainInfo.FrameMax)
+            {
+                await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message)).ConfigureAwait(false);
+                return;
+            }
 
+
+            await _writerSemaphore.WaitAsync().ConfigureAwait(false);
+            int written = 0;
+            await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content)).ConfigureAwait(false);
+            while (written < content.BodySize)
+            {
+                int batchCnt = 0;
+                while (batchCnt < _batchSize && written < content.BodySize)
+                {
+                    int writable = Math.Min(_mainInfo.FrameMax, (int)content.BodySize - written);
+                    _batch[batchCnt] = message.Slice(written, writable);
+                    batchCnt++;
+                    written += writable;
+                }
+                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _batch).ConfigureAwait(false);
+                _batch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
+            }
+
+            _writerSemaphore.Release();
+
+            //var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
+            //var content = new ContentHeader(60, message.Length, ref properties);
+            //await _semaphore.WaitAsync();
+            //await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
+            //await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
+            //if (content.BodySize < _maxFrameSize)
+            //{
+            //    await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);
+            //}
+            //else
+            //{
+            //    long written = 0;
+            //    while (written < content.BodySize)
+            //    {
+            //        var writable = Math.Min(_maxFrameSize, content.BodySize - written);
+            //        await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message.Slice((int)written, (int)writable));
+            //        written += writable;
+            //    }
+            //}
+            //_semaphore.Release();
+        }
     }
 }

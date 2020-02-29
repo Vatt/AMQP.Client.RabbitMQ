@@ -17,8 +17,6 @@ namespace Test
 
         static async Task Main(string[] args)
         {
-            var size = Unsafe.SizeOf<ContentHeader>();
-            var size1 = Unsafe.SizeOf<RabbitMQDeliver>();
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
             //запилить пропертисы в сраный словарь
@@ -37,7 +35,7 @@ namespace Test
             var addresses = Dns.GetHostAddresses("centos0.mshome.net");
             var address = addresses.First();
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
+            var connection = builder.ConnectionInfo("guest", "guest", "/")
                                     .Heartbeat(60)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
@@ -69,8 +67,8 @@ namespace Test
             body2.AsSpan(1024).Fill(24);
 
 
-            var publisher1 = channel1.CreatePublisher();
-            var publisher2 = channel2.CreatePublisher();
+            //var publisher1 = channel1.CreatePublisher();
+            //var publisher2 = channel2.CreatePublisher();
 
             
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
@@ -83,7 +81,7 @@ namespace Test
                 //await channel1.Ack(deliver.DeliveryTag, true);
                 var propertiesConsume = ContentHeaderProperties.Default();
                 propertiesConsume.AppId( "testapp2" );
-                await publisher2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
+                await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
                 
             };
 
@@ -97,25 +95,25 @@ namespace Test
                 //await channel2.Ack(deliver.DeliveryTag, true);
                 var propertiesConsume = ContentHeaderProperties.Default();
                 propertiesConsume.AppId("testapp1" );
-                await publisher1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);                
+                await channel1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);                
             };
             
             var firtsTask = Task.Run(async () =>
             {
                 var properties = ContentHeaderProperties.Default();
                 properties.AppId( "testapp1" );
-                while (true)
+                while (channel1.IsOpen)
                 {
-                    await publisher1.Publish("TestExchange", string.Empty, false, false, properties, body1);
+                    await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
                 }
             });
             var secondTask = Task.Run(async () =>
             {
                 var properties = ContentHeaderProperties.Default();
                 properties.AppId( "testapp2" );
-                while (true)
+                while (channel2.IsOpen)
                 {
-                    await publisher2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
+                    await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
                 }
             });
 
@@ -125,7 +123,7 @@ namespace Test
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
+            var connection = builder.ConnectionInfo("guest", "guest", "/")
                                     .Heartbeat(60*10)
                                     .ProductName("AMQP.Client.RabbitMQ")
                                     .ProductVersion("0.0.1")
@@ -140,13 +138,12 @@ namespace Test
             var queueOk = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
     
-            var publisher = channel.CreatePublisher();
             var properties = ContentHeaderProperties.Default();
             properties.AppId( "testapp" );
             for (var i = 0; i < 40000; i++)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
+                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
             }
 
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
@@ -160,7 +157,7 @@ namespace Test
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
+            var connection = builder.ConnectionInfo("guest", "guest", "/")
                         .Heartbeat(60)
                         .ProductName("AMQP.Client.RabbitMQ")
                         .ProductVersion("0.0.1")
@@ -179,23 +176,22 @@ namespace Test
             var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
-            var publisher = channel.CreatePublisher();
             var properties = ContentHeaderProperties.Default();
             properties.AppId( "testapp" );
-            //await channel.TryCloseChannelAsync("kek");
-            while (true)
+            while (channel.IsOpen)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
-                await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
+            await connection.WaitEndReading();
             
         }
         private static async Task StartConsumer()
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
             RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("gamover", "gam2106", "/")
+            var connection = builder.ConnectionInfo("guest", "guest", "/")
                         .Heartbeat(60)
                         .ProductName("AMQP.Client.RabbitMQ")
                         .ProductVersion("0.0.1")
@@ -218,19 +214,21 @@ namespace Test
             await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
             //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
+            //consumer.Received += async (deliver, result) =>
+            //{
 
+            //    if(result.IsCompleted)
+            //    {
+            //        await channel.Ack(deliver.DeliveryTag, false);                    
+            //    }
+
+            //};
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer.Received += async (deliver, result) =>
-            {
-                
-                if(result.IsCompleted)
-                {
-                    await channel.Ack(deliver.DeliveryTag, false);                    
-                }
-
+            {                
+                //await channel.Ack(deliver.DeliveryTag, false);
             };
-            //await consumer.CancelAsync();
-            // await channel.TryCloseChannelAsync("kek");
+            //await channel.CloseChannelAsync("kek");
             await connection.WaitEndReading();
         }
 

@@ -1,6 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using AMQP.Client.RabbitMQ.Publisher;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -11,8 +12,8 @@ namespace AMQP.Client.RabbitMQ.Channel
         public ushort ChannelId { get; }
         public bool IsOpen { get; }
         Task<bool> TryOpenChannelAsync();
-        Task<bool> TryCloseChannelAsync(string reason);
-        Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
+        Task<bool> CloseChannelAsync(string reason);
+        Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
     }
     public interface IRabbitMQDefaultChannel:IRabbitMQChannel
     {
@@ -39,10 +40,12 @@ namespace AMQP.Client.RabbitMQ.Channel
                                                    bool exclusive = false, Dictionary<string, object> arguments = null);
         ValueTask Ack(long deliveryTag, bool multiple = false);
         ValueTask Reject(long deliveryTag, bool requeue);
-        RabbitMQPublisher CreatePublisher();
+
+        //RabbitMQPublisher CreatePublisher();
 
         ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global);
 
+        ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message);
     }
     
 }

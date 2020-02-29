@@ -73,8 +73,9 @@ namespace AMQP.Client.RabbitMQ.Handlers
         {
             foreach(var item in _consumers)
             {
-                await item.Value.CancelNoWaitAsync();
+                await item.Value.CancelAsync();
             }
+            _consumers.Clear();
         }
         public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
@@ -85,7 +86,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _channelId, _protocol, ManualDeleteConsumer);
+                var consumer = new RabbitMQChunkedConsumer(consumerTag, _channelId, _protocol);
                 if(!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
@@ -119,7 +120,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _channelId, _protocol, ManualDeleteConsumer);
+                var consumer = new RabbitMQConsumer(consumerTag, _channelId, _protocol);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
@@ -144,7 +145,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                 throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
             }
         }
-        private void ManualDeleteConsumer(string tag)
+        private void DeleteConsumerPrivate(string tag)
         {
             if (!_consumers.Remove(tag, out var consumer))
             {

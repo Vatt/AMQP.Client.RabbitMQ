@@ -20,8 +20,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private int _deliverPosition;
         public event Action<RabbitMQDeliver, byte[]> Received;
 
-        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, Action<string> cancelNoWaitCallback)
-            : base(consumerTag, channelId, protocol, cancelNoWaitCallback)
+        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol)
+            : base(consumerTag, channelId, protocol)
         {
             _reader = new BodyFrameChunkedReader(channelId);
             _deliverPosition = 0;

@@ -116,12 +116,12 @@ namespace AMQP.Client.RabbitMQ.Channel
             return await _openOkSrc.Task.ConfigureAwait(false);
         }
 
-        public Task<bool> TryCloseChannelAsync(string reason)
+        public Task<bool> CloseChannelAsync(string reason)
         {
             //тиснуть сюда Close, CloseOK методы
             return Task.FromResult(false);
         }
-        public Task<bool> TryCloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
+        public Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             //тиснуть сюда Close, CloseOK методы
             return Task.FromResult(false);

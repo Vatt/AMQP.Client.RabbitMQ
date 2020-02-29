@@ -26,8 +26,4 @@
     <PackageReference Include="Bedrock.Framework" Version="0.1.57-alpha.g91856b10da" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Publisher\" />
-  </ItemGroup>
-
 </Project>

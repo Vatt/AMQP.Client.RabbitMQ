@@ -14,23 +14,15 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public readonly ushort ChannelId;
         protected readonly RabbitMQProtocol _protocol;
         internal TaskCompletionSource<string> CancelSrc;
-        private Action<string> _cancelNoWaitCallback;
         private SemaphoreSlim _semaphore;
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(string tag, ushort channel, RabbitMQProtocol protocol, Action<string> cancelNoWaitCallback)
+        internal ConsumerBase(string tag, ushort channel, RabbitMQProtocol protocol)
         {
             ConsumerTag = tag;
             ChannelId = channel;
             _protocol = protocol;
             IsCanceled = false;
-            _cancelNoWaitCallback = cancelNoWaitCallback;
             _semaphore = new SemaphoreSlim(1);
-        }
-        public async ValueTask CancelNoWaitAsync()
-        {
-            IsCanceled = true;
-            await _protocol.Writer.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(ConsumerTag, true)).ConfigureAwait(false);            
-            _cancelNoWaitCallback?.Invoke(ConsumerTag);
         }
         public async ValueTask<string> CancelAsync()
         {
@@ -42,13 +34,17 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _semaphore.Release();
             return result;
         }
+        internal void SimpleCancel()
+        {
+            IsCanceled = true;
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal async ValueTask Delivery(DeliverInfo info)
         {
-            //if(IsCanceled)
-            //{
-            //    throw new Exception("Consumer already canceled");
-            //}
+            if (IsCanceled)
+            {
+                throw new Exception("Consumer already canceled");
+            }
             var contentResult = await _protocol.Reader.ReadAsync(new ContentHeaderFullReader(ChannelId)).ConfigureAwait(false);
             _protocol.Reader.Advance();
             await ProcessBodyMessage(new RabbitMQDeliver(info.DeliverTag, contentResult.Message)).ConfigureAwait(false);
