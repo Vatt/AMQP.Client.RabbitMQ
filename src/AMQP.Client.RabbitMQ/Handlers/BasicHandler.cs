@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 
 namespace AMQP.Client.RabbitMQ.Handlers
 {
@@ -44,15 +45,37 @@ namespace AMQP.Client.RabbitMQ.Handlers
                         _consumeOkSrc.SetResult(result);
                         break;
                     }
-                case 11:
+                case 11: // qos-ok
                     {
                         _commonSrc.SetResult(await ReadBasicQoSOk().ConfigureAwait(false));
+                        break;
+                    }
+                case 31://consumer cancel-ok
+                    {
+                        var result = await _protocol.Reader.ReadAsync(new ShortStrPayloadReader()).ConfigureAwait(false);
+                        _protocol.Reader.Advance();
+                        if (result.IsCompleted)
+                        {
+                            //TODO: сделать чтонибудь
+                        }
+                        if(!_consumers.Remove(result.Message,out var consumer))
+                        {
+                            throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer or consumer already canceled");
+                        }
+                            
+                        consumer.CancelSrc.SetResult(result.Message);
                         break;
                     }
                 default: throw new Exception($"{nameof(BasicHandler)}.HandleMethodAsync: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
             }
         }
-        
+        public async ValueTask CloseHandler()
+        {
+            foreach(var item in _consumers)
+            {
+                await item.Value.CancelNoWaitAsync();
+            }
+        }
         public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
@@ -62,7 +85,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _protocol, _channelId);
+                var consumer = new RabbitMQChunkedConsumer(consumerTag, _channelId, _protocol, ManualDeleteConsumer);
                 if(!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
@@ -96,7 +119,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _protocol, _channelId);
+                var consumer = new RabbitMQConsumer(consumerTag, _channelId, _protocol, ManualDeleteConsumer);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
@@ -119,6 +142,13 @@ namespace AMQP.Client.RabbitMQ.Handlers
             else
             {
                 throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
+            }
+        }
+        private void ManualDeleteConsumer(string tag)
+        {
+            if (!_consumers.Remove(tag, out var consumer))
+            {
+                throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer or consumer already canceled");
             }
         }
         public async ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)

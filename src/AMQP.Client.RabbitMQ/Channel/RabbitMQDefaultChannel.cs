@@ -28,7 +28,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public ushort ChannelId => _channelId;
         public bool IsOpen => _isOpen;
         private RabbitMQMainInfo _mainInfo;
-        private SemaphoreSlim _writerSemaphore;
+        private readonly SemaphoreSlim _writerSemaphore;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
@@ -147,6 +147,11 @@ namespace AMQP.Client.RabbitMQ.Channel
             _managerCloseCallback(_channelId);
             return result;
         }
+        private void CloseChannel()
+        {
+            
+        }
+
         public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
         {
             return _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);

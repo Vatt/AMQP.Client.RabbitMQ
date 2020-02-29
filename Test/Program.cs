@@ -182,7 +182,8 @@ namespace Test
             var publisher = channel.CreatePublisher();
             var properties = ContentHeaderProperties.Default();
             properties.AppId( "testapp" );
-            while(true)
+            //await channel.TryCloseChannelAsync("kek");
+            while (true)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
                 await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
@@ -218,14 +219,18 @@ namespace Test
 
             //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
             var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
+
             consumer.Received += async (deliver, result) =>
             {
+                
                 if(result.IsCompleted)
                 {
-                    await channel.Ack(deliver.DeliveryTag, false);
+                    await channel.Ack(deliver.DeliveryTag, false);                    
                 }
 
             };
+            //await consumer.CancelAsync();
+            // await channel.TryCloseChannelAsync("kek");
             await connection.WaitEndReading();
         }
 

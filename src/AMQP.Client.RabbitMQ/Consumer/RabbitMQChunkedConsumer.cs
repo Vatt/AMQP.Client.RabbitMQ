@@ -18,8 +18,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
 
         public event Action<RabbitMQDeliver, ChunkedConsumeResult> Received;
-        internal RabbitMQChunkedConsumer(string consumerTag, RabbitMQProtocol protocol, ushort channelId)
-            :base(consumerTag, channelId, protocol)
+        internal RabbitMQChunkedConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, Action<string> cancelNoWaitCallback)
+            :base(consumerTag, channelId, protocol, cancelNoWaitCallback)
         {
             _reader = new BodyFrameChunkedReader(channelId);
         }
