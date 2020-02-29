@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AMQP.Client.RabbitMQ.Exchange
+namespace AMQP.Client.RabbitMQ.Handlers
 {
     public static class ExchangeType
     {
@@ -99,11 +99,12 @@ namespace AMQP.Client.RabbitMQ.Exchange
             _semafore.Release();
             return result;
         }
-        public async ValueTask DeleteNoWaitAsync(string name, bool ifUnused = false)
+        public ValueTask DeleteNoWaitAsync(string name, bool ifUnused = false)
         {
             var info = new ExchangeDeleteInfo(name, ifUnused);
-            await SendExchangeDeleteAsync(info).ConfigureAwait(false);
             _exchanges.Remove(info.Name);
+            return SendExchangeDeleteAsync(info);
+            
 
         }
     }

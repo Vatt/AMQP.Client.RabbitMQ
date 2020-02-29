@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AMQP.Client.RabbitMQ.Protocol.Methods
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods
 {
     public readonly struct CloseInfo
     {

@@ -13,7 +13,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         }
         public async ValueTask<MethodHeader> ReadMethodHeader()
         {
-            var result = await _protocol.Reader.ReadAsync(new MethodHeaderReader());
+            var result = await _protocol.Reader.ReadAsync(new MethodHeaderReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             if (result.IsCanceled)
             {
@@ -21,24 +21,21 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
             }
             return result.Message;
         }
-        public async ValueTask SendStartOk(RabbitMQClientInfo clientInfo, RabbitMQConnectionInfo connInfo)
+        public ValueTask SendStartOk(RabbitMQClientInfo clientInfo, RabbitMQConnectionInfo connInfo)
         {
-            var startok = new ConnectionStartOkWriter(connInfo);
-            await _protocol.Writer.WriteAsync(startok, clientInfo);
+            return _protocol.Writer.WriteAsync(new ConnectionStartOkWriter(connInfo), clientInfo);
         }
-        public async ValueTask SendTuneOk(RabbitMQMainInfo info)
+        public ValueTask SendTuneOk(RabbitMQMainInfo info)
         {
-            var tuneok = new ConnectionTuneOkWriter();
-            await _protocol.Writer.WriteAsync(tuneok, info);
+            return _protocol.Writer.WriteAsync(new ConnectionTuneOkWriter(), info);
         }
-        public async ValueTask SendOpen(string vhost)
+        public ValueTask SendOpen(string vhost)
         {
-            var open = new ConnectionOpenWriter();
-            await _protocol.Writer.WriteAsync(open, vhost);
+            return _protocol.Writer.WriteAsync(new ConnectionOpenWriter(), vhost);
         }
         public async ValueTask<RabbitMQServerInfo> ReadStartAsync()
         {
-            var result = await _protocol.Reader.ReadAsync(new ConnectionStartReader());
+            var result = await _protocol.Reader.ReadAsync(new ConnectionStartReader()).ConfigureAwait(false);
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь
@@ -48,7 +45,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         }
         public async ValueTask<bool> ReadOpenOkAsync()
         {
-            var result = await _protocol.Reader.ReadAsync(new ConnectionOpenOkReader());
+            var result = await _protocol.Reader.ReadAsync(new ConnectionOpenOkReader()).ConfigureAwait(false);
             if (result.IsCompleted)
             {
                 //TODO: сделать чтонибудь
@@ -60,7 +57,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         }
         public async ValueTask<RabbitMQMainInfo> ReadTuneMethodAsync()
         {
-            var result = await _protocol.Reader.ReadAsync(new ConnectionTuneReader());
+            var result = await _protocol.Reader.ReadAsync(new ConnectionTuneReader()).ConfigureAwait(false);
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь

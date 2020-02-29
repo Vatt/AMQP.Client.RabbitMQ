@@ -1,7 +1,5 @@
 ﻿using Bedrock.Framework.Protocols;
 using Microsoft.AspNetCore.Connections;
-using System.IO.Pipelines;
-using System.Threading;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {

@@ -1,6 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Basic;
-using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Exchange;
+﻿using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Handlers;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
@@ -10,7 +9,6 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using AMQP.Client.RabbitMQ.Publisher;
-using AMQP.Client.RabbitMQ.Queue;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

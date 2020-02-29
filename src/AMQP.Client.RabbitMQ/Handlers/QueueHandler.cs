@@ -4,11 +4,10 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AMQP.Client.RabbitMQ.Queue
+namespace AMQP.Client.RabbitMQ.Handlers
 {
     //засейвить только AutoDelete Exclusive очереди?
     public class QueueHandler: QueueReaderWriter
@@ -71,10 +70,10 @@ namespace AMQP.Client.RabbitMQ.Queue
             _semafore.Release();
             return okInfo;
         }
-        public async ValueTask DeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
+        public ValueTask DeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
             var info = new QueueInfo(name, durable, exclusive, autoDelete, nowait:true, arguments: arguments);
-            await SendQueueDeclare(info).ConfigureAwait(false);
+            return SendQueueDeclare(info);
         }
         public async ValueTask<QueueDeclareOk> DeclarePassiveAsync(string name)
         {

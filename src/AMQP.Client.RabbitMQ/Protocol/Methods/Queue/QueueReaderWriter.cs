@@ -12,13 +12,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
             _protocol = protocol;
             ChannelId = channelId;
         }
-        public async ValueTask SendQueueDeclare(QueueInfo info)
+        public ValueTask SendQueueDeclare(QueueInfo info)
         {
-            await _protocol.Writer.WriteAsync(new QueueDeclareWriter(ChannelId), info);
+            return _protocol.Writer.WriteAsync(new QueueDeclareWriter(ChannelId), info);
         }
         public async ValueTask<QueueDeclareOk> ReadQueueDeclareOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new QueueDeclareOkReader());
+            var result = await _protocol.Reader.ReadAsync(new QueueDeclareOkReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             if (result.IsCompleted)
             {
@@ -26,26 +26,26 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
             }
             return result.Message;
         }
-        public async ValueTask SendQueueBind(QueueBindInfo info)
+        public ValueTask SendQueueBind(QueueBindInfo info)
         {
-            await _protocol.Writer.WriteAsync(new QueueBindWriter(ChannelId), info);
+            return _protocol.Writer.WriteAsync(new QueueBindWriter(ChannelId), info);
         }
         
-        public async ValueTask SendQueueUnbind(QueueUnbindInfo info)
+        public ValueTask SendQueueUnbind(QueueUnbindInfo info)
         {
-            await _protocol.Writer.WriteAsync(new QueueUnbindWriter(ChannelId), info);
+            return _protocol.Writer.WriteAsync(new QueueUnbindWriter(ChannelId), info);
         }
-        public async ValueTask SendQueuePurge(QueuePurgeInfo info)
+        public ValueTask SendQueuePurge(QueuePurgeInfo info)
         {
-            await _protocol.Writer.WriteAsync(new QueuePurgeWriter(ChannelId), info);
+            return _protocol.Writer.WriteAsync(new QueuePurgeWriter(ChannelId), info);
         }
-        public async ValueTask SendQueueDelete(QueueDeleteInfo info)
+        public ValueTask SendQueueDelete(QueueDeleteInfo info)
         {
-            await _protocol.Writer.WriteAsync(new QueueDeleteWriter(ChannelId), info);
+            return _protocol.Writer.WriteAsync(new QueueDeleteWriter(ChannelId), info);
         }
         public async ValueTask<int> ReadQueuePurgeOkDeleteOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new QueuePurgeOkDeleteOkReader());
+            var result = await _protocol.Reader.ReadAsync(new QueuePurgeOkDeleteOkReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             if (result.IsCompleted)
             {
@@ -55,7 +55,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         }
         public async ValueTask<bool> ReadBindOkUnbindOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader());
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             if (result.IsCompleted)
             {

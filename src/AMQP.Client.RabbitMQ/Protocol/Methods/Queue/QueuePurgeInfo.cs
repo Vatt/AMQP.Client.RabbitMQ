@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
     public readonly struct  QueuePurgeInfo
     {

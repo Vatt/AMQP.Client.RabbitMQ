@@ -1,17 +1,14 @@
 ﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AMQP.Client.RabbitMQ.Basic
+namespace AMQP.Client.RabbitMQ.Handlers
 {
     internal class BasicHandler : BasicReaderWriter
     {
@@ -36,7 +33,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                         var deliver = await ReadBasicDeliver().ConfigureAwait(false);
                         if (!_consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
                         {
-                            throw new Exception($"{nameof(BasicHandler)}: cant signal to consume");
+                            throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer");
                         }
                         await consumer.Delivery(deliver).ConfigureAwait(false);
                         break;
@@ -49,7 +46,7 @@ namespace AMQP.Client.RabbitMQ.Basic
                     }
                 case 11:
                     {
-                        _commonSrc.SetResult(await ReadBasicQoSOk());
+                        _commonSrc.SetResult(await ReadBasicQoSOk().ConfigureAwait(false));
                         break;
                     }
                 default: throw new Exception($"{nameof(BasicHandler)}.HandleMethodAsync: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
@@ -59,7 +56,7 @@ namespace AMQP.Client.RabbitMQ.Basic
         public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync().ConfigureAwait(false);
             _consumeOkSrc = new TaskCompletionSource<string>();
             await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
@@ -126,7 +123,7 @@ namespace AMQP.Client.RabbitMQ.Basic
         }
         public async ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {
-            await _semaphore.WaitAsync();
+            await _semaphore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>();
             var info = new QoSInfo(prefetchSize, prefetchCount, global);
             await SendBasicQoS(ref info).ConfigureAwait(false);

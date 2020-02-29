@@ -11,19 +11,19 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
         {
             _protocol = protocol;
         }
-        public async ValueTask SendChannelOpen(ushort channelId)
+        public ValueTask SendChannelOpen(ushort channelId)
         {
-            await _protocol.Writer.WriteAsync(new ChannelOpenWriter(), channelId);
+            return _protocol.Writer.WriteAsync(new ChannelOpenWriter(), channelId);
         }
         public async ValueTask<bool> ReadChannelOpenOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new ChannelOpenOkReader());
+            var result = await _protocol.Reader.ReadAsync(new ChannelOpenOkReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             return result.Message;
         }
         public async ValueTask<MethodHeader> ReadMethodHeader()
         {
-            var result = await _protocol.Reader.ReadAsync(new MethodHeaderReader());
+            var result = await _protocol.Reader.ReadAsync(new MethodHeaderReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
             if (result.IsCanceled)
             {
@@ -31,13 +31,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
             }
             return result.Message;
         }
-        public async ValueTask SendChannelClose(CloseInfo info)
+        public ValueTask SendChannelClose(CloseInfo info)
         {
-            await _protocol.Writer.WriteAsync(new CloseWriter(), info);
+            return _protocol.Writer.WriteAsync(new CloseWriter(), info);
         }
         public async ValueTask<bool> ReadChannelCloseOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader());
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь
