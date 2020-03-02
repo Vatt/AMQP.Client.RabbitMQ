@@ -2,7 +2,7 @@
 {
     internal sealed class Constants
     {
- 
+        //Default rabbitmq constants
         public const byte FrameMethod = 1;
         public const byte FrameHeader = 2;
         public const byte FrameBody = 3;
@@ -27,5 +27,8 @@
         public const int NotAllowed = 530;
         public const int NotImplemented = 540;
         public const int InternalError = 541;
+
+        //Internal extended constans
+        public const int Success = 0;
     }
 }

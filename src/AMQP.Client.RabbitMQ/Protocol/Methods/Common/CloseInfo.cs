@@ -1,15 +1,13 @@
-﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Common
 {
     public readonly struct CloseInfo
     {
-        public readonly ushort ChannelId;
         public readonly short ReplyCode;
         public readonly string ReplyText;
         public readonly short FailedClassId;
         public readonly short FailedMethodId;
-        public CloseInfo(ushort channelId, short code, string text, short failedClassId, short failedMethodId)
+        public CloseInfo(short code, string text, short failedClassId, short failedMethodId)
         {
-            ChannelId = channelId;
             ReplyCode = code;
             ReplyText = text;
             FailedClassId = failedClassId;

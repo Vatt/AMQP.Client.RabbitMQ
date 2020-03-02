@@ -9,10 +9,10 @@ using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class PublishFastWriter : IMessageWriter<(BasicPublishInfo, ContentHeader, ReadOnlyMemory<byte>)>
+    public class PublishFullWriter : IMessageWriter<(BasicPublishInfo, ContentHeader, ReadOnlyMemory<byte>)>
     {
         private readonly ushort _channelId;
-        public PublishFastWriter(ushort channelId)
+        public PublishFullWriter(ushort channelId)
         {
             _channelId = channelId;
         }

@@ -1,12 +1,13 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {
     public class ChannelReaderWriter
     {
-        protected RabbitMQProtocol _protocol;
+        protected RabbitMQProtocol _protocol;       
         public ChannelReaderWriter(RabbitMQProtocol protocol)
         {
             _protocol = protocol;
@@ -31,13 +32,23 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
             }
             return result.Message;
         }
-        public ValueTask SendChannelClose(CloseInfo info)
+        public ValueTask SendChannelClose(ushort channelId, CloseInfo info)
         {
-            return _protocol.Writer.WriteAsync(new CloseWriter(), info);
+            return _protocol.Writer.WriteAsync(new CloseWriter(channelId,20,40), info);
         }
         public async ValueTask<bool> ReadChannelCloseOk()
         {
             var result = await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
+            if (result.IsCanceled)
+            {
+                //TODO:  сделать чтонибудь
+            }
+            _protocol.Reader.Advance();
+            return result.Message;
+        }
+        public async ValueTask<CloseInfo> ReadChannelClose()
+        {
+            var result = await _protocol.Reader.ReadAsync(new CloseReader()).ConfigureAwait(false);
             if (result.IsCanceled)
             {
                 //TODO:  сделать чтонибудь

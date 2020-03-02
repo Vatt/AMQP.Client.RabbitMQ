@@ -3,6 +3,7 @@ using System.Buffers;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using Bedrock.Framework.Protocols;
+
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     /* 

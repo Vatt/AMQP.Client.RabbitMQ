@@ -2,6 +2,7 @@
 using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Handlers;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,11 +25,12 @@ namespace Test
             //Utf8JsonWriter
             //Utf8JsonReader
             //JsonSerializer 
-            //await RunDefault();
 
+            await RunNothing();
+            //await RunDefault();
             //await ChannelTest();
-            Task.WaitAny(Task.Run(StartConsumer),
-                         Task.Run(StartPublisher));
+            //Task.WaitAny(Task.Run(StartConsumer),
+            //             Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {
@@ -143,13 +145,13 @@ namespace Test
             for (var i = 0; i < 40000; i++)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
-                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[1 * 1024 * 1024]);
+                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
 
             var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
             consumer.Received += async (deliver, result) =>
             {
-                await channel.Ack(deliver.DeliveryTag);
+               // await channel.Ack(deliver.DeliveryTag);
             };
             await connection.WaitEndReading();
         }
@@ -178,10 +180,11 @@ namespace Test
 
             var properties = ContentHeaderProperties.Default();
             properties.AppId( "testapp" );
+            //var body = new byte[16 * 1024 * 1024 + 1];
             while (channel.IsOpen)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
-                //await publisher.Publish("TestExchange", string.Empty, false, false, properties, new byte[16*1024*1024+1]);
+                //await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
             await connection.WaitEndReading();
@@ -223,7 +226,7 @@ namespace Test
             //    }
 
             //};
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer.Received += async (deliver, result) =>
             {                
                 //await channel.Ack(deliver.DeliveryTag, false);
@@ -232,6 +235,29 @@ namespace Test
             await connection.WaitEndReading();
         }
 
+        private static async Task RunNothing()
+        {
+            var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
+            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
+            var connection = builder.ConnectionInfo("guest", "guest", "/")
+                        .Heartbeat(60)
+                        .ProductName("AMQP.Client.RabbitMQ")
+                        .ProductVersion("0.0.1")
+                        .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                        .ClientInformation("TEST TEST TEST")
+                        .ClientCopyright("©")
+                        .Build();
+            await connection.StartAsync();
+            var channel = await connection.CreateChannel();
+            Action waiter = async () => {
+                var info = await channel.WaitClosing();
+                Console.WriteLine($"Channel closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
+            };
+            await channel.CloseChannelAsync("kek");
+            waiter();
+            await connection.CloseConnection();
+            await connection.WaitEndReading();
+        }
     }
 
 }

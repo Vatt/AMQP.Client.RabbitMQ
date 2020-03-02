@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public ushort ChannelId { get; }
         public bool IsOpen { get; }
         Task<bool> TryOpenChannelAsync();
+        Task<CloseInfo> WaitClosing();
         Task<bool> CloseChannelAsync(string reason);
         Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
     }

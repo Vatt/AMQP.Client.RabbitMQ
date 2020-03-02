@@ -4,9 +4,9 @@ using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
@@ -22,12 +22,13 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         private readonly ushort _channelId;
         private bool _isOpen;
-        private readonly int _batchSize = 4;
-        private readonly ReadOnlyMemory<byte>[] _batch;
+        private readonly int _publishBatchSize = 4;
+        private readonly ReadOnlyMemory<byte>[] _publishBatch;
 
         private Action<ushort> _handlerCloseCallback;
         private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
-        private TaskCompletionSource<bool> _closeSrc =  new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> _manualCloseSrc =  new TaskCompletionSource<bool>();
+        private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>();
         public ushort ChannelId => _channelId;
         public bool IsOpen => _isOpen;
         private RabbitMQMainInfo _mainInfo;
@@ -42,6 +43,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _isOpen = false;
             _handlerCloseCallback = closeCallback;
             _mainInfo = info;
+            _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
             _writerSemaphore = new SemaphoreSlim(1);
             _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
             _queueMethodHandler = new QueueHandler(_channelId,_protocol);
@@ -53,27 +55,18 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async ValueTask HandleFrameHeaderAsync(FrameHeader header)
         {
             Debug.Assert(header.Channel == _channelId);
-            switch(header.FrameType)
+            if (header.FrameType == Constants.FrameMethod)
             {
-                case Constants.FrameMethod:
-                    {
-                        await ProcessMethod().ConfigureAwait(false); 
-                        break;
-                    }
-                    /*
-                case Constants.FrameHeader:
-                    {
-                        await _basicHandler.HandleAsync(header);
-                        break;
-                    }
-                    */
-                default: throw new Exception($"Frame type missmatch{nameof(RabbitMQDefaultChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
+                await ProcessMethod().ConfigureAwait(false);
+            }
+            else 
+            {
+                throw new Exception($"Frame type missmatch{nameof(RabbitMQDefaultChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
             }
         }
         public async ValueTask ProcessMethod()
         {
             var method = await ReadMethodHeader().ConfigureAwait(false);
-            //Debug.WriteLine($"{method.ClassId} {method.MethodId}");
             switch (method.ClassId)
             {
                 case 20://Channels class
@@ -104,26 +97,27 @@ namespace AMQP.Client.RabbitMQ.Channel
             Debug.Assert(method.ClassId == 20);
             switch (method.MethodId)
             {
-                case 11:
+                case 11://open-ok
                     {
                         _isOpen = await ReadChannelOpenOk().ConfigureAwait(false);
                         _openSrc.SetResult(_isOpen);
 
                         break;
                     }
-                /*case 20 when method.MethodId == 40: //close
+                case 40: //close
                     {
                         _isOpen = false;
-                        _openCloseSrc.SetResult(_isOpen);
+                        var info = await ReadChannelClose().ConfigureAwait(false);
+                        await ProcessChannelClose();
+                        _channelCloseSrc.SetResult(info);
                         break;
 
-                    }
-                    */
-                case 41:
+                    }                    
+                case 41://close-ok
                     {
                         var result = await ReadChannelCloseOk().ConfigureAwait(false);
                         _isOpen = false;
-                        _closeSrc.SetResult(_isOpen);
+                        _manualCloseSrc.SetResult(_isOpen);
                         break;
                     }
                 default:
@@ -136,20 +130,25 @@ namespace AMQP.Client.RabbitMQ.Channel
             await SendChannelOpen(_channelId).ConfigureAwait(false);
             return await _openSrc.Task.ConfigureAwait(false);
         }
+        public Task<CloseInfo> WaitClosing()
+        {
+            return _channelCloseSrc.Task;
+        }
         public Task<bool> CloseChannelAsync(string reason)
         {
-            return CloseChannelAsync(Constants.ReplySuccess, reason, 20, 41);
+            return CloseChannelAsync(Constants.ReplySuccess, reason, 0, 0);
         }
         public async Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
-            await SendChannelClose(new CloseInfo(_channelId, replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
-            var result = await _closeSrc.Task.ConfigureAwait(false);
-            await ChannelClosePrivate().ConfigureAwait(false);
+            await SendChannelClose(_channelId, new CloseInfo(replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
+            var result = await _manualCloseSrc.Task.ConfigureAwait(false);
+            await ProcessChannelClose().ConfigureAwait(false);
+            _channelCloseSrc.SetResult(new CloseInfo(Constants.Success, replyText, 0, 0));
             _writerSemaphore.Release();
             return result;
         }
-        private async ValueTask ChannelClosePrivate()
+        private async ValueTask ProcessChannelClose()
         {
             _isOpen = false;
             await _basicHandler.CloseHandler().ConfigureAwait(false);
@@ -243,13 +242,6 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return _basicHandler.CreateConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
-        /*
-        public RabbitMQPublisher CreatePublisher()
-        {
-            var publisher = new RabbitMQPublisher(_channelId, _protocol, _mainInfo.FrameMax, _writerSemaphore);
-            return publisher;
-        }
-        */
         public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {
             return _basicHandler.QoS(prefetchSize, prefetchCount, global);
@@ -276,13 +268,13 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             if (!IsOpen)
             {
-                throw new Exception($"{nameof(RabbitMQDefaultChannel)}.{nameof(Publish)}: publisher is canceled");
+                throw new Exception($"{nameof(RabbitMQDefaultChannel)}.{nameof(Publish)}: channel is canceled");
             }
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
             if (message.Length <= _mainInfo.FrameMax)
             {
-                await _protocol.Writer.WriteAsync(new PublishFastWriter(_channelId), (info, content, message)).ConfigureAwait(false);
+                await _protocol.Writer.WriteAsync(new PublishFullWriter(_channelId), (info, content, message)).ConfigureAwait(false);
                 return;
             }
 
@@ -293,39 +285,18 @@ namespace AMQP.Client.RabbitMQ.Channel
             while (written < content.BodySize)
             {
                 int batchCnt = 0;
-                while (batchCnt < _batchSize && written < content.BodySize)
+                while (batchCnt < _publishBatchSize && written < content.BodySize)
                 {
                     int writable = Math.Min(_mainInfo.FrameMax, (int)content.BodySize - written);
-                    _batch[batchCnt] = message.Slice(written, writable);
+                    _publishBatch[batchCnt] = message.Slice(written, writable);
                     batchCnt++;
                     written += writable;
                 }
-                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _batch).ConfigureAwait(false);
-                _batch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
+                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _publishBatch).ConfigureAwait(false);
+                _publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
 
             _writerSemaphore.Release();
-
-            //var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
-            //var content = new ContentHeader(60, message.Length, ref properties);
-            //await _semaphore.WaitAsync();
-            //await _protocol.Writer.WriteAsync(new BasicPublishWriter(_channelId), info).ConfigureAwait(false);
-            //await _protocol.Writer.WriteAsync(new ContentHeaderWriter(_channelId), content).ConfigureAwait(false);
-            //if (content.BodySize < _maxFrameSize)
-            //{
-            //    await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message).ConfigureAwait(false);
-            //}
-            //else
-            //{
-            //    long written = 0;
-            //    while (written < content.BodySize)
-            //    {
-            //        var writable = Math.Min(_maxFrameSize, content.BodySize - written);
-            //        await _protocol.Writer.WriteAsync(new BodyFrameWriter(_channelId), message.Slice((int)written, (int)writable));
-            //        written += writable;
-            //    }
-            //}
-            //_semaphore.Release();
         }
     }
 }

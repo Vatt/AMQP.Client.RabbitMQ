@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
@@ -64,6 +65,34 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
             }
             _protocol.Reader.Advance();
             return result.Message;
+        }
+        public async ValueTask<CloseInfo> ReadCloseMethod()
+        {
+            var result = await _protocol.Reader.ReadAsync(new CloseReader()).ConfigureAwait(false);
+            if (result.IsCanceled)
+            {
+                //TODO:  сделать чтонибудь
+            }
+            _protocol.Reader.Advance();
+            return result.Message;
+        }
+        public ValueTask SendCloseMethodAsync(CloseInfo info)
+        {
+            return _protocol.Writer.WriteAsync(new CloseWriter(0, 10, 50), info);
+        }
+        public async ValueTask<bool> ReadCloseOk()
+        {
+            var result = await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
+            if (result.IsCanceled)
+            {
+                //TODO:  сделать чтонибудь
+            }
+            _protocol.Reader.Advance();
+            return result.Message;
+        }
+        public ValueTask SendCloseOk()
+        {
+            return _protocol.Writer.WriteAsync(new NoPayloadMethodWrtier(), new NoPaylodMethodInfo(1, 0, 10, 51));
         }
     }
 }

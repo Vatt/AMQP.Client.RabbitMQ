@@ -35,7 +35,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             while (!_reader.IsComplete)
             {                
                 var result = await _protocol.Reader.ReadAsync(_reader).ConfigureAwait(false);
-                Copy(result.Message);
+                Copy(result.Message.Slice(0));
                 _protocol.Reader.Advance();
             }
             

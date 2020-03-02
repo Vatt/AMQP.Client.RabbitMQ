@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using System.Threading;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
@@ -22,7 +23,9 @@ namespace AMQP.Client.RabbitMQ.Channel
         public RabbitMQMainInfo MainInfo { get; private set; }
 
         private bool _isOpen;
-        private TaskCompletionSource<bool> _openOkSrc = new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> _openOkSrc;
+        private TaskCompletionSource<bool> _closeSrc;
+        private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
         private readonly ushort _channelId;
 
         public bool IsOpen => _isOpen;
@@ -39,6 +42,9 @@ namespace AMQP.Client.RabbitMQ.Channel
             _connectionInfo = builder.ConnInfo;
             _channelId = 0;
             _isOpen = false;
+            _connectionClosedSrc = new TaskCompletionSource<CloseInfo>();
+            _openOkSrc = new TaskCompletionSource<bool>();
+            _closeSrc = new TaskCompletionSource<bool>();
         }
         public async ValueTask HandleAsync(FrameHeader header)
         {
@@ -79,8 +85,15 @@ namespace AMQP.Client.RabbitMQ.Channel
                         _openOkSrc.SetResult(_isOpen);
                         break;
                     }
-                case 10 when method.MethodId == 50: //close-ok
+                case 10 when method.MethodId == 50: //close
                     {
+                        //await SendCloseOk();
+                        _connectionClosedSrc.SetResult(await ReadCloseMethod().ConfigureAwait(false));
+                        break;
+                    }
+                case 10 when method.MethodId == 51://close-ok
+                    {
+                        _closeSrc.SetResult(await ReadCloseOk());                                                
                         break;
                     }
 
@@ -89,7 +102,6 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             }
         }
-
         private async ValueTask<RabbitMQMainInfo> ProcessTuneMethodAsync()
         {
             var info = await ReadTuneMethodAsync().ConfigureAwait(false);
@@ -118,13 +130,21 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public Task<bool> CloseChannelAsync(string reason)
         {
-            //тиснуть сюда Close, CloseOK методы
-            return Task.FromResult(false);
+
+            return CloseChannelAsync(Constants.ReplySuccess, reason, 10, 50);
         }
-        public Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
+        public async Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
-            //тиснуть сюда Close, CloseOK методы
-            return Task.FromResult(false);
+            var info = new CloseInfo(replyCode, replyText, failedClassId, failedMethodId);
+            await SendCloseMethodAsync(info).ConfigureAwait(false);
+            await _closeSrc.Task.ConfigureAwait(false);
+            _connectionClosedSrc.SetResult(new CloseInfo(Constants.Success, replyText, 0, 0));
+            return true;
+        }
+
+        public Task<CloseInfo> WaitClosing()
+        {
+            return _connectionClosedSrc.Task;
         }
     }
 }
