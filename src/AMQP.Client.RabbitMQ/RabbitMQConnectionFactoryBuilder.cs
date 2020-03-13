@@ -3,67 +3,71 @@ using System.Net;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public class RabbitMQConnectionBuilder
+    public class RabbitMQConnectionFactoryBuilder
     {
         public RabbitMQConnectionInfo ConnInfo;
         public RabbitMQClientInfo ClientInfo;
         public RabbitMQMainInfo MainInfo;
         public IPEndPoint Endpoint;
-        public RabbitMQConnectionBuilder(IPEndPoint endpoint)
+        public RabbitMQConnectionFactoryBuilder(IPEndPoint endpoint)
         {
             ConnInfo = RabbitMQConnectionInfo.DefaultConnectionInfo();
             ClientInfo = RabbitMQClientInfo.DefaultClientInfo();
             MainInfo = RabbitMQMainInfo.DefaultConnectionInfo();
             Endpoint = endpoint;
         }
-        public RabbitMQConnectionBuilder ConnectionInfo(string user, string password, string host)
+        public RabbitMQConnectionFactoryBuilder ConnectionInfo(string user, string password, string host)
         {
             ConnInfo = new RabbitMQConnectionInfo(user, password, host);
             return this;
         }
-        public RabbitMQConnectionBuilder ChanellMax(ushort chanellMax)
+        public RabbitMQConnectionFactoryBuilder ChanellMax(ushort chanellMax)
         {
             MainInfo.ChannelMax = chanellMax;
             return this;
         }
-        public RabbitMQConnectionBuilder FrameMax(int frameMax)
+        public RabbitMQConnectionFactoryBuilder FrameMax(int frameMax)
         {
             MainInfo.FrameMax = frameMax;
             return this;
         }
-        public RabbitMQConnectionBuilder Heartbeat(short heartbeat)
+        public RabbitMQConnectionFactoryBuilder Heartbeat(short heartbeat)
         {
             MainInfo.Heartbeat = heartbeat;
             return this;
         }
-        public RabbitMQConnectionBuilder ConnectionName(string name)
+        public RabbitMQConnectionFactoryBuilder ConnectionName(string name)
         {
             ClientInfo.Properties["connection_name"] = name;
             return this;
         }
-        public RabbitMQConnectionBuilder ProductName(string name)
+        public RabbitMQConnectionFactoryBuilder ProductName(string name)
         {
             ClientInfo.Properties["product"] = name;
             return this;
         }
-        public RabbitMQConnectionBuilder ProductVersion(string version)
+        public RabbitMQConnectionFactoryBuilder ProductVersion(string version)
         {
             ClientInfo.Properties["version"] = version;
             return this;
         }
-        public RabbitMQConnectionBuilder ClientInformation(string name)
+        public RabbitMQConnectionFactoryBuilder ClientInformation(string name)
         {
             ClientInfo.Properties["information"] = name;
             return this;
         }
-        public RabbitMQConnectionBuilder ClientCopyright(string copyright)
+        public RabbitMQConnectionFactoryBuilder ClientCopyright(string copyright)
         {
             ClientInfo.Properties["copyright"] = copyright;
             return this;
         }
-        public RabbitMQConnection Build()
+        //public RabbitMQConnection Build()
+        //{
+        //    return new RabbitMQConnection(this);
+        //}
+        public RabbitMQConnectionFactory Build()
         {
-            return new RabbitMQConnection(this);
+            return new RabbitMQConnectionFactory(this);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
@@ -8,17 +9,24 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
-    public interface IRabbitMQChannel
+    public interface IRabbitMQClosable
     {
-        public ushort ChannelId { get; }
-        public bool IsOpen { get; }
-        Task<bool> TryOpenChannelAsync();
-        Task<CloseInfo> WaitClosing();
-        Task<bool> CloseChannelAsync(string reason);
-        Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
+        public bool IsClosed { get; }
+        Task<bool> CloseAsync(string reason);
+        Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
     }
-    public interface IRabbitMQDefaultChannel:IRabbitMQChannel
+    internal interface IRabbitMQOpenable
     {
+        Task OpenAsync(RabbitMQProtocol protocol);
+    }
+    internal interface IChannel:IRabbitMQOpenable,IRabbitMQClosable
+    {
+        ValueTask HandleFrameHeaderAsync(FrameHeader header);
+        Task<CloseInfo> WaitClose();
+    }
+    public interface IRabbitMQChannel: IRabbitMQClosable
+    {
+        public ushort ChannelId { get; }        
         ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
         ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
         ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
@@ -42,8 +50,6 @@ namespace AMQP.Client.RabbitMQ.Channel
                                                    bool exclusive = false, Dictionary<string, object> arguments = null);
         ValueTask Ack(long deliveryTag, bool multiple = false);
         ValueTask Reject(long deliveryTag, bool requeue);
-
-        //RabbitMQPublisher CreatePublisher();
 
         ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global);
 

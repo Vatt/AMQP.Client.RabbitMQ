@@ -66,7 +66,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                         consumer.CancelSrc.SetResult(result.Message);
                         break;
                     }
-                default: throw new Exception($"{nameof(BasicHandler)}.HandleMethodAsync: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
+                default: throw new Exception($"{nameof(BasicHandler)}.{nameof(HandleMethodHeader)}: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
             }
         }
         public async ValueTask CloseHandler()

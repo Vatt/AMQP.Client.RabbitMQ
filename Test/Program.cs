@@ -26,25 +26,26 @@ namespace Test
             //Utf8JsonReader
             //JsonSerializer 
 
-            await RunNothing();
+            //await RunNothing();
             //await RunDefault();
             //await ChannelTest();
-            //Task.WaitAny(Task.Run(StartConsumer),
-            //             Task.Run(StartPublisher));
+            Task.WaitAny(Task.Run(StartConsumer),
+                         Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {
             var addresses = Dns.GetHostAddresses("centos0.mshome.net");
             var address = addresses.First();
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("guest", "guest", "/")
-                                    .Heartbeat(60)
-                                    .ProductName("AMQP.Client.RabbitMQ")
-                                    .ProductVersion("0.0.1")
-                                    .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                                    .ClientInformation("TEST TEST TEST")
-                                    .ClientCopyright("©")
-                                    .Build();
+            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            var factory = builder.ConnectionInfo("guest", "guest", "/")
+                                 .Heartbeat(60)
+                                 .ProductName("AMQP.Client.RabbitMQ")
+                                 .ProductVersion("0.0.1")
+                                 .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                                 .ClientInformation("TEST TEST TEST")
+                                 .ClientCopyright("©")
+                                 .Build();
+            var connection = factory.MakeNew();
             await connection.StartAsync();
             var channel1 = await connection.CreateChannel();
             var channel2 = await connection.CreateChannel();
@@ -104,7 +105,7 @@ namespace Test
             {
                 var properties = ContentHeaderProperties.Default();
                 properties.AppId( "testapp1" );
-                while (channel1.IsOpen)
+                while (!channel1.IsClosed)
                 {
                     await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
                 }
@@ -113,7 +114,7 @@ namespace Test
             {
                 var properties = ContentHeaderProperties.Default();
                 properties.AppId( "testapp2" );
-                while (channel2.IsOpen)
+                while (!channel2.IsClosed)
                 {
                     await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
                 }
@@ -124,15 +125,16 @@ namespace Test
         private static async Task RunDefault()
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("guest", "guest", "/")
-                                    .Heartbeat(60*10)
-                                    .ProductName("AMQP.Client.RabbitMQ")
-                                    .ProductVersion("0.0.1")
-                                    .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                                    .ClientInformation("TEST TEST TEST")
-                                    .ClientCopyright("©")
-                                    .Build();
+            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            var factory = builder.ConnectionInfo("guest", "guest", "/")
+                                 .Heartbeat(60*10)
+                                 .ProductName("AMQP.Client.RabbitMQ")
+                                 .ProductVersion("0.0.1")
+                                 .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                                 .ClientInformation("TEST TEST TEST")
+                                 .ClientCopyright("©")
+                                 .Build();
+            var connection = factory.MakeNew();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -158,15 +160,16 @@ namespace Test
         private static async Task StartPublisher()
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("guest", "guest", "/")
-                        .Heartbeat(60)
-                        .ProductName("AMQP.Client.RabbitMQ")
-                        .ProductVersion("0.0.1")
-                        .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                        .ClientInformation("TEST TEST TEST")
-                        .ClientCopyright("©")
-                        .Build();
+            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            var factory = builder.ConnectionInfo("guest", "guest", "/")
+                                 .Heartbeat(60)
+                                 .ProductName("AMQP.Client.RabbitMQ")
+                                 .ProductVersion("0.0.1")
+                                 .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                                 .ClientInformation("TEST TEST TEST")
+                                 .ClientCopyright("©")
+                                 .Build();
+            var connection = factory.MakeNew();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -181,11 +184,12 @@ namespace Test
             var properties = ContentHeaderProperties.Default();
             properties.AppId( "testapp" );
             //var body = new byte[16 * 1024 * 1024 + 1];
-            while (channel.IsOpen)
+            var body = new byte[32];
+            while (!channel.IsClosed)
             {
                 properties.CorrelationId( Guid.NewGuid().ToString() );
                 //await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
-                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
             }
             await connection.WaitEndReading();
             
@@ -193,15 +197,16 @@ namespace Test
         private static async Task StartConsumer()
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("guest", "guest", "/")
-                        .Heartbeat(60)
-                        .ProductName("AMQP.Client.RabbitMQ")
-                        .ProductVersion("0.0.1")
-                        .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                        .ClientInformation("TEST TEST TEST")
-                        .ClientCopyright("©")
-                        .Build();
+            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            var factory = builder.ConnectionInfo("guest", "guest", "/")
+                                 .Heartbeat(60)
+                                 .ProductName("AMQP.Client.RabbitMQ")
+                                 .ProductVersion("0.0.1")
+                                 .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                                 .ClientInformation("TEST TEST TEST")
+                                 .ClientCopyright("©")
+                                 .Build();
+            var connection = factory.MakeNew();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
 
@@ -238,24 +243,25 @@ namespace Test
         private static async Task RunNothing()
         {
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionBuilder builder = new RabbitMQConnectionBuilder(new IPEndPoint(address, 5672));
-            var connection = builder.ConnectionInfo("guest", "guest", "/")
-                        .Heartbeat(60)
-                        .ProductName("AMQP.Client.RabbitMQ")
-                        .ProductVersion("0.0.1")
-                        .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                        .ClientInformation("TEST TEST TEST")
-                        .ClientCopyright("©")
-                        .Build();
+            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            var factory = builder.ConnectionInfo("guest", "guest", "/")
+                                 .Heartbeat(60)
+                                 .ProductName("AMQP.Client.RabbitMQ")
+                                 .ProductVersion("0.0.1")
+                                 .ConnectionName("AMQP.Client.RabbitMQ:Test")
+                                 .ClientInformation("TEST TEST TEST")
+                                 .ClientCopyright("©")
+                                 .Build();
+            var connection = factory.MakeNew();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            Action waiter = async () => {
-                var info = await channel.WaitClosing();
-                Console.WriteLine($"Channel closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
-            };
-            await channel.CloseChannelAsync("kek");
-            waiter();
-            await connection.CloseConnection();
+            //Action waiter = async () => {
+            //    var info = await channel.WaitClosing();
+            //    Console.WriteLine($"Channel closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
+            //};
+            await channel.CloseAsync("kek");
+            //waiter();
+            //await connection.CloseConnection();
             await connection.WaitEndReading();
         }
     }

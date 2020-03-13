@@ -17,37 +17,35 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
-    public class RabbitMQDefaultChannel : ChannelReaderWriter, IRabbitMQDefaultChannel
+    public class RabbitMQChannel// : IRabbitMQChannel, IChannel
     {
 
         private readonly ushort _channelId;
-        private bool _isOpen;
+        private bool _isClosed;
         private readonly int _publishBatchSize = 4;
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
 
-        private Action<ushort> _handlerCloseCallback;
+        //private Action<ushort> _handlerCloseCallback;
         private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _manualCloseSrc =  new TaskCompletionSource<bool>();
         private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>();
         public ushort ChannelId => _channelId;
-        public bool IsOpen => _isOpen;
+        public bool IsClosed => _isClosed;
         private RabbitMQMainInfo _mainInfo;
         private readonly SemaphoreSlim _writerSemaphore;
+        private RabbitMQProtocol _protocol;
+        private ChannelReaderWriter _readerWriter;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        internal RabbitMQDefaultChannel(RabbitMQProtocol protocol, ushort id, RabbitMQMainInfo info, Action<ushort> closeCallback) : base(protocol)
+        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info) 
         {
             _channelId = id;
-            _protocol = protocol;
-            _isOpen = false;
-            _handlerCloseCallback = closeCallback;
+            _isClosed = true;
+            //_handlerCloseCallback = closeCallback;
             _mainInfo = info;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
             _writerSemaphore = new SemaphoreSlim(1);
-            _exchangeMethodHandler = new ExchangeHandler(_channelId,_protocol);
-            _queueMethodHandler = new QueueHandler(_channelId,_protocol);
-            _basicHandler = new BasicHandler(_channelId, _protocol, _writerSemaphore);
         }
 
 
@@ -61,12 +59,12 @@ namespace AMQP.Client.RabbitMQ.Channel
             }
             else 
             {
-                throw new Exception($"Frame type missmatch{nameof(RabbitMQDefaultChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
+                throw new Exception($"Frame type missmatch{nameof(RabbitMQChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
             }
         }
         public async ValueTask ProcessMethod()
         {
-            var method = await ReadMethodHeader().ConfigureAwait(false);
+            var method = await _readerWriter.ReadMethodHeader().ConfigureAwait(false);
             switch (method.ClassId)
             {
                 case 20://Channels class
@@ -89,7 +87,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                         await _basicHandler.HandleMethodHeader(method).ConfigureAwait(false);
                         break;
                     }
-                default: throw new Exception($"{nameof(RabbitMQDefaultChannel)}.HandleAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                default: throw new Exception($"{nameof(RabbitMQChannel)}.HandleAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
             }
         }
         public async ValueTask HandleMethodAsync(MethodHeader method)
@@ -99,15 +97,15 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 11://open-ok
                     {
-                        _isOpen = await ReadChannelOpenOk().ConfigureAwait(false);
-                        _openSrc.SetResult(_isOpen);
+                        _isClosed = await _readerWriter.ReadChannelOpenOk().ConfigureAwait(false);
+                        _openSrc.SetResult(_isClosed);
 
                         break;
                     }
                 case 40: //close
                     {
-                        _isOpen = false;
-                        var info = await ReadChannelClose().ConfigureAwait(false);
+                        _isClosed = false;
+                        var info = await _readerWriter.ReadChannelClose().ConfigureAwait(false);
                         await ProcessChannelClose();
                         _channelCloseSrc.SetResult(info);
                         break;
@@ -115,33 +113,40 @@ namespace AMQP.Client.RabbitMQ.Channel
                     }                    
                 case 41://close-ok
                     {
-                        var result = await ReadChannelCloseOk().ConfigureAwait(false);
-                        _isOpen = false;
-                        _manualCloseSrc.SetResult(_isOpen);
+                        var result = await _readerWriter.ReadChannelCloseOk().ConfigureAwait(false);
+                        _isClosed = false;
+                        _manualCloseSrc.SetResult(_isClosed);
                         break;
                     }
                 default:
-                    throw new Exception($"{nameof(RabbitMQDefaultChannel)}.HandleMethodAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new Exception($"{nameof(RabbitMQChannel)}.HandleMethodAsync :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
 
             }
         }
-        public async Task<bool> TryOpenChannelAsync()
+        public async Task OpenAsync(RabbitMQProtocol protocol)
         {
-            await SendChannelOpen(_channelId).ConfigureAwait(false);
-            return await _openSrc.Task.ConfigureAwait(false);
+            _protocol = protocol;
+            _readerWriter = new ChannelReaderWriter(_protocol);
+            _exchangeMethodHandler = new ExchangeHandler(_channelId, _protocol);
+            _queueMethodHandler = new QueueHandler(_channelId, _protocol);
+            _basicHandler = new BasicHandler(_channelId, _protocol, _writerSemaphore);
+            await _readerWriter.SendChannelOpen(_channelId).ConfigureAwait(false);
+            await _openSrc.Task.ConfigureAwait(false);
+            _isClosed = false;
+            
         }
-        public Task<CloseInfo> WaitClosing()
+        public Task<bool> CloseAsync(string reason)
+        {
+            return CloseAsync(Constants.ReplySuccess, reason, 0, 0);
+        }
+        public Task<CloseInfo> WaitClose()
         {
             return _channelCloseSrc.Task;
         }
-        public Task<bool> CloseChannelAsync(string reason)
-        {
-            return CloseChannelAsync(Constants.ReplySuccess, reason, 0, 0);
-        }
-        public async Task<bool> CloseChannelAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
+        public async Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
-            await SendChannelClose(_channelId, new CloseInfo(replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
+            await _readerWriter.SendChannelClose(_channelId, new CloseInfo(replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
             var result = await _manualCloseSrc.Task.ConfigureAwait(false);
             await ProcessChannelClose().ConfigureAwait(false);
             _channelCloseSrc.SetResult(new CloseInfo(Constants.Success, replyText, 0, 0));
@@ -150,7 +155,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         private async ValueTask ProcessChannelClose()
         {
-            _isOpen = false;
+            _isClosed = false;
             await _basicHandler.CloseHandler().ConfigureAwait(false);
             _basicHandler = null;
             _exchangeMethodHandler = null;
@@ -249,26 +254,26 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public ValueTask Ack(long deliveryTag, bool multiple = false)
         {
-            if (!IsOpen)
+            if (IsClosed)
             {
-                return default;
+                throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Ack)}: channel is canceled");
             }
             return _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(deliveryTag, multiple));
         }
 
         public ValueTask Reject(long deliveryTag, bool requeue)
         {
-            if (!IsOpen)
+            if (IsClosed)
             {
-                return default;
+                throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Reject)}: channel is canceled");
             }
             return _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(deliveryTag, requeue));
         }
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
-            if (!IsOpen)
+            if (IsClosed)
             {
-                throw new Exception($"{nameof(RabbitMQDefaultChannel)}.{nameof(Publish)}: channel is canceled");
+                throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Publish)}: channel is canceled");
             }
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);

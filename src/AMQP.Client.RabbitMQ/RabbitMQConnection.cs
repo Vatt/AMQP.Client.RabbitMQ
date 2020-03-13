@@ -1,76 +1,78 @@
-﻿using Microsoft.AspNetCore.Connections;
-using System.Net;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using Bedrock.Framework;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Channel;
-using System.Diagnostics;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using System.Collections.Concurrent;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System.Runtime.CompilerServices;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnection
     {
-        private static readonly Bedrock.Framework.Client _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider())
-                                                                    .UseSockets()
-                                                                    .Build();
-        private static ushort _channelId = 0; //Interlocked?
-        private readonly ConcurrentDictionary<ushort, RabbitMQDefaultChannel> _channels;
+ 
+        private static int _channelId = 0; //Interlocked?
+        //private readonly ConcurrentDictionary<ushort, IChannel> _channels;
+        private readonly ConcurrentDictionary<ushort, RabbitMQChannel> _channels;
         private RabbitMQChannelZero Channel0;
-        private readonly object _lockObj = new object();
-        private CancellationToken _connectionClosed;
-        private CancellationTokenSource _cts;
+        private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
         private TaskCompletionSource<bool> _endReading;
-        private ConnectionContext _context;
-        public readonly EndPoint RemoteEndPoint;
-        private Task _readingTask;
-        private Task _connectionClosedTask;
-        private RabbitMQProtocol _protocol;        
+
+        private Task _readingTask;      
+        private Task _watchTask;      
         public RabbitMQServerInfo ServerInfo => Channel0.ServerInfo;
         public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
 
-        private readonly RabbitMQConnectionBuilder _builder;
-        public RabbitMQConnection(RabbitMQConnectionBuilder builder)
+        private readonly RabbitMQConnectionFactoryBuilder _builder;
+        private CancellationTokenSource _cts;
+
+        private RabbitMQProtocol _protocol;
+        public RabbitMQConnection(RabbitMQConnectionFactoryBuilder builder)
         {
-            RemoteEndPoint = builder?.Endpoint;
             _builder = builder;
-            _cts = new CancellationTokenSource();
+            _connectionClosedSrc = new TaskCompletionSource<CloseInfo>();
             _endReading = new TaskCompletionSource<bool>();
-            _connectionClosed = _cts.Token;
-            _channels = new ConcurrentDictionary<ushort, RabbitMQDefaultChannel>();                       
+            //_channels = new ConcurrentDictionary<ushort, IChannel>();
+            _channels = new ConcurrentDictionary<ushort, RabbitMQChannel>();
+            _cts = new CancellationTokenSource();
         }
 
         public async Task StartAsync()
         {
-            _context = await _client.ConnectAsync(RemoteEndPoint, _cts.Token).ConfigureAwait(false);
-            _protocol = new RabbitMQProtocol(_context);
-            Channel0 = new RabbitMQChannelZero(_builder, _protocol);
+            Channel0 = new RabbitMQChannelZero(_builder, _connectionClosedSrc, _cts.Token);
+            await Channel0.CreateConnection().ConfigureAwait(false);
+            _watchTask = Watch();
+            _protocol =  new RabbitMQProtocol(Channel0.ConnectionContext);
             _readingTask = StartReading();
-            bool openned = await Channel0.TryOpenChannelAsync().ConfigureAwait(false);
-            if (!openned)
-            {
-                _context.Abort();
-                _cts.Cancel();
-                return;
-            }
-            _connectionClosedTask =  WaitClose();
+            await Channel0.OpenAsync(_protocol);
+            
         }
-        private async Task WaitClose()
+        private async Task Watch()
         {
-            var info = await Channel0.WaitClosing().ConfigureAwait(false);
-            Console.WriteLine($"Connection closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
-            _endReading.SetResult(false);
-            _context.Abort();
-            _cts.Cancel();
+            try
+            {
+                var info = await _connectionClosedSrc.Task.ConfigureAwait(false);
+                Console.WriteLine($"Connection closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+            finally
+            {
+                _endReading.SetResult(false);
+                Channel0.ConnectionContext.Abort();
+                _cts.Cancel();
+            }
+            
+
         }
         private async Task StartReading()
         {
@@ -86,9 +88,10 @@ namespace AMQP.Client.RabbitMQ
                         break;
                     }
                     var header = result.Message;
+                   
                     switch (header.FrameType)
                     {
-                        case 1:
+                        case Constants.FrameMethod:
                             {
                                 if (header.Channel == 0)
                                 {
@@ -98,62 +101,53 @@ namespace AMQP.Client.RabbitMQ
                                 await ProcessChannels(header).ConfigureAwait(false);
                                 break;
                             }
-                        case 2:
-                            {
-                                await ProcessChannels(header).ConfigureAwait(false);
-                                break;
-                            }
-                        case 8:
+                        case Constants.FrameHeartbeat:
                             {
                                 await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
                                 _protocol.Reader.Advance();
-                                //await _protocol.Writer.WriteAsync(new HeartbeatWriter(), false).ConfigureAwait(false);
                                 break;
                             }
-
-
-                        default: throw new Exception($"Frame type missmatch:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
+                        default:
+                            {
+                                _connectionClosedSrc.SetException(new Exception($"Frame type missmatch:{header.FrameType}, {header.Channel}, {header.PaylodaSize}"));
+                                break;
+                            }
                     }
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
-                _context.Abort();
-                _cts.Cancel();
-                _endReading.SetResult(false);
+                _connectionClosedSrc.SetException(e);
+                //Console.WriteLine(e.Message);
+                //Console.WriteLine(e.StackTrace);
+                //Channel0.ConnectionContext.Abort();
+                //_cts.Cancel();
+                //_endReading.SetResult(false);
             }
 
         }
 
-        public async ValueTask<IRabbitMQDefaultChannel> CreateChannel()
+        //public async ValueTask<IRabbitMQChannel> CreateChannel()
+        public async ValueTask<RabbitMQChannel> CreateChannel()
         {
-            var id = ++_channelId;
+            var id = Interlocked.Increment(ref _channelId);
             if (id > Channel0.MainInfo.ChannelMax)
             {
                 return default;
             }
-            var channel = new RabbitMQDefaultChannel(_protocol, id, MainInfo, RemoveChannelPrivate);
-            _channels[id] = channel;
-            var openned = await channel.TryOpenChannelAsync().ConfigureAwait(false);
-            if (!openned)
-            {
-                if (!_channels.TryRemove(id, out RabbitMQDefaultChannel _))
-                {
-                    //TODO: сделать что нибудь
-                }
-                return default;
-            }
+            var channel = new RabbitMQChannel((ushort)id, MainInfo);
+            _channels[(ushort)id] = channel;
+            await channel.OpenAsync(_protocol);
             return channel;
         }
         private void RemoveChannelPrivate(ushort id)
         {
-            if (!_channels.TryRemove(id, out RabbitMQDefaultChannel channel))
+            //if (!_channels.TryRemove(id, out IChannel channel))
+            if (!_channels.TryRemove(id, out RabbitMQChannel channel))
             {
                 //TODO: сделать что нибудь
             }
-            if (channel != null && channel.IsOpen)
+            if (channel != null && channel.IsClosed)
             {
                 //TODO: сделать что нибудь
             }
@@ -161,7 +155,7 @@ namespace AMQP.Client.RabbitMQ
 
         public async ValueTask CloseConnection()
         {
-            await Channel0.CloseChannelAsync("Connection closed gracefully").ConfigureAwait(false);
+            await Channel0.CloseAsync("Connection closed gracefully").ConfigureAwait(false);
 
         }
         public Task WaitEndReading()
@@ -172,7 +166,8 @@ namespace AMQP.Client.RabbitMQ
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ValueTask ProcessChannels(FrameHeader header)
         {
-            if (!_channels.TryGetValue(header.Channel, out RabbitMQDefaultChannel channel))
+            //if (!_channels.TryGetValue(header.Channel, out IChannel channel))
+            if (!_channels.TryGetValue(header.Channel, out RabbitMQChannel channel))
             {
                 throw new Exception($"{nameof(RabbitMQConnection)}: channel-id({header.Channel}) missmatch");
             }            
