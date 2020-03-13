@@ -44,8 +44,14 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
             var body = _activeDeliver;
             _scheduler.Schedule((obj) => {
-                Received?.Invoke(deliver, body);
-                ArrayPool<byte>.Shared.Return(body);
+                try
+                {
+                    Received?.Invoke(deliver, body);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(body);
+                }                                
             }, this);
             _activeDeliver = null;
         }

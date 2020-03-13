@@ -29,9 +29,9 @@ namespace Test
 
             //await RunNothing();
             //await RunDefault();
-            await ChannelTest();
-            //Task.WaitAny(Task.Run(StartConsumer),
-            //             Task.Run(StartPublisher));
+            //await ChannelTest();
+            Task.WaitAny(Task.Run(StartConsumer),
+                         Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {
