@@ -11,7 +11,7 @@ namespace AMQP.Client.RabbitMQ
         {
             _builder = builder;
         }
-        public RabbitMQConnection MakeNew()
+        public RabbitMQConnection CreateConnection()
         {
             return new RabbitMQConnection(_builder);
         }

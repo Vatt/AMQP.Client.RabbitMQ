@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Framing
 {
-    
-    internal enum PropertiesTag:byte
+
+    internal enum PropertiesTag : byte
     {
         ContentType,
         ContentEncoding,
@@ -25,133 +23,113 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
     public struct ContentHeaderProperties
     {
         private Dictionary<PropertiesTag, object> _properties;
-        public string ContentType()
+
+        public string ContentType
         {
-            return _properties.GetValueOrDefault(PropertiesTag.ContentType) as string;
+            get => _properties.GetValueOrDefault(PropertiesTag.ContentType) as string;
+            set => _properties[PropertiesTag.ContentType] = value;
         }
-        public void ContentType(string value)
+
+
+        public string ContentEncoding
         {
-            _properties[PropertiesTag.ContentType] = value;
+            get => _properties.GetValueOrDefault(PropertiesTag.ContentEncoding) as string;
+            set => _properties[PropertiesTag.ContentEncoding] = value;
         }
-        public string ContentEncoding()
+
+
+        public Dictionary<string, object> Headers
         {
-            return _properties.GetValueOrDefault(PropertiesTag.ContentEncoding) as string;
+            get => _properties.GetValueOrDefault(PropertiesTag.Headers) as Dictionary<string, object>;
+            set => _properties[PropertiesTag.Headers] = value;
         }
-        public void ContentEncoding(string value)
+
+        public byte DeliveryMode
         {
-            _properties[PropertiesTag.ContentEncoding] = value;
-        }
-        public Dictionary<string, object> Headers()
-        {
-            return _properties.GetValueOrDefault(PropertiesTag.Headers) as Dictionary<string, object>;
-        }
-        public void Headers(Dictionary<string, object> value)
-        {
-            _properties[PropertiesTag.Headers] = value;
-        }
-        public byte DeliveryMode()
-        {
-            if(!_properties.TryGetValue(PropertiesTag.DeliveryMode,out var value))
+            get
             {
-                return 0;
+                if (!_properties.TryGetValue(PropertiesTag.DeliveryMode, out var value))
+                {
+                    return 0;
+                }
+                return (byte)value;
             }
-            return (byte)value;
+            set => _properties[PropertiesTag.DeliveryMode] = value;
         }
-        public void DeliveryMode(byte value)
+
+
+
+        public byte Priority
         {
-            _properties[PropertiesTag.DeliveryMode] = value;
-        }
-        public byte Priority()
-        {
-            if (!_properties.TryGetValue(PropertiesTag.Priority, out var value))
+            get
             {
-                return 0;
+                if (!_properties.TryGetValue(PropertiesTag.Priority, out var value))
+                {
+                    return 0;
+                }
+                return (byte)value;
             }
-            return (byte)value;
+            set => _properties[PropertiesTag.Priority] = value;
         }
-        public void Priority(byte value)
+
+        public string CorrelationId
         {
-            _properties[PropertiesTag.Priority] = value;
+            get => _properties.GetValueOrDefault(PropertiesTag.CorrelationId) as string;
+            set => _properties[PropertiesTag.CorrelationId] = value;
         }
-        public string CorrelationId()
+
+        public string ReplyTo
         {
-            return _properties.GetValueOrDefault(PropertiesTag.CorrelationId) as string;
+            get => _properties.GetValueOrDefault(PropertiesTag.ReplyTo) as string;
+            set => _properties[PropertiesTag.ReplyTo] = value;
         }
-        public void CorrelationId(string value)
+
+        public string Expiration
         {
-            _properties[PropertiesTag.CorrelationId] = value;
+            get => _properties.GetValueOrDefault(PropertiesTag.Expiration) as string;
+            set => _properties[PropertiesTag.Expiration] = value;
         }
-        public string ReplyTo()
+
+        public string MessageId
         {
-            return _properties.GetValueOrDefault(PropertiesTag.ReplyTo) as string;
+            get => _properties.GetValueOrDefault(PropertiesTag.MessageId) as string;
+            set => _properties[PropertiesTag.MessageId] = value;
         }
-        public void ReplyTo(string value)
+        public long Timestamp
         {
-            _properties[PropertiesTag.ReplyTo] = value;
-        }
-        public string Expiration()
-        {
-            return _properties.GetValueOrDefault(PropertiesTag.Expiration) as string;
-        }
-        public void Expiration(string value)
-        {
-            _properties[PropertiesTag.Expiration] = value;
-        }
-        public string MessageId()
-        {
-            return _properties.GetValueOrDefault(PropertiesTag.MessageId) as string;
-        }
-        public void MessageId(string value)
-        {
-            _properties[PropertiesTag.MessageId] = value;
-        }
-        public long Timestamp()
-        {
-            if (!_properties.TryGetValue(PropertiesTag.Timestamp, out var value))
+            get
             {
-                return 0;
+                if (!_properties.TryGetValue(PropertiesTag.Timestamp, out var value))
+                {
+                    return 0;
+                }
+                return (long)value;
             }
-            return (long)value;
+            set => _properties[PropertiesTag.Timestamp] = value;
         }
-        public void Timestamp(long value)
+        public string Type
         {
-            _properties[PropertiesTag.Timestamp] = value;
+            get => _properties.GetValueOrDefault(PropertiesTag.Type) as string;
+            set => _properties[PropertiesTag.Type] = value;
         }
-        public string Type()
+        public string UserId
         {
-            return _properties.GetValueOrDefault(PropertiesTag.Type) as string;
+            get => _properties.GetValueOrDefault(PropertiesTag.UserId) as string;
+            set => _properties[PropertiesTag.UserId] = value;
         }
-        public void Type(string value)
+        public string AppId
         {
-            _properties[PropertiesTag.Type] = value;
+            get => _properties.GetValueOrDefault(PropertiesTag.AppId) as string;
+            set => _properties[PropertiesTag.AppId] = value;
         }
-        public string UserId()
+        public string ClusterId
         {
-            return _properties.GetValueOrDefault(PropertiesTag.UserId) as string;
+            get => _properties.GetValueOrDefault(PropertiesTag.ClusterId) as string;
+            set => _properties[PropertiesTag.ClusterId] = value;
         }
-        public void UserId(string value)
-        {
-            _properties[PropertiesTag.UserId] = value;
-        }
-        public string AppId()
-        {
-            return _properties.GetValueOrDefault(PropertiesTag.AppId) as string;
-        }
-        public void AppId(string value)
-        {
-            _properties[PropertiesTag.AppId] = value;
-        }
-        public string ClusterId()
-        {
-            return _properties.GetValueOrDefault(PropertiesTag.ClusterId) as string;
-        }
-        public void ClusterId(string value)
-        {
-            _properties[PropertiesTag.ClusterId] = value;
-        }
-        
+
         public static ContentHeaderProperties Default() => new ContentHeaderProperties { _properties = new Dictionary<PropertiesTag, object>() };
-        
+
     }
     public struct ContentHeader
     {
@@ -159,7 +137,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
         public readonly ushort Weight;
         public readonly long BodySize;
         public ContentHeaderProperties Properties;
-        public ContentHeader(ushort classId, ushort weight, long bodySize):this(classId,bodySize)
+        public ContentHeader(ushort classId, ushort weight, long bodySize) : this(classId, bodySize)
         {
             Weight = weight;
             Properties = ContentHeaderProperties.Default();
@@ -169,7 +147,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
             ClassId = classId;
             Weight = 0;
             BodySize = bodySize;
-            Properties  = ContentHeaderProperties.Default();
+            Properties = ContentHeaderProperties.Default();
         }
 
         public ContentHeader(ushort classId, long bodySize, ref ContentHeaderProperties properties)

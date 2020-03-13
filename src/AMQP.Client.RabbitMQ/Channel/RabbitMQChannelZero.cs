@@ -28,7 +28,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public RabbitMQClientInfo ClientInfo { get; private set; }
         public RabbitMQMainInfo MainInfo { get; private set; }
         private  CancellationToken _token;
-        public IPEndPoint Endpoint;
+        public EndPoint Endpoint;
         private bool _isClosed;
         private TaskCompletionSource<bool> _openOkSrc;
         private TaskCompletionSource<bool> _closeSrc;

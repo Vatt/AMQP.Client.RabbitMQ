@@ -1,15 +1,12 @@
 ﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Handlers;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 namespace Test
 {
@@ -35,9 +32,9 @@ namespace Test
         }
         public static async Task ChannelTest()
         {
-            var addresses = Dns.GetHostAddresses("centos0.mshome.net");
+            var addresses = Dns.GetHostAddresses("centos2.mshome.net");
             var address = addresses.First();
-            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Heartbeat(60)
                                  .ProductName("AMQP.Client.RabbitMQ")
@@ -46,7 +43,7 @@ namespace Test
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel1 = await connection.CreateChannel();
             var channel2 = await connection.CreateChannel();
@@ -62,13 +59,7 @@ namespace Test
             await channel1.QoS(0, 10, false);
             await channel2.QoS(0, 10, false);
 
-            var body1 = new byte[1024];
-            body1.AsSpan(0, 512).Fill(69);
-            body1.AsSpan(512).Fill(42);
-
-            var body2 = new byte[2048];
-            body2.AsSpan(0, 1024).Fill(96);
-            body2.AsSpan(1024).Fill(24);
+            var body1 = new byte[32];
 
 
             //var publisher1 = channel1.CreatePublisher();
@@ -76,36 +67,28 @@ namespace Test
 
             
             var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
-            consumer1.Received += async (deliver, result) =>
+            consumer1.Received += async (result) =>
             {
-                if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
-                {
-                    Debugger.Break();
-                }
                 //await channel1.Ack(deliver.DeliveryTag, true);
                 var propertiesConsume = ContentHeaderProperties.Default();
-                propertiesConsume.AppId( "testapp2" );
-                await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body2);
+                propertiesConsume.AppId = "testapp2";
+                await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
                 
             };
 
             var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", PipeScheduler.ThreadPool, noAck: true);
-            consumer2.Received += async (deliver, result) =>
+            consumer2.Received += async (result) =>
             {
-                if (result.Length != 2048 || result[0] != 96 || result[2048 - 1] != 24)
-                {
-                    Debugger.Break();
-                }
                 //await channel2.Ack(deliver.DeliveryTag, true);
                 var propertiesConsume = ContentHeaderProperties.Default();
-                propertiesConsume.AppId("testapp1" );
+                propertiesConsume.AppId ="testapp1" ;
                 await channel1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);                
             };
             
             var firtsTask = Task.Run(async () =>
             {
                 var properties = ContentHeaderProperties.Default();
-                properties.AppId( "testapp1" );
+                properties.AppId = "testapp1" ;
                 while (!channel1.IsClosed)
                 {
                     await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
@@ -114,10 +97,10 @@ namespace Test
             var secondTask = Task.Run(async () =>
             {
                 var properties = ContentHeaderProperties.Default();
-                properties.AppId( "testapp2" );
+                properties.AppId = "testapp2" ;
                 while (!channel2.IsClosed)
                 {
-                    await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body2);
+                    await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body1);
                 }
             });
 
@@ -135,7 +118,7 @@ namespace Test
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -144,17 +127,17 @@ namespace Test
             await channel.QueueBindAsync("TestQueue", "TestExchange");
     
             var properties = ContentHeaderProperties.Default();
-            properties.AppId( "testapp" );
+            properties.AppId = "testapp" ;
             for (var i = 0; i < 40000; i++)
             {
-                properties.CorrelationId( Guid.NewGuid().ToString() );
+                properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
 
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
-            consumer.Received += async (deliver, result) =>
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck:true);
+            consumer.Received += (result) =>
             {
-               // await channel.Ack(deliver.DeliveryTag);
+                // await channel.Ack(deliver.DeliveryTag);
             };
             await connection.WaitEndReading();
         }
@@ -170,7 +153,7 @@ namespace Test
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -183,12 +166,12 @@ namespace Test
             await channel.QueueBindAsync("TestQueue2", "TestExchange2");
 
             var properties = ContentHeaderProperties.Default();
-            properties.AppId( "testapp" );
+            properties.AppId ="testapp";
             //var body = new byte[16 * 1024 * 1024 + 1];
             var body = new byte[32];
             while (!channel.IsClosed)
             {
-                properties.CorrelationId( Guid.NewGuid().ToString() );
+                properties.CorrelationId = Guid.NewGuid().ToString();
                 //await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
             }
@@ -207,7 +190,7 @@ namespace Test
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
 
@@ -232,9 +215,9 @@ namespace Test
             //    }
 
             //};
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",PipeScheduler.ThreadPool, noAck: true);
-            consumer.Received += async (deliver, result) =>
-            {                
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            consumer.Received += (result) =>
+            {
                 //await channel.Ack(deliver.DeliveryTag, false);
             };
             //await channel.CloseChannelAsync("kek");
@@ -253,7 +236,7 @@ namespace Test
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             //Action waiter = async () => {

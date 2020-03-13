@@ -1,15 +1,11 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -19,7 +15,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
         private byte[] _activeDeliver;
         private int _deliverPosition;
-        public event Action<RabbitMQDeliver, byte[]> Received;
+        public event Action<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
         internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, PipeScheduler scheduler)
@@ -29,6 +25,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _scheduler = scheduler;
             _deliverPosition = 0;
         }
+
         internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver)
         {
             _deliverPosition = 0;
@@ -42,19 +39,63 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 _protocol.Reader.Advance();
             }
 
-            var body = _activeDeliver;
-            _scheduler.Schedule((obj) => {
-                Received?.Invoke(deliver, body);
-                ArrayPool<byte>.Shared.Return(body);
-            }, this);
-            _activeDeliver = null;
+            var arg = new DeliverArgs(ref deliver, _activeDeliver, (int)deliver.Header.BodySize);
+            _scheduler.Schedule(Invoke, arg);
         }
+
+        private void Invoke(object obj)
+        {
+            if (obj is DeliverArgs arg)
+            {
+                try
+                {
+                    Received?.Invoke(arg);
+                }
+                catch (Exception e)
+                {
+                    // add logger
+                    Debugger.Break();
+
+                }
+                finally
+                {
+                    arg.Dispose();
+                }
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Copy(ReadOnlySequence<byte> message)
         {
             var span = new Span<byte>(_activeDeliver, _deliverPosition, (int)message.Length);
             message.CopyTo(span);
             _deliverPosition += (int)message.Length;
+        }
+    }
+
+    public struct DeliverArgs : IDisposable
+    {
+        public RabbitMQDeliver DeliverInfo { get; }
+        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _size);
+        private byte[] _body;
+        private int _size;
+
+        public ContentHeaderProperties Properties => DeliverInfo.Header.Properties;
+
+        internal DeliverArgs(ref RabbitMQDeliver deliverInfo, byte[] body, int size)
+        {
+            DeliverInfo = deliverInfo;
+            _body = body;
+            _size = size;
+        }
+
+        public void Dispose()
+        {
+            if (_body != null)
+            {
+                ArrayPool<byte>.Shared.Return(_body);
+                _body = null;
+            }
         }
     }
 }

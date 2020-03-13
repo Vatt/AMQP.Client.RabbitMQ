@@ -54,7 +54,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global);
 
-        ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message);
+        ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> body);
     }
     
 }

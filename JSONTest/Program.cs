@@ -59,7 +59,7 @@ namespace JSONTest
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -67,7 +67,7 @@ namespace JSONTest
             await channel.QueueBindAsync("TestQueue", "TestExchange");
 
             var properties = ContentHeaderProperties.Default();
-            properties.AppId("testapp");
+            properties.AppId = "testapp";
             var body = JsonSerializer.SerializeToUtf8Bytes(Json);
             await channel.Publish("TestExchange", String.Empty, false, false, properties, body);
             //while (!channel.IsClosed)
@@ -88,7 +88,7 @@ namespace JSONTest
                                  .ClientInformation("TEST TEST TEST")
                                  .ClientCopyright("©")
                                  .Build();
-            var connection = factory.MakeNew();
+            var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
             await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });

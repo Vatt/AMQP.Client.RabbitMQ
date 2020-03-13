@@ -8,8 +8,8 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQConnectionInfo ConnInfo;
         public RabbitMQClientInfo ClientInfo;
         public RabbitMQMainInfo MainInfo;
-        public IPEndPoint Endpoint;
-        public RabbitMQConnectionFactoryBuilder(IPEndPoint endpoint)
+        public EndPoint Endpoint;
+        public RabbitMQConnectionFactoryBuilder(EndPoint endpoint)
         {
             ConnInfo = RabbitMQConnectionInfo.DefaultConnectionInfo();
             ClientInfo = RabbitMQClientInfo.DefaultClientInfo();

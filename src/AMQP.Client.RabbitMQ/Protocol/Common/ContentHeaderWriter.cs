@@ -71,35 +71,35 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteBitFlagsAndContinuation(ref ContentHeaderProperties properties,ref ValueWriter writer)
         {
-            if (properties.ContentType() != null) { WritePresence(true); }
-            if (properties.ContentEncoding() != null) { WritePresence(true); }
-            if (properties.Headers() != null) { WritePresence(true); }
-            if (properties.DeliveryMode() != 0) { WritePresence(true); }
-            if (properties.Priority() != 0) { WritePresence(true); }
-            if (properties.CorrelationId() != null) { WritePresence(true); }
-            if (properties.ReplyTo() != null) { WritePresence(true); }
-            if (properties.Expiration() != null) { WritePresence(true); }
-            if (properties.MessageId() != null) { WritePresence(true); }
-            if (properties.Timestamp() != 0) { WritePresence(true); }
-            if (properties.Type() != null) { WritePresence(true); }
-            if (properties.UserId() != null) { WritePresence(true); }
-            if (properties.AppId() != null) { WritePresence(true); }
-            if (properties.ClusterId() != null) { WritePresence(true); }
+            if (properties.ContentType != null) { WritePresence(true); }
+            if (properties.ContentEncoding != null) { WritePresence(true); }
+            if (properties.Headers != null) { WritePresence(true); }
+            if (properties.DeliveryMode != 0) { WritePresence(true); }
+            if (properties.Priority != 0) { WritePresence(true); }
+            if (properties.CorrelationId != null) { WritePresence(true); }
+            if (properties.ReplyTo != null) { WritePresence(true); }
+            if (properties.Expiration != null) { WritePresence(true); }
+            if (properties.MessageId != null) { WritePresence(true); }
+            if (properties.Timestamp != 0) { WritePresence(true); }
+            if (properties.Type != null) { WritePresence(true); }
+            if (properties.UserId != null) { WritePresence(true); }
+            if (properties.AppId != null) { WritePresence(true); }
+            if (properties.ClusterId != null) { WritePresence(true); }
             writer.WriteShortInt(m_flagWord);
-            if (properties.ContentType() != null) { writer.WriteShortStr(properties.ContentType()); }
-            if (properties.ContentEncoding() != null) { writer.WriteShortStr(properties.ContentEncoding()); }
-            if (properties.Headers() != null) { writer.WriteTable(properties.Headers()); }
-            if (properties.DeliveryMode() != 0) { writer.WriteOctet(properties.DeliveryMode()); }
-            if (properties.Priority() != 0) { writer.WriteOctet(properties.Priority()); }
-            if (properties.CorrelationId() != null) { writer.WriteShortStr(properties.CorrelationId()); }
-            if (properties.ReplyTo() != null) { writer.WriteShortStr(properties.ReplyTo()); }
-            if (properties.Expiration() != null) { writer.WriteShortStr(properties.Expiration()); }
-            if (properties.MessageId() != null) { writer.WriteShortStr(properties.MessageId()); }
-            if (properties.Timestamp() != 0) { writer.WriteLongLong(properties.Timestamp()); }
-            if (properties.Type() != null) { writer.WriteShortStr(properties.Type()); }
-            if (properties.UserId() != null) { writer.WriteShortStr(properties.UserId()); }
-            if (properties.AppId() != null) { writer.WriteShortStr(properties.AppId()); }
-            if (properties.ClusterId() != null) { writer.WriteShortStr(properties.ClusterId()); }
+            if (properties.ContentType != null) { writer.WriteShortStr(properties.ContentType); }
+            if (properties.ContentEncoding != null) { writer.WriteShortStr(properties.ContentEncoding); }
+            if (properties.Headers != null) { writer.WriteTable(properties.Headers); }
+            if (properties.DeliveryMode != 0) { writer.WriteOctet(properties.DeliveryMode); }
+            if (properties.Priority != 0) { writer.WriteOctet(properties.Priority); }
+            if (properties.CorrelationId != null) { writer.WriteShortStr(properties.CorrelationId); }
+            if (properties.ReplyTo != null) { writer.WriteShortStr(properties.ReplyTo); }
+            if (properties.Expiration != null) { writer.WriteShortStr(properties.Expiration); }
+            if (properties.MessageId != null) { writer.WriteShortStr(properties.MessageId); }
+            if (properties.Timestamp != 0) { writer.WriteLongLong(properties.Timestamp); }
+            if (properties.Type != null) { writer.WriteShortStr(properties.Type); }
+            if (properties.UserId != null) { writer.WriteShortStr(properties.UserId); }
+            if (properties.AppId != null) { writer.WriteShortStr(properties.AppId); }
+            if (properties.ClusterId != null) { writer.WriteShortStr(properties.ClusterId); }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WritePresence(bool present)
