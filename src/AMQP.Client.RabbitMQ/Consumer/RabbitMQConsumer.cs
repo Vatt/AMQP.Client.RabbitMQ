@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -19,11 +20,13 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private byte[] _activeDeliver;
         private int _deliverPosition;
         public event Action<RabbitMQDeliver, byte[]> Received;
+        private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol)
+        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, PipeScheduler scheduler)
             : base(consumerTag, channelId, protocol)
         {
             _reader = new BodyFrameChunkedReader(channelId);
+            _scheduler = scheduler;
             _deliverPosition = 0;
         }
         internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver)
@@ -35,12 +38,15 @@ namespace AMQP.Client.RabbitMQ.Consumer
             while (!_reader.IsComplete)
             {                
                 var result = await _protocol.Reader.ReadAsync(_reader).ConfigureAwait(false);
-                Copy(result.Message.Slice(0));//TODO: WTF?!
+                Copy(result.Message);
                 _protocol.Reader.Advance();
             }
-            
-            Received?.Invoke(deliver, _activeDeliver);
-            ArrayPool<byte>.Shared.Return(_activeDeliver);
+
+            var body = _activeDeliver;
+            _scheduler.Schedule((obj) => {
+                Received?.Invoke(deliver, body);
+                ArrayPool<byte>.Shared.Return(body);
+            }, this);
             _activeDeliver = null;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

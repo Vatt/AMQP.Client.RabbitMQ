@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using System.IO.Pipelines;
 
 namespace AMQP.Client.RabbitMQ.Handlers
 {
@@ -111,7 +112,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                 throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
             }
         }
-        public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
@@ -120,7 +121,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             var result = await _consumeOkSrc.Task.ConfigureAwait(false);
             if (result.Equals(consumerTag))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _channelId, _protocol);
+                var consumer = new RabbitMQConsumer(consumerTag, _channelId, _protocol, scheduler);
                 if (!_consumers.TryAdd(consumerTag, consumer))
                 {
                     if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))

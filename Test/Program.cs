@@ -6,6 +6,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -28,9 +29,9 @@ namespace Test
 
             //await RunNothing();
             //await RunDefault();
-            //await ChannelTest();
-            Task.WaitAny(Task.Run(StartConsumer),
-                         Task.Run(StartPublisher));
+            await ChannelTest();
+            //Task.WaitAny(Task.Run(StartConsumer),
+            //             Task.Run(StartPublisher));
         }
         public static async Task ChannelTest()
         {
@@ -74,7 +75,7 @@ namespace Test
             //var publisher2 = channel2.CreatePublisher();
 
             
-            var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
             consumer1.Received += async (deliver, result) =>
             {
                 if (result.Length != 1024 || result[0] != 69 || result[1024 - 1] != 42)
@@ -88,7 +89,7 @@ namespace Test
                 
             };
 
-            var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
+            var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", PipeScheduler.ThreadPool, noAck: true);
             consumer2.Received += async (deliver, result) =>
             {
                 if (result.Length != 2048 || result[0] != 96 || result[2048 - 1] != 24)
@@ -150,7 +151,7 @@ namespace Test
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
 
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",noAck:true);
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
             consumer.Received += async (deliver, result) =>
             {
                // await channel.Ack(deliver.DeliveryTag);
@@ -231,7 +232,7 @@ namespace Test
             //    }
 
             //};
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer",PipeScheduler.ThreadPool, noAck: true);
             consumer.Received += async (deliver, result) =>
             {                
                 //await channel.Ack(deliver.DeliveryTag, false);

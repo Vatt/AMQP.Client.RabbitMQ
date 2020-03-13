@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ;
 using System;
+using System.IO.Pipelines;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -22,7 +23,7 @@ namespace ConsumerTest
             var connection = factory.MakeNew();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
             consumer.Received += async (deliver, result) =>
             {
                 //await channel.Ack(deliver.DeliveryTag);

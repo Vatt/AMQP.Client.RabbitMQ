@@ -5,6 +5,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Collections.Generic;
+using System.IO.Pipelines;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
@@ -46,7 +47,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                  bool exclusive = false, Dictionary<string, object> arguments = null);
-        ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
                                                    bool exclusive = false, Dictionary<string, object> arguments = null);
         ValueTask Ack(long deliveryTag, bool multiple = false);
         ValueTask Reject(long deliveryTag, bool requeue);

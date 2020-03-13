@@ -26,12 +26,13 @@ namespace ProducerTest
 
             var properties = ContentHeaderProperties.Default();
             properties.AppId("testapp");
-            var body = new byte[16 * 1024 * 1024];
+            //var body = new byte[16 * 1024 * 1024];
+            var body = new byte[32];
             while (!channel.IsClosed)
             {
                 properties.CorrelationId(Guid.NewGuid().ToString());
                 //await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
-                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
+                await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
             }
         }
     }
