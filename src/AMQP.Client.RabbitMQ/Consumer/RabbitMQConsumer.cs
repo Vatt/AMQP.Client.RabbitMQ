@@ -39,7 +39,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 _protocol.Reader.Advance();
             }
 
-            var arg = new DeliverArgs(ref deliver, _activeDeliver, (int)deliver.Header.BodySize);
+            var arg = new DeliverArgs(ref deliver, _activeDeliver);
             _scheduler.Schedule(Invoke, arg);
         }
 
@@ -76,17 +76,15 @@ namespace AMQP.Client.RabbitMQ.Consumer
     public struct DeliverArgs : IDisposable
     {
         public RabbitMQDeliver DeliverInfo { get; }
-        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _size);
+        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, (int)DeliverInfo.Header.BodySize);
         private byte[] _body;
-        private int _size;
 
         public ContentHeaderProperties Properties => DeliverInfo.Header.Properties;
 
-        internal DeliverArgs(ref RabbitMQDeliver deliverInfo, byte[] body, int size)
+        internal DeliverArgs(ref RabbitMQDeliver deliverInfo, byte[] body)
         {
             DeliverInfo = deliverInfo;
             _body = body;
-            _size = size;
         }
 
         public void Dispose()

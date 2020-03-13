@@ -18,7 +18,6 @@ namespace Test
         {
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
-            //запилить пропертисы в сраный словарь
 
             //Utf8JsonWriter
             //Utf8JsonReader
