@@ -20,8 +20,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQConsumer(string consumerTag,  ConsumerInfo info, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
-            : base(consumerTag, info, protocol, channel)
+        internal RabbitMQConsumer(ConsumerInfo info, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
+            : base(info, protocol, channel)
         {
             _reader = new BodyFrameChunkedReader(channel.ChannelId);
             _scheduler = scheduler;

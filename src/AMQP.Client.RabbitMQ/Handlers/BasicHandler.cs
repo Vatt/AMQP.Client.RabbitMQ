@@ -90,7 +90,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                                                              bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
-            var consumer = new RabbitMQChunkedConsumer(consumerTag, info, _protocol, channel);
+            var consumer = new RabbitMQChunkedConsumer(info, _protocol, channel);
             if (!_consumers.TryAdd(consumerTag, consumer))
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
@@ -113,7 +113,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
-            var consumer = new RabbitMQConsumer(consumerTag, info, _protocol,  scheduler, channel);
+            var consumer = new RabbitMQConsumer(info, _protocol,  scheduler, channel);
             if (!_consumers.TryAdd(consumerTag, consumer))
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))

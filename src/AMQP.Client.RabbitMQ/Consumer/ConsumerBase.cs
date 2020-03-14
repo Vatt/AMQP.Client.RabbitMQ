@@ -11,7 +11,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
 {
     public abstract class ConsumerBase
     {
-        public readonly string ConsumerTag;
         public ushort ChannelId => Channel.ChannelId;
         public RabbitMQChannel Channel { get; }
         protected readonly RabbitMQProtocol _protocol;
@@ -20,9 +19,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private ConsumerInfo _info;
         private SemaphoreSlim _semaphore;
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(string tag, ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
+        internal ConsumerBase(ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
         {
-            ConsumerTag = tag;
             Channel = channel;
             _protocol = protocol;
             _info = info;
@@ -42,7 +40,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);            
             CancelSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);            
-            await _protocol.Writer.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(ConsumerTag, false)).ConfigureAwait(false);
+            await _protocol.Writer.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(_info.ConsumerTag, false)).ConfigureAwait(false);
             var result = await CancelSrc.Task.ConfigureAwait(false);
             IsCanceled = true;
             _semaphore.Release();
