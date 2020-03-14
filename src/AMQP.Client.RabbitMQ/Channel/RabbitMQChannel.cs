@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
-    public class RabbitMQChannel// : IRabbitMQChannel, IChannel
+    public class RabbitMQChannel : IDisposable// : IRabbitMQChannel, IChannel
     {
 
         private readonly ushort _channelId;
@@ -27,8 +27,8 @@ namespace AMQP.Client.RabbitMQ.Channel
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
 
         //private Action<ushort> _handlerCloseCallback;
-        private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
-        private TaskCompletionSource<bool> _manualCloseSrc =  new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>();
         private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>();
         public ushort ChannelId => _channelId;
         public bool IsClosed => _isClosed;
@@ -39,10 +39,13 @@ namespace AMQP.Client.RabbitMQ.Channel
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info) 
+        private PipeScheduler _scheduler;
+
+        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler)
         {
             _channelId = id;
             _isClosed = true;
+            _scheduler = scheduler;
             //_handlerCloseCallback = closeCallback;
             _mainInfo = info;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
@@ -58,7 +61,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 await ProcessMethod().ConfigureAwait(false);
             }
-            else 
+            else
             {
                 throw new Exception($"Frame type missmatch{nameof(RabbitMQChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
             }
@@ -111,7 +114,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                         _channelCloseSrc.SetResult(info);
                         break;
 
-                    }                    
+                    }
                 case 41://close-ok
                     {
                         var result = await _readerWriter.ReadChannelCloseOk().ConfigureAwait(false);
@@ -134,7 +137,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             await _readerWriter.SendChannelOpen(_channelId).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
             _isClosed = false;
-            
+
         }
         public Task<bool> CloseAsync(string reason)
         {
@@ -163,7 +166,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _queueMethodHandler = null;
             _protocol = null;
         }
-        public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
+        public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
         {
             return _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);
         }
@@ -211,7 +214,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            return _queueMethodHandler.QueueBindNoWaitAsync(queueName,exchangeName,routingKey,arguments);
+            return _queueMethodHandler.QueueBindNoWaitAsync(queueName, exchangeName, routingKey, arguments);
         }
         public ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
@@ -240,14 +243,21 @@ namespace AMQP.Client.RabbitMQ.Channel
         public ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                         bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
+            return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, this, noLocal, noAck, exclusive, arguments);
+        }
+
+        public ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+                                                          bool exclusive = false, Dictionary<string, object> arguments = null)
+        {
+            return _basicHandler.CreateConsumer(queueName, consumerTag, _scheduler, this, noLocal, noAck, exclusive, arguments);
         }
 
         public ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
-                                                          bool exclusive = false, Dictionary<string, object> arguments = null)
+                                                  bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return _basicHandler.CreateConsumer(queueName, consumerTag,scheduler, noLocal, noAck, exclusive, arguments);
+            return _basicHandler.CreateConsumer(queueName, consumerTag, scheduler, this, noLocal, noAck, exclusive, arguments);
         }
+
         public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {
             return _basicHandler.QoS(prefetchSize, prefetchCount, global);
@@ -304,5 +314,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             _writerSemaphore.Release();
         }
+
+        public void Dispose() => _writerSemaphore.Dispose();
     }
 }

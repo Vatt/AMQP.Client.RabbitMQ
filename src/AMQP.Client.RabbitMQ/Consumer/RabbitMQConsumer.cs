@@ -1,4 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
+﻿using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
@@ -18,8 +19,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public event Action<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, PipeScheduler scheduler)
-            : base(consumerTag, channelId, protocol)
+        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
+            : base(consumerTag, channelId, protocol, channel)
         {
             _reader = new BodyFrameChunkedReader(channelId);
             _scheduler = scheduler;
@@ -75,16 +76,19 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
     public struct DeliverArgs : IDisposable
     {
-        public RabbitMQDeliver DeliverInfo { get; }
-        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, (int)DeliverInfo.Header.BodySize);
+        public ContentHeaderProperties Properties { get; }
+        public long DeliveryTag { get; }
         private byte[] _body;
+        private int _bodySize;
 
-        public ContentHeaderProperties Properties => DeliverInfo.Header.Properties;
+        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _bodySize);
 
         internal DeliverArgs(ref RabbitMQDeliver deliverInfo, byte[] body)
         {
-            DeliverInfo = deliverInfo;
+            Properties = deliverInfo.Header.Properties;
+            DeliveryTag = deliverInfo.DeliveryTag;
             _body = body;
+            _bodySize = (int)deliverInfo.Header.BodySize;
         }
 
         public void Dispose()

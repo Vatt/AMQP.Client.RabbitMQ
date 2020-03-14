@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using System.IO.Pipelines;
 using System.Net;
 
 namespace AMQP.Client.RabbitMQ
@@ -9,12 +10,14 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQClientInfo ClientInfo;
         public RabbitMQMainInfo MainInfo;
         public EndPoint Endpoint;
+        public PipeScheduler PipeScheduler;
         public RabbitMQConnectionFactoryBuilder(EndPoint endpoint)
         {
             ConnInfo = RabbitMQConnectionInfo.DefaultConnectionInfo();
             ClientInfo = RabbitMQClientInfo.DefaultClientInfo();
             MainInfo = RabbitMQMainInfo.DefaultConnectionInfo();
             Endpoint = endpoint;
+            PipeScheduler = PipeScheduler.ThreadPool;
         }
         public RabbitMQConnectionFactoryBuilder ConnectionInfo(string user, string password, string host)
         {
@@ -61,6 +64,12 @@ namespace AMQP.Client.RabbitMQ
             ClientInfo.Properties["copyright"] = copyright;
             return this;
         }
+        public RabbitMQConnectionFactoryBuilder Scheduler(PipeScheduler scheduler)
+        {
+            PipeScheduler = scheduler;
+            return this;
+        }
+
         //public RabbitMQConnection Build()
         //{
         //    return new RabbitMQConnection(this);

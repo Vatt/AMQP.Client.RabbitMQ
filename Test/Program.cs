@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Handlers;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
@@ -7,6 +8,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 namespace Test
 {
@@ -26,6 +28,9 @@ namespace Test
             //await RunNothing();
             //await RunDefault();
             //await ChannelTest();
+
+            
+
             Task.WaitAny(Task.Run(StartConsumer),
                          Task.Run(StartPublisher));
         }

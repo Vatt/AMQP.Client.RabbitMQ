@@ -1,4 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
+﻿using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
@@ -18,8 +19,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
 
         public event Action<RabbitMQDeliver, ChunkedConsumeResult> Received;
-        internal RabbitMQChunkedConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol)
-            :base(consumerTag, channelId, protocol)
+        internal RabbitMQChunkedConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, RabbitMQChannel channel)
+            :base(consumerTag, channelId, protocol, channel)
         {
             _reader = new BodyFrameChunkedReader(channelId);
         }
