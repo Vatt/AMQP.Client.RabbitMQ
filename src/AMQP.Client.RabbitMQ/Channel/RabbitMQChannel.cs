@@ -27,8 +27,8 @@ namespace AMQP.Client.RabbitMQ.Channel
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
 
         //private Action<ushort> _handlerCloseCallback;
-        private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private TaskCompletionSource<bool> _manualCloseSrc =  new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         public ushort ChannelId => _channelId;
         public bool IsClosed => _isClosed;
@@ -39,10 +39,14 @@ namespace AMQP.Client.RabbitMQ.Channel
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler) 
+        private readonly PublishInfoAndContentWriter _publishInfoAndContentWriter;
+        private readonly PublishFullWriter _publishFullWriter;
+        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler)
         {
             _channelId = id;
             _isClosed = true;
+            _publishInfoAndContentWriter = new PublishInfoAndContentWriter(_channelId);
+            _publishFullWriter = new PublishFullWriter(_channelId);
             //_handlerCloseCallback = closeCallback;
             _mainInfo = info;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
@@ -58,7 +62,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 await ProcessMethod().ConfigureAwait(false);
             }
-            else 
+            else
             {
                 throw new Exception($"Frame type missmatch{nameof(RabbitMQChannel)}:{header.FrameType}, {header.Channel}, {header.PaylodaSize}");
             }
@@ -111,7 +115,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                         _channelCloseSrc.SetResult(info);
                         break;
 
-                    }                    
+                    }
                 case 41://close-ok
                     {
                         var result = await _readerWriter.ReadChannelCloseOk().ConfigureAwait(false);
@@ -134,7 +138,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             await _readerWriter.SendChannelOpen(_channelId).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
             _isClosed = false;
-            
+
         }
         public Task<bool> CloseAsync(string reason)
         {
@@ -163,7 +167,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _queueMethodHandler = null;
             _protocol = null;
         }
-        public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete=false, Dictionary<string, object> arguments = null)
+        public ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null)
         {
             return _exchangeMethodHandler.DeclareAsync(name, type, durable, autoDelete, arguments);
         }
@@ -211,7 +215,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         public ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
-            return _queueMethodHandler.QueueBindNoWaitAsync(queueName,exchangeName,routingKey,arguments);
+            return _queueMethodHandler.QueueBindNoWaitAsync(queueName, exchangeName, routingKey, arguments);
         }
         public ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
@@ -280,14 +284,16 @@ namespace AMQP.Client.RabbitMQ.Channel
             var content = new ContentHeader(60, message.Length, ref properties);
             if (message.Length <= _mainInfo.FrameMax)
             {
-                await _protocol.Writer.WriteAsync(new PublishFullWriter(_channelId), (info, content, message)).ConfigureAwait(false);
+                var fullPublish = new PublishFullContent(message, ref info, ref content);
+                await _protocol.Writer.WriteAsync(_publishFullWriter, fullPublish).ConfigureAwait(false);
                 return;
             }
 
 
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             int written = 0;
-            await _protocol.Writer.WriteAsync(new PublishInfoAndContentWriter(_channelId), (info, content)).ConfigureAwait(false);
+            var contentArgs = new PublishInfoAndContent(ref info, ref content);
+            await _protocol.Writer.WriteAsync(_publishInfoAndContentWriter, contentArgs).ConfigureAwait(false);
             while (written < content.BodySize)
             {
                 int batchCnt = 0;

@@ -11,11 +11,14 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         protected readonly RabbitMQProtocol _protocol;
         protected readonly ushort _channelId;
         private readonly BasicDeliverReader _basicDeliverReader;
+        private readonly ShortStrPayloadReader _shortStrPayloadReader;
+
         public BasicReaderWriter(ushort channelId, RabbitMQProtocol protocol)
         {
             _channelId = channelId;
             _protocol = protocol;
             _basicDeliverReader = new BasicDeliverReader();
+            _shortStrPayloadReader = new ShortStrPayloadReader();
         }
         public ValueTask SendBasicConsume(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                           bool exclusive = false, Dictionary<string, object> arguments = null)
@@ -25,7 +28,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         }
         public async ValueTask<string> ReadBasicConsumeOk()
         {
-            var result = await _protocol.Reader.ReadAsync(new ShortStrPayloadReader()).ConfigureAwait(false);
+            var result = await _protocol.Reader.ReadAsync(_shortStrPayloadReader).ConfigureAwait(false);
             _protocol.Reader.Advance();
             if (!result.IsCompleted)
             {

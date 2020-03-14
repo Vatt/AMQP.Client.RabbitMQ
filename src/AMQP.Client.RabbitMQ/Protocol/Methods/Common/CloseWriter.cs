@@ -11,15 +11,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Common
         private readonly ushort _channelId;
         private readonly short _classId;
         private readonly short _methodId;
+
         public CloseWriter(ushort channel, short classId, short methodId)
         {
             _classId = classId;
             _methodId = methodId;
             _channelId = channel;
         }
+
         public void WriteMessage(CloseInfo message, IBufferWriter<byte> output)
         {
-            ValueWriter writer = new ValueWriter(output);
+            var writer = new ValueWriter(output);
             writer.WriteOctet(1);
             writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);

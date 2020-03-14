@@ -4,29 +4,48 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class PublishFullWriter : IMessageWriter<(BasicPublishInfo, ContentHeader, ReadOnlyMemory<byte>)>
+    internal class PublishFullWriter : IMessageWriter<PublishFullContent>
     {
-        private readonly ushort _channelId;
+        private ushort _channelId;
+        private BasicPublishWriter _basicPublishWriter;
+        private ContentHeaderWriter _contentHeaderWriter;
+        private BodyFrameWriter _bodyFrameWriter;
+
         public PublishFullWriter(ushort channelId)
         {
             _channelId = channelId;
+            _basicPublishWriter = new BasicPublishWriter(_channelId);
+            _contentHeaderWriter = new ContentHeaderWriter(_channelId);
+            _bodyFrameWriter = new BodyFrameWriter(_channelId);
         }
-        public void WriteMessage((BasicPublishInfo, ContentHeader, ReadOnlyMemory<byte>) message, IBufferWriter<byte> output)
+
+        public void WriteMessage(PublishFullContent message, IBufferWriter<byte> output)
         {
-            ValueWriter writer = new ValueWriter(output);
-            var publishWriter = new BasicPublishWriter(_channelId);
-            var contentWriter = new ContentHeaderWriter(_channelId);
-            var bodyFrameWriter = new BodyFrameWriter(_channelId);
-            publishWriter.WriteMessage(ref message.Item1, ref writer);
-            contentWriter.WriteMessage(ref message.Item2, ref writer);
-            bodyFrameWriter.WriteMessage(ref message.Item3, ref writer);
+            var writer = new ValueWriter(output);
+            _basicPublishWriter.WriteMessage(ref message.Info, ref writer);
+            _contentHeaderWriter.WriteMessage(ref message.Header, ref writer);
+            _bodyFrameWriter.WriteMessage(message.Body, ref writer);
             writer.Commit();
         }
     }
 
+    internal class PublishFullContent
+    {
+        private BasicPublishInfo _info;
+        private ContentHeader _contentHeader;
+        public ReadOnlyMemory<byte> Body { get; }
+
+        public PublishFullContent(ReadOnlyMemory<byte> body, ref BasicPublishInfo info, ref ContentHeader header)
+        {
+            Body = body;
+            _info = info;
+            _contentHeader = header;
+        }
+
+        public ref BasicPublishInfo Info => ref _info;
+        public ref ContentHeader Header => ref _contentHeader;
+    }
 }

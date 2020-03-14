@@ -13,12 +13,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
     internal ref struct ValueWriter
     {
-
-        private byte m_bitAccumulator;
-        private int m_bitMask;
-        private bool m_needBitFlush;
-
-
+        private byte _bitAccumulator;
+        private int _bitMask;
+        private bool _needBitFlush;
 
         private IBufferWriter<byte> _output;
         private Span<byte> _span;
@@ -65,9 +62,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
         public ValueWriter(IBufferWriter<byte> writer)
         {
-            m_needBitFlush = false;
-            m_bitAccumulator = 0;
-            m_bitMask = 1;
+            _needBitFlush = false;
+            _bitAccumulator = 0;
+            _bitMask = 1;
 
             _output = writer;
             _span = _output.GetSpan();
@@ -149,17 +146,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         public void WriteBytes(ReadOnlySpan<byte> source)
         {
             BitFlush();
-
-            while (source.Length > 0)
+            var slice = source;
+            while (slice.Length > 0)
             {
                 if (_span.Length == 0)
                 {
                     GetNextSpan();
                 }
 
-                var writable = Math.Min(source.Length, _span.Length);
-                source.Slice(0, writable).CopyTo(_span);
-                source = source.Slice(writable);
+                var writable = Math.Min(slice.Length, _span.Length);
+                slice.Slice(0, writable).CopyTo(_span);
+                slice = slice.Slice(writable);
                 Advance(writable);
             }
         }
@@ -202,7 +199,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(short))
             {
-                byte[] bytes = new byte[2];
+                Span<byte> bytes = new byte[2];
                 BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -220,7 +217,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(ushort))
             {
-                byte[] bytes = new byte[2];
+                Span<byte> bytes = new byte[2];
                 BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -246,7 +243,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(int))
             {
-                byte[] bytes = new byte[4];
+                Span<byte> bytes = new byte[4];
                 BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);
                 WriteBytes(bytes);
             }
@@ -271,7 +268,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(long))
             {
-                byte[] bytes = new byte[8];
+                Span<byte> bytes = new byte[8];
                 BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
                 WriteBytes(bytes);
             }
@@ -366,7 +363,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
         public void WriteBit(bool value)
         {
-            if (m_bitMask > 0x80)
+            if (_bitMask > 0x80)
             {
                 BitFlush();
             }
@@ -376,10 +373,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 // the test against 0x80 above, and the action of
                 // BitFlush(), causes m_bitMask never to exceed 0x80
                 // at the point the following statement executes.
-                m_bitAccumulator = (byte)(m_bitAccumulator | (byte)m_bitMask);
+                _bitAccumulator = (byte)(_bitAccumulator | (byte)_bitMask);
             }
-            m_bitMask = m_bitMask << 1;
-            m_needBitFlush = true;
+            _bitMask = _bitMask << 1;
+            _needBitFlush = true;
         }
 
 
@@ -389,9 +386,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 GetNextSpan();
             }
-            if (m_needBitFlush)
+            if (_needBitFlush)
             {
-                _span[0] = m_bitAccumulator;
+                _span[0] = _bitAccumulator;
                 Advance(1);
                 ResetBitAccumulator();
             }
@@ -400,9 +397,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
         private void ResetBitAccumulator()
         {
-            m_needBitFlush = false;
-            m_bitAccumulator = 0;
-            m_bitMask = 1;
+            _needBitFlush = false;
+            _bitAccumulator = 0;
+            _bitMask = 1;
         }
 
         private void WriteValue(object value)

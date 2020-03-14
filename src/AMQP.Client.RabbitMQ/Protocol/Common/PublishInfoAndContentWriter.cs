@@ -6,21 +6,40 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class PublishInfoAndContentWriter : IMessageWriter<(BasicPublishInfo, ContentHeader)>
+    internal class PublishInfoAndContentWriter : IMessageWriter<PublishInfoAndContent>
     {
-        private readonly ushort _channelId;
+        private ushort _channelId;
+        private BasicPublishWriter _basicPublishWriter;
+        private ContentHeaderWriter _contentHeaderWriter;
+
         public PublishInfoAndContentWriter(ushort channelId)
         {
             _channelId = channelId;
+            _basicPublishWriter = new BasicPublishWriter(_channelId);
+            _contentHeaderWriter = new ContentHeaderWriter(_channelId);
         }
-        public void WriteMessage((BasicPublishInfo, ContentHeader) message, IBufferWriter<byte> output)
+
+        public void WriteMessage(PublishInfoAndContent message, IBufferWriter<byte> output)
         {
-            ValueWriter writer = new ValueWriter(output);
-            var publishWriter = new BasicPublishWriter(_channelId);
-            var contentWriter = new ContentHeaderWriter(_channelId);
-            publishWriter.WriteMessage(ref message.Item1, ref writer);
-            contentWriter.WriteMessage(ref message.Item2, ref writer);
+            var writer = new ValueWriter(output);
+            _basicPublishWriter.WriteMessage(ref message.Info, ref writer);
+            _contentHeaderWriter.WriteMessage(ref message.Header, ref writer);
             writer.Commit();
         }
+    }
+
+    internal class PublishInfoAndContent
+    {
+        private BasicPublishInfo _info;
+        private ContentHeader _contentHeader;
+
+        public PublishInfoAndContent(ref BasicPublishInfo info, ref ContentHeader header)
+        {
+            _info = info;
+            _contentHeader = header;
+        }
+
+        public ref BasicPublishInfo Info => ref _info;
+        public ref ContentHeader Header => ref _contentHeader;
     }
 }

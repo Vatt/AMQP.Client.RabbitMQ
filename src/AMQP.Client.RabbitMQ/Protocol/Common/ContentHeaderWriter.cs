@@ -13,17 +13,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     public class ContentHeaderWriter : IMessageWriter<ContentHeader>
     {
         private readonly ushort _channelId;
-        private int m_bitCount;
-        private ushort m_flagWord;
+        private int _bitCount;
+        private ushort _flagWord;
         public ContentHeaderWriter(ushort channelId)
         {
             _channelId = channelId;
         }
         public void WriteMessage(ContentHeader message, IBufferWriter<byte> output)
         {
-            m_bitCount = 0;
-            m_flagWord = 0;
-            ValueWriter writer = new ValueWriter(output);
+            _bitCount = 0;
+            _flagWord = 0;
+            var writer = new ValueWriter(output);
             writer.WriteOctet(Constants.FrameHeader);
             writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);
@@ -46,8 +46,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         }
         internal void WriteMessage(ref ContentHeader message, ref ValueWriter writer)
         {
-            m_bitCount = 0;
-            m_flagWord = 0;
+            _bitCount = 0;
+            _flagWord = 0;
             writer.WriteOctet(Constants.FrameHeader);
             writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);
@@ -85,7 +85,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (properties.UserId != null) { WritePresence(true); }
             if (properties.AppId != null) { WritePresence(true); }
             if (properties.ClusterId != null) { WritePresence(true); }
-            writer.WriteShortInt(m_flagWord);
+            writer.WriteShortInt(_flagWord);
             if (properties.ContentType != null) { writer.WriteShortStr(properties.ContentType); }
             if (properties.ContentEncoding != null) { writer.WriteShortStr(properties.ContentEncoding); }
             if (properties.Headers != null) { writer.WriteTable(properties.Headers); }
@@ -106,10 +106,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             if (present)
             {
-                int bit = 15 - m_bitCount;
-                m_flagWord = (ushort)(m_flagWord | (1 << bit));
+                int bit = 15 - _bitCount;
+                _flagWord = (ushort)(_flagWord | (1 << bit));
             }
-            m_bitCount++;
+            _bitCount++;
         }
     }
 }

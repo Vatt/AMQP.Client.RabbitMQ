@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out string message)
         {
-            ValueReader reader = new ValueReader(input);
+            var reader = new ValueReader(input);
             if(!reader.ReadShortStr(out message)) { return false; }
 
             if(!reader.ReadOctet(out var endMarker)) { return false; }

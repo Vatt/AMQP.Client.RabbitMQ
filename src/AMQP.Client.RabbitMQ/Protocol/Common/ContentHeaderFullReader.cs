@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     public class ContentHeaderFullReader : IMessageReader<ContentHeader>
     {
         private readonly ushort _channel;
-        private ushort m_bitCount = 0;
+        private ushort _bitCount = 0;
         public ContentHeaderFullReader(ushort channelId)
         {
             _channel = channelId;
@@ -20,7 +20,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out ContentHeader message)
         {
             message = default;
-            m_bitCount = 0;
+            _bitCount = 0;
             ValueReader reader = new ValueReader(input);
 
             if (!reader.ReadOctet(out var type)) { return false; }
@@ -152,9 +152,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             //    ReadFlagWord();
             //}
 
-            int bit = 15 - m_bitCount;
+            int bit = 15 - _bitCount;
             bool result = (flags & (1 << bit)) != 0;
-            m_bitCount++;
+            _bitCount++;
             return result;
         }
     }
