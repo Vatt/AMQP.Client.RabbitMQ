@@ -36,8 +36,8 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQConnection(RabbitMQConnectionFactoryBuilder builder)
         {
             _builder = builder;
-            _connectionClosedSrc = new TaskCompletionSource<CloseInfo>();
-            _endReading = new TaskCompletionSource<bool>();
+            _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _endReading = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             //_channels = new ConcurrentDictionary<ushort, IChannel>();
             _channels = new ConcurrentDictionary<ushort, RabbitMQChannel>();
             _cts = new CancellationTokenSource();
@@ -135,11 +135,12 @@ namespace AMQP.Client.RabbitMQ
             {
                 return default;
             }
-            var channel = new RabbitMQChannel((ushort)id, MainInfo, _builder.PipeScheduler);
-            _channels[(ushort)id] = channel;
+
+            var channel = _channels.GetOrAdd((ushort)id, key => new RabbitMQChannel((ushort)id, MainInfo, _builder.PipeScheduler));
             await channel.OpenAsync(_protocol);
             return channel;
         }
+
         private void RemoveChannelPrivate(ushort id)
         {
             //if (!_channels.TryRemove(id, out IChannel channel))
@@ -158,6 +159,7 @@ namespace AMQP.Client.RabbitMQ
             await Channel0.CloseAsync("Connection closed gracefully").ConfigureAwait(false);
 
         }
+
         public Task WaitEndReading()
         {
             return _endReading.Task;

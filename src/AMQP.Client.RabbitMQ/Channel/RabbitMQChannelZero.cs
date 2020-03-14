@@ -51,8 +51,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             Endpoint = builder.Endpoint;
             _isClosed = false;
             _connectionClosedSrc = connectionClosedSrc;
-            _openOkSrc = new TaskCompletionSource<bool>();
-            _closeSrc = new TaskCompletionSource<bool>();            
+            _openOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);            
             _token = token;
         }
         public async ValueTask HandleAsync(FrameHeader header)

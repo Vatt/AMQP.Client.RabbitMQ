@@ -16,7 +16,6 @@ namespace AMQP.Client.RabbitMQ.Handlers
     internal class BasicHandler : BasicReaderWriter
     {
         private Dictionary<string, ConsumerBase> _consumers;
-        //private TaskCompletionSource<string> _consumeOkSrc;
         private TaskCompletionSource<bool> _commonSrc;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _writerSemaphore;
@@ -137,7 +136,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
-            _commonSrc = new TaskCompletionSource<bool>();
+            _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QoSInfo(prefetchSize, prefetchCount, global);
             await SendBasicQoS(ref info).ConfigureAwait(false);
             var result = await _commonSrc.Task;

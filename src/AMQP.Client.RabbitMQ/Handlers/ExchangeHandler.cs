@@ -66,7 +66,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         private async ValueTask<bool> DeclarePrivateAsync(ExchangeInfo info)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _declareOkSrc = new TaskCompletionSource<bool>();
+            _declareOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             
             await SendExchangeDeclareAsync(info).ConfigureAwait(false);
             var result = await _declareOkSrc.Task.ConfigureAwait(false);
@@ -84,7 +84,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<bool> DeleteAsync(string name, bool ifUnused = false)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _deleteOkSrc = new TaskCompletionSource<bool>();
+            _deleteOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new ExchangeDeleteInfo(name, ifUnused);
             await SendExchangeDeleteAsync(info).ConfigureAwait(false);
             var result = await _deleteOkSrc.Task.ConfigureAwait(false);

@@ -26,7 +26,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             Channel = channel;
             _protocol = protocol;
             _info = info;
-            ConsumeOkSrc = new TaskCompletionSource<string>();
+            ConsumeOkSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             IsCanceled = true;
             _semaphore = new SemaphoreSlim(1);
         }
@@ -41,7 +41,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public async ValueTask<string> CancelAsync()
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);            
-            CancelSrc = new TaskCompletionSource<string>();            
+            CancelSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);            
             await _protocol.Writer.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(ConsumerTag, false)).ConfigureAwait(false);
             var result = await CancelSrc.Task.ConfigureAwait(false);
             IsCanceled = true;

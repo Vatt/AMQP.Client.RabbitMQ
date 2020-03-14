@@ -62,7 +62,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<QueueDeclareOk> DeclareAsync(string name, bool durable, bool exclusive,bool autoDelete, Dictionary<string, object> arguments)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
+            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueInfo(name, durable, exclusive, autoDelete, arguments: arguments);
             await SendQueueDeclare(info).ConfigureAwait(false);
             var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
@@ -78,7 +78,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<QueueDeclareOk> DeclarePassiveAsync(string name)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
+            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueInfo(name);
             await SendQueueDeclare(info).ConfigureAwait(false);
             var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
@@ -89,7 +89,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<QueueDeclareOk> DeclareQuorumAsync(string name)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>();
+            _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueInfo(name,true, arguments:new Dictionary<string, object> {{ "x-queue-type", "quorum" }});
             await SendQueueDeclare(info).ConfigureAwait(false);
             var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
@@ -100,7 +100,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<bool> QueueBindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _commonSrc = new TaskCompletionSource<bool>();
+            _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueBindInfo(queueName, exchangeName, routingKey, false, arguments);
             await SendQueueBind(info).ConfigureAwait(false);
             var result = await _commonSrc.Task.ConfigureAwait(false);
@@ -116,7 +116,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _commonSrc = new TaskCompletionSource<bool>();
+            _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueUnbindInfo(queueName, exchangeName, routingKey, arguments);
             await SendQueueUnbind(info).ConfigureAwait(false);
             var result = await _commonSrc.Task.ConfigureAwait(false);
@@ -126,7 +126,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<int> QueuePurgeAsync(string queueName)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _purgeOrDeleteSrc = new TaskCompletionSource<int>();
+            _purgeOrDeleteSrc = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueuePurgeInfo(queueName, false);
             await SendQueuePurge(info).ConfigureAwait(false);
             var result = await _purgeOrDeleteSrc.Task.ConfigureAwait(false);
@@ -142,7 +142,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
-            _purgeOrDeleteSrc = new TaskCompletionSource<int>();
+            _purgeOrDeleteSrc = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, false);
             await SendQueueDelete(info).ConfigureAwait(false);
             var result = await _purgeOrDeleteSrc.Task.ConfigureAwait(false);

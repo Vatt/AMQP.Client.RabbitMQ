@@ -27,9 +27,9 @@ namespace AMQP.Client.RabbitMQ.Channel
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
 
         //private Action<ushort> _handlerCloseCallback;
-        private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>();
-        private TaskCompletionSource<bool> _manualCloseSrc =  new TaskCompletionSource<bool>();
-        private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>();
+        private TaskCompletionSource<bool> _openSrc =  new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource<bool> _manualCloseSrc =  new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         public ushort ChannelId => _channelId;
         public bool IsClosed => _isClosed;
         private RabbitMQMainInfo _mainInfo;
