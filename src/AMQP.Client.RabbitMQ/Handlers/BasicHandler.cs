@@ -87,11 +87,11 @@ namespace AMQP.Client.RabbitMQ.Handlers
             }
             _consumers.Clear();
         }
-        public RabbitMQChunkedConsumer CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
-                                                                              bool exclusive = false, Dictionary<string, object> arguments = null)
+        public RabbitMQChunkedConsumer CreateChunkedConsumer(string queueName, string consumerTag, RabbitMQChannel channel, bool noLocal = false, bool noAck = false,
+                                                             bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
-            var consumer = new RabbitMQChunkedConsumer(consumerTag, _channelId, info,  _protocol);
+            var consumer = new RabbitMQChunkedConsumer(consumerTag, info, _protocol, channel);
             if (!_consumers.TryAdd(consumerTag, consumer))
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
@@ -110,11 +110,11 @@ namespace AMQP.Client.RabbitMQ.Handlers
             }
             return consumer;
         }
-        public RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
+        public RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, RabbitMQChannel channel, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
-            var consumer = new RabbitMQConsumer(consumerTag, _channelId, info, _protocol, scheduler);
+            var consumer = new RabbitMQConsumer(consumerTag, info, _protocol,  scheduler, channel);
             if (!_consumers.TryAdd(consumerTag, consumer))
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
@@ -132,14 +132,6 @@ namespace AMQP.Client.RabbitMQ.Handlers
                 }
             }
             return consumer;
-        }
-
-        private void DeleteConsumerPrivate(string tag)
-        {
-            if (!_consumers.Remove(tag, out var consumer))
-            {
-                throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer or consumer already canceled");
-            }
         }
 
         public async ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)

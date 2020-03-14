@@ -39,7 +39,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info) 
+        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler) 
         {
             _channelId = id;
             _isClosed = true;
@@ -238,15 +238,15 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
 
         public RabbitMQChunkedConsumer CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
-                                                                        bool exclusive = false, Dictionary<string, object> arguments = null)
+                                                             bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
+            return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, this, noLocal, noAck, exclusive, arguments);
         }
 
         public RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
-                                                          bool exclusive = false, Dictionary<string, object> arguments = null)
+                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return _basicHandler.CreateConsumer(queueName, consumerTag,scheduler, noLocal, noAck, exclusive, arguments);
+            return _basicHandler.CreateConsumer(queueName, consumerTag, this, scheduler, noLocal, noAck, exclusive, arguments);
         }
         public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {

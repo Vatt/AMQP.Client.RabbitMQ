@@ -12,7 +12,7 @@ namespace ConsumerTest
     {
         static async Task Main(string[] args)
         {
-            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint("centos2.mshome.net", 5672));
+            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint("centos0.mshome.net", 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Heartbeat(60 * 10)
                                  .ProductName("AMQP.Client.RabbitMQ")
@@ -24,14 +24,15 @@ namespace ConsumerTest
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
             consumer.Received += (gavno, result) =>
             {
                 
                 //await channel.Ack(deliver.DeliveryTag);
             };
-            await connection.WaitEndReading();
             await consumer.ConsumerStartAsync();
+            await connection.WaitEndReading();
+            
         }
     }
 }

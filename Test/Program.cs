@@ -11,7 +11,7 @@ namespace Test
 
     class Program
     {
-        private const string Host = "centos2.mshome.net";
+        private const string Host = "centos0.mshome.net";
 
         //private static string Host = 
         static async Task Main(string[] args)
@@ -57,45 +57,27 @@ namespace Test
             //var publisher1 = channel1.CreatePublisher();
             //var publisher2 = channel2.CreatePublisher();
 
-<<<<<<< HEAD
-            
-            var consumer1 = channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
-            
-            consumer1.Received += async (result) =>
-=======
 
-            var consumer1 = await channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            var consumer1 = channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
             consumer1.Received += async (sender, result) =>
->>>>>>> 0f14b067b47b02ca7bd2a844585a239b764658e5
             {
                 //await channel1.Ack(deliver.DeliveryTag, true);
                 var propertiesConsume = ContentHeaderProperties.Default();
                 propertiesConsume.AppId = "testapp2";
                 await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
-<<<<<<< HEAD
-                
-            };            
-            var consumer2 = channel2.CreateConsumer("TestQueue2", "TestConsumer2", PipeScheduler.ThreadPool, noAck: true);            
-            consumer2.Received += async (result) =>
-=======
 
             };
 
-            var consumer2 = await channel2.CreateConsumer("TestQueue2", "TestConsumer2", PipeScheduler.ThreadPool, noAck: true);
+            var consumer2 = channel2.CreateConsumer("TestQueue2", "TestConsumer2", PipeScheduler.ThreadPool, noAck: true);
             consumer2.Received += async (sender, result) =>
->>>>>>> 0f14b067b47b02ca7bd2a844585a239b764658e5
             {
                 //await channel2.Ack(deliver.DeliveryTag, true);
                 var propertiesConsume = ContentHeaderProperties.Default();
                 propertiesConsume.AppId = "testapp1";
                 await channel1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
             };
-<<<<<<< HEAD
             await consumer1.ConsumerStartAsync();
             await consumer2.ConsumerStartAsync();
-=======
-
->>>>>>> 0f14b067b47b02ca7bd2a844585a239b764658e5
             var firtsTask = Task.Run(async () =>
             {
                 var properties = ContentHeaderProperties.Default();
@@ -138,13 +120,8 @@ namespace Test
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
             }
 
-<<<<<<< HEAD
-            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck:true);            
-            consumer.Received += (result) =>
-=======
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
             consumer.Received += (sender, result) =>
->>>>>>> 0f14b067b47b02ca7bd2a844585a239b764658e5
             {
                 // await channel.Ack(deliver.DeliveryTag);
             };
@@ -188,28 +165,8 @@ namespace Test
             var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
 
-<<<<<<< HEAD
-
-            await channel.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            var queueOk2 = await channel.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel.QueueBindAsync("TestQueue2", "TestExchange2");
-
-            //var consumer = await channel.CreateChunkedConsumer("TestQueue", "TestConsumer", noAck: false);
-            //consumer.Received += async (deliver, result) =>
-            //{
-
-            //    if(result.IsCompleted)
-            //    {
-            //        await channel.Ack(deliver.DeliveryTag, false);                    
-            //    }
-
-            //};
-            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);            
-            consumer.Received += (result) =>
-=======
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer",PipeScheduler.ThreadPool, noAck: true);
             consumer.Received += (sender, result) =>
->>>>>>> 0f14b067b47b02ca7bd2a844585a239b764658e5
             {
                 //await channel.Ack(deliver.DeliveryTag, false);
             };

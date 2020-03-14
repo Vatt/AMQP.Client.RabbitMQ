@@ -1,14 +1,8 @@
 ﻿using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using Bedrock.Framework.Protocols;
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -19,10 +13,10 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
 
         public event Action<RabbitMQDeliver, ChunkedConsumeResult> Received;
-        internal RabbitMQChunkedConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, RabbitMQChannel channel)
-            :base(consumerTag, channelId, protocol, channel)
+        internal RabbitMQChunkedConsumer(string consumerTag, ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
+            :base(consumerTag, info, protocol, channel)
         {
-            _reader = new BodyFrameChunkedReader(channelId);
+            _reader = new BodyFrameChunkedReader(channel.ChannelId);
         }
 
         internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver)
