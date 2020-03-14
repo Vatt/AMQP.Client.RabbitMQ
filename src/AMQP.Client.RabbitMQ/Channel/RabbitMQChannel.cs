@@ -237,13 +237,13 @@ namespace AMQP.Client.RabbitMQ.Channel
             return _queueMethodHandler.QueueDeleteAsync(queueName, ifUnused, ifEmpty);
         }
 
-        public ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        public RabbitMQChunkedConsumer CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                         bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             return _basicHandler.CreateChunkedConsumer(queueName, consumerTag, noLocal, noAck, exclusive, arguments);
         }
 
-        public ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
+        public RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
                                                           bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             return _basicHandler.CreateConsumer(queueName, consumerTag,scheduler, noLocal, noAck, exclusive, arguments);

@@ -22,12 +22,13 @@ namespace ConsumerTest
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);           
             consumer.Received += (result) =>
             {
                 //await channel.Ack(deliver.DeliveryTag);
             };
             await connection.WaitEndReading();
+            await consumer.ConsumerStartAsync();
         }
     }
 }

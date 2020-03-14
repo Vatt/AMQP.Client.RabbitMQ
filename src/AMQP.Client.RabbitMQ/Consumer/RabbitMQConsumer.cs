@@ -1,6 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -18,8 +19,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public event Action<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, PipeScheduler scheduler)
-            : base(consumerTag, channelId, protocol)
+        internal RabbitMQConsumer(string consumerTag, ushort channelId, ConsumerInfo info, RabbitMQProtocol protocol, PipeScheduler scheduler)
+            : base(consumerTag, channelId, info, protocol)
         {
             _reader = new BodyFrameChunkedReader(channelId);
             _scheduler = scheduler;

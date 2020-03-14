@@ -95,7 +95,7 @@ namespace JSONTest
             await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
 
-            var consumer = await channel.CreateChunkedConsumer("TestQueue", "JsonConsumer",noAck:true);
+            var consumer = channel.CreateChunkedConsumer("TestQueue", "JsonConsumer",noAck:true);            
             JSONObject value;
             consumer.Received += (deliver, result) =>
             {
@@ -133,6 +133,7 @@ namespace JSONTest
                 //}
                 
             };
+            await consumer.ConsumerStartAsync();
             await connection.WaitEndReading();
         }
     }

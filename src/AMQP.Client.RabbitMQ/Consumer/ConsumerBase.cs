@@ -14,15 +14,27 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public readonly ushort ChannelId;
         protected readonly RabbitMQProtocol _protocol;
         internal TaskCompletionSource<string> CancelSrc;
+        internal TaskCompletionSource<string> ConsumeOkSrc;
+        private ConsumerInfo _info;
         private SemaphoreSlim _semaphore;
-        public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(string tag, ushort channel, RabbitMQProtocol protocol)
+        public bool IsCanceled { get; private set; }
+        internal ConsumerBase(string tag, ushort channel, ConsumerInfo info, RabbitMQProtocol protocol)
         {
             ConsumerTag = tag;
             ChannelId = channel;
             _protocol = protocol;
-            IsCanceled = false;
+            _info = info;
+            ConsumeOkSrc = new TaskCompletionSource<string>();
+            IsCanceled = true;
             _semaphore = new SemaphoreSlim(1);
+        }
+        public async ValueTask ConsumerStartAsync()
+        {
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+            await _protocol.Writer.WriteAsync(new BasicConsumeWriter(ChannelId), _info).ConfigureAwait(false);
+            await ConsumeOkSrc.Task.ConfigureAwait(false);
+            IsCanceled = false;
+            _semaphore.Release();
         }
         public async ValueTask<string> CancelAsync()
         {
@@ -33,10 +45,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
             IsCanceled = true;
             _semaphore.Release();
             return result;
-        }
-        internal void SimpleCancel()
-        {
-            IsCanceled = true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal async ValueTask Delivery(DeliverInfo info)

@@ -45,9 +45,9 @@ namespace AMQP.Client.RabbitMQ.Channel
         ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false);
         ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false);
 
-        ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        RabbitMQChunkedConsumer CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                  bool exclusive = false, Dictionary<string, object> arguments = null);
-        ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
+        RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
                                                    bool exclusive = false, Dictionary<string, object> arguments = null);
         ValueTask Ack(long deliveryTag, bool multiple = false);
         ValueTask Reject(long deliveryTag, bool requeue);

@@ -15,7 +15,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
     internal class BasicHandler : BasicReaderWriter
     {
         private Dictionary<string, ConsumerBase> _consumers;
-        private TaskCompletionSource<string> _consumeOkSrc;
+        //private TaskCompletionSource<string> _consumeOkSrc;
         private TaskCompletionSource<bool> _commonSrc;
         private readonly SemaphoreSlim  _semaphore;
         private readonly SemaphoreSlim _writerSemaphore;
@@ -43,7 +43,12 @@ namespace AMQP.Client.RabbitMQ.Handlers
                 case 21:// consume-ok 
                     {
                         var result = await ReadBasicConsumeOk().ConfigureAwait(false);
-                        _consumeOkSrc.SetResult(result);
+                        //_consumeOkSrc.SetResult(result);
+                        if(!_consumers.TryGetValue(result, out var consumer))
+                        {
+                            throw new Exception($"{nameof(BasicHandler)}: cant signal consume-ok to consumer. Tag:{result}");
+                        }
+                        consumer.ConsumeOkSrc.SetResult(result);
                         break;
                     }
                 case 11: // qos-ok
@@ -78,73 +83,51 @@ namespace AMQP.Client.RabbitMQ.Handlers
             }
             _consumers.Clear();
         }
-        public async ValueTask<RabbitMQChunkedConsumer> CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+        public RabbitMQChunkedConsumer CreateChunkedConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                                                               bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-            _consumeOkSrc = new TaskCompletionSource<string>();
-            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
-            var result = await _consumeOkSrc.Task.ConfigureAwait(false);
-            if (result.Equals(consumerTag))
+            var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
+            var consumer = new RabbitMQChunkedConsumer(consumerTag, _channelId, info,  _protocol);
+            if (!_consumers.TryAdd(consumerTag, consumer))
             {
-                var consumer = new RabbitMQChunkedConsumer(consumerTag, _channelId, _protocol);
-                if(!_consumers.TryAdd(consumerTag, consumer))
+                if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
                 {
-                    if (!_consumers.TryGetValue(consumerTag,out ConsumerBase existedConsumer))
-                    {
-                        throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
-                    }
-                    if(existedConsumer  is RabbitMQChunkedConsumer)
-                    {
-                        _semaphore.Release();
-                        return (RabbitMQChunkedConsumer)existedConsumer;
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
-                    }
+                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
                 }
-                _semaphore.Release();
-                return consumer;
+                if (existedConsumer is RabbitMQChunkedConsumer)
+                {
+                    _semaphore.Release();
+                    return (RabbitMQChunkedConsumer)existedConsumer;
+                }
+                else
+                {
+                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
+                }
             }
-            else
-            {
-                throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
-            }
+            return consumer;
         }
-        public async ValueTask<RabbitMQConsumer> CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
+        public RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, PipeScheduler scheduler, bool noLocal = false, bool noAck = false,
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            await _semaphore.WaitAsync().ConfigureAwait(false);
-            _consumeOkSrc = new TaskCompletionSource<string>();
-            await SendBasicConsume(queueName, consumerTag, noLocal, noAck, exclusive, arguments).ConfigureAwait(false);
-            var result = await _consumeOkSrc.Task.ConfigureAwait(false);
-            if (result.Equals(consumerTag))
+            var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
+            var consumer = new RabbitMQConsumer(consumerTag, _channelId, info, _protocol, scheduler);
+            if (!_consumers.TryAdd(consumerTag, consumer))
             {
-                var consumer = new RabbitMQConsumer(consumerTag, _channelId, _protocol, scheduler);
-                if (!_consumers.TryAdd(consumerTag, consumer))
+                if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
                 {
-                    if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
-                    {
-                        throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
-                    }
-                    if (existedConsumer is RabbitMQConsumer)
-                    {
-                        _semaphore.Release();
-                        return (RabbitMQConsumer)existedConsumer;
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
-                    }
+                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
                 }
-                _semaphore.Release();
-                return consumer;
+                if (existedConsumer is RabbitMQConsumer)
+                {
+                    _semaphore.Release();
+                    return (RabbitMQConsumer)existedConsumer;
+                }
+                else
+                {
+                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
+                }
             }
-            else
-            {
-                throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} : {consumerTag}");
-            }
+            return consumer;
         }
         private void DeleteConsumerPrivate(string tag)
         {
