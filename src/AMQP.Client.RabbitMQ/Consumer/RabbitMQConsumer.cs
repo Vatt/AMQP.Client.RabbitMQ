@@ -16,7 +16,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private readonly BodyFrameChunkedReader _reader;
         private byte[] _activeDeliver;
         private int _deliverPosition;
-        public event Action<DeliverArgs> Received;
+        public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
         internal RabbitMQConsumer(string consumerTag, ushort channelId, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
@@ -50,7 +50,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             {
                 try
                 {
-                    Received?.Invoke(arg);
+                    Received?.Invoke(this, arg);
                 }
                 catch (Exception e)
                 {
@@ -74,7 +74,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         }
     }
 
-    public struct DeliverArgs : IDisposable
+    public class DeliverArgs : EventArgs, IDisposable
     {
         public ContentHeaderProperties Properties { get; }
         public long DeliveryTag { get; }
