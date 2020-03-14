@@ -127,7 +127,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             }
         }
-        public async Task OpenAsync(RabbitMQProtocol protocol)
+        public async ValueTask OpenAsync(RabbitMQProtocol protocol)
         {
             _protocol = protocol;
             _readerWriter = new ChannelReaderWriter(_protocol);
@@ -139,15 +139,15 @@ namespace AMQP.Client.RabbitMQ.Channel
             _isClosed = false;
 
         }
-        public Task<bool> CloseAsync(string reason)
+        public ValueTask<bool> CloseAsync(string reason)
         {
             return CloseAsync(Constants.ReplySuccess, reason, 0, 0);
         }
-        public Task<CloseInfo> WaitClose()
+        public async ValueTask<CloseInfo> WaitClose()
         {
-            return _channelCloseSrc.Task;
+            return await _channelCloseSrc.Task;
         }
-        public async Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
+        public async ValueTask<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             await _readerWriter.SendChannelClose(_channelId, new CloseInfo(replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
