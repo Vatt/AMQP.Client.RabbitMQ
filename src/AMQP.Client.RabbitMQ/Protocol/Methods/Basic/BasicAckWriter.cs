@@ -21,7 +21,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             writer.BitFlush();
             writer.WriteOctet(Constants.FrameEnd);
             writer.Commit();
-
         }
     }
 }

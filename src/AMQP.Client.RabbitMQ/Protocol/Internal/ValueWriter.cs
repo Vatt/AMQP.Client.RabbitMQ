@@ -5,7 +5,6 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
@@ -71,6 +70,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             _buffered = 0;
             Written = 0;
         }
+
         public Reserved Reserve(int length)
         {
             if (length > 4096)
@@ -111,7 +111,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 _buffered = 0;
                 _output.Advance(buffered);
             }
-
         }
 
 
@@ -294,11 +293,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         {
             BitFlush();
 
-            int length = Encoding.UTF8.GetMaxByteCount(str.Length);
+            int length = Encoding.UTF8.GetByteCount(str);
             if (_span.Length >= length + sizeof(byte))
             {
                 int byteCount = Encoding.UTF8.GetBytes(str, _span.Slice(sizeof(byte)));
-                if (byteCount > 255)
+                if (byteCount > byte.MaxValue)
                 {
                     WriterThrowHelper.ThrowIfValueWriterOutOfRange();
                 }
@@ -331,7 +330,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         {
             BitFlush();
 
-            int length = Encoding.UTF8.GetMaxByteCount(str.Length);
+            int length = Encoding.UTF8.GetByteCount(str);
             if (_span.Length >= length + sizeof(int))
             {
                 int byteCount = Encoding.UTF8.GetBytes(str, _span.Slice(sizeof(int)));
