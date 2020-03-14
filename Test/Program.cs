@@ -10,7 +10,7 @@ namespace Test
 {
     class Program
     {
-        private const string Host = "centos2.mshome.net";
+        private const string Host = "centos0.mshome.net";
 
         //private static string Host = 
         static async Task Main(string[] args)
