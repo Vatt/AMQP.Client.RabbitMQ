@@ -1,4 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
+﻿using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
@@ -12,16 +13,18 @@ namespace AMQP.Client.RabbitMQ.Consumer
     {
         public readonly string ConsumerTag;
         public readonly ushort ChannelId;
+        public RabbitMQChannel Channel { get; }
         protected readonly RabbitMQProtocol _protocol;
         internal TaskCompletionSource<string> CancelSrc;
         internal TaskCompletionSource<string> ConsumeOkSrc;
         private ConsumerInfo _info;
         private SemaphoreSlim _semaphore;
-        public bool IsCanceled { get; private set; }
-        internal ConsumerBase(string tag, ushort channel, ConsumerInfo info, RabbitMQProtocol protocol)
+        public bool IsCanceled { get; protected set; }
+        internal ConsumerBase(string tag, ushort channelId, RabbitMQProtocol protocol, RabbitMQChannel channel)
         {
             ConsumerTag = tag;
-            ChannelId = channel;
+            ChannelId = channelId;
+            Channel = channel;
             _protocol = protocol;
             _info = info;
             ConsumeOkSrc = new TaskCompletionSource<string>();

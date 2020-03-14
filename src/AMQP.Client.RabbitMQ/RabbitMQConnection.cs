@@ -13,7 +13,7 @@ using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public class RabbitMQConnection
+    public class RabbitMQConnection : IDisposable
     {
  
         private static int _channelId = 0; //Interlocked?
@@ -135,7 +135,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 return default;
             }
-            var channel = new RabbitMQChannel((ushort)id, MainInfo);
+            var channel = new RabbitMQChannel((ushort)id, MainInfo, _builder.PipeScheduler);
             _channels[(ushort)id] = channel;
             await channel.OpenAsync(_protocol);
             return channel;
@@ -173,5 +173,7 @@ namespace AMQP.Client.RabbitMQ
             }            
             return channel.HandleFrameHeaderAsync(header);
         }
+
+        public void Dispose() => ((IDisposable)_cts).Dispose();
     }
 }
