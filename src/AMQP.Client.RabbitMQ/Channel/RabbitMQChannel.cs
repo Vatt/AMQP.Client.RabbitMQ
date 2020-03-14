@@ -304,5 +304,10 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             _writerSemaphore.Release();
         }
+
+        public void Dispose()
+        {
+            _writerSemaphore.Dispose();
+        }
     }
 }

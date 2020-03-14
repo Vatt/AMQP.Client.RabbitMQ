@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
     public abstract class ConsumerBase
     {
         public readonly string ConsumerTag;
-        public readonly ushort ChannelId;
+        public ushort ChannelId => Channel.ChannelId;
         public RabbitMQChannel Channel { get; }
         protected readonly RabbitMQProtocol _protocol;
         internal TaskCompletionSource<string> CancelSrc;
@@ -20,10 +20,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private ConsumerInfo _info;
         private SemaphoreSlim _semaphore;
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(string tag, ushort channelId, RabbitMQProtocol protocol, RabbitMQChannel channel)
+        internal ConsumerBase(string tag, ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
         {
             ConsumerTag = tag;
-            ChannelId = channelId;
             Channel = channel;
             _protocol = protocol;
             _info = info;

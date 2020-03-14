@@ -24,9 +24,10 @@ namespace ConsumerTest
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.CreateChannel();
-            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);           
-            consumer.Received += (result) =>
+            var consumer = await channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            consumer.Received += (gavno, result) =>
             {
+                
                 //await channel.Ack(deliver.DeliveryTag);
             };
             await connection.WaitEndReading();
