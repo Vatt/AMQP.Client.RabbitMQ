@@ -198,7 +198,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(short))
             {
-                Span<byte> bytes = new byte[2];
+                Span<byte> bytes = new byte[sizeof(short)];
                 BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -216,7 +216,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(ushort))
             {
-                Span<byte> bytes = new byte[2];
+                Span<byte> bytes = new byte[sizeof(ushort)];
                 BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -242,7 +242,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(int))
             {
-                Span<byte> bytes = new byte[4];
+                Span<byte> bytes = new byte[sizeof(int)];
                 BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);
                 WriteBytes(bytes);
             }
@@ -267,7 +267,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(long))
             {
-                Span<byte> bytes = new byte[8];
+                Span<byte> bytes = new byte[sizeof(long)];
                 BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
                 WriteBytes(bytes);
             }
@@ -452,8 +452,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 WriteLong(0);
                 return;
             }
-            Span<byte> sizeSpan = stackalloc byte[4];
-            var reserved = Reserve(4);
+            Span<byte> sizeSpan = stackalloc byte[sizeof(int)];
+            var reserved = Reserve(sizeof(int));
             int first = Written;
             foreach (var pair in table)
             {
