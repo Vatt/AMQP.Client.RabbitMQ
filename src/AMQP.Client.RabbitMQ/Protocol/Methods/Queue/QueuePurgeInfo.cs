@@ -1,6 +1,6 @@
 ﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    public readonly struct  QueuePurgeInfo
+    public readonly struct QueuePurgeInfo
     {
         public readonly string QueueName;
         public readonly bool NoWait;

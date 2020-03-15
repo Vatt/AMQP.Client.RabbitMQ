@@ -5,7 +5,7 @@
         public ushort ChannelMax;
         public int FrameMax;
         public short Heartbeat;
-        public RabbitMQMainInfo(ushort chanellMax,int frameMax, short heartbeat)
+        public RabbitMQMainInfo(ushort chanellMax, int frameMax, short heartbeat)
         {
             ChannelMax = chanellMax;
             FrameMax = frameMax;

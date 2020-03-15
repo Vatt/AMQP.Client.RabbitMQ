@@ -1,14 +1,14 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {
@@ -33,9 +33,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _deliverPosition = 0;
             _activeDeliver = ArrayPool<byte>.Shared.Rent((int)deliver.Header.BodySize);
             _reader.Restart(deliver.Header.BodySize);
-         
+
             while (!_reader.IsComplete)
-            {                
+            {
                 var result = await _protocol.Reader.ReadAsync(_reader).ConfigureAwait(false);
                 Copy(result.Message);
                 _protocol.Reader.Advance();

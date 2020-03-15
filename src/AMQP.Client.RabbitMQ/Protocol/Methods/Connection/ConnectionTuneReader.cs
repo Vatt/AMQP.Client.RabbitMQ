@@ -14,7 +14,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
      * | channel-max | frame-max | heartbeat |
      * +-------------+-----------+-----------+
      */
-    public class ConnectionTuneReader:IMessageReader<RabbitMQMainInfo>
+    public class ConnectionTuneReader : IMessageReader<RabbitMQMainInfo>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQMainInfo message)
         {

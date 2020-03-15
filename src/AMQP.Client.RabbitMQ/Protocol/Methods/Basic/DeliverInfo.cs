@@ -1,6 +1,6 @@
 ﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
-    public struct  DeliverInfo
+    public struct DeliverInfo
     {
         public readonly string ConsumerTag;
         public readonly long DeliverTag;

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Buffers;
-
-namespace AMQP.Client.RabbitMQ.Protocol.Framing
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Framing
 {
     public readonly struct MethodHeader
     {

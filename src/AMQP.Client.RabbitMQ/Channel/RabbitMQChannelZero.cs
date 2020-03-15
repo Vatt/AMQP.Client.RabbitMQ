@@ -1,23 +1,23 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using System;
+﻿using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using System.Threading;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
-using Bedrock.Framework;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Connections;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using Bedrock.Framework;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
     /*
      * Zero channel is a service channel 
      */
-    internal class RabbitMQChannelZero :IRabbitMQClosable, IRabbitMQOpenable
+    internal class RabbitMQChannelZero : IRabbitMQClosable, IRabbitMQOpenable
     {
         private static readonly Bedrock.Framework.Client _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider())
                                                                                      .UseSockets()
@@ -27,7 +27,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public RabbitMQServerInfo ServerInfo { get; private set; }
         public RabbitMQClientInfo ClientInfo { get; private set; }
         public RabbitMQMainInfo MainInfo { get; private set; }
-        private  CancellationToken _token;
+        private CancellationToken _token;
         public EndPoint Endpoint;
         private bool _isClosed;
         private TaskCompletionSource<bool> _openOkSrc;
@@ -41,9 +41,9 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         private readonly RabbitMQConnectionInfo _connectionInfo;
         private Timer _heartbeat;
+        private readonly ByteWriter _byteWriter;
 
-
-        internal RabbitMQChannelZero(RabbitMQConnectionFactoryBuilder builder, TaskCompletionSource<CloseInfo> connectionClosedSrc ,CancellationToken token)//:base(protocol)
+        internal RabbitMQChannelZero(RabbitMQConnectionFactoryBuilder builder, TaskCompletionSource<CloseInfo> connectionClosedSrc, CancellationToken token)//:base(protocol)
         {
             MainInfo = builder.MainInfo;
             ClientInfo = builder.ClientInfo;
@@ -52,8 +52,9 @@ namespace AMQP.Client.RabbitMQ.Channel
             _isClosed = false;
             _connectionClosedSrc = connectionClosedSrc;
             _openOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);            
+            _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _token = token;
+            _byteWriter = new ByteWriter();
         }
         public async ValueTask HandleAsync(FrameHeader header)
         {
@@ -72,7 +73,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 10:
                     {
                         ServerInfo = await _readerWriter.ReadStartAsync().ConfigureAwait(false);
-                        await _readerWriter.SendStartOk(ClientInfo,_connectionInfo).ConfigureAwait(false);
+                        await _readerWriter.SendStartOk(ClientInfo, _connectionInfo).ConfigureAwait(false);
                         break;
                     }
 
@@ -97,7 +98,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                     }
                 case 51://close-ok
                     {
-                        _closeSrc.SetResult(await _readerWriter.ReadCloseOk());                                                
+                        _closeSrc.SetResult(await _readerWriter.ReadCloseOk());
                         break;
                     }
 
@@ -122,26 +123,26 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         public async Task CreateConnection()
         {
-            ConnectionContext = await _client.ConnectAsync(Endpoint, _token).ConfigureAwait(false);            
+            ConnectionContext = await _client.ConnectAsync(Endpoint, _token).ConfigureAwait(false);
         }
         public async Task OpenAsync(RabbitMQProtocol protocol)
         {
             _protocol = protocol;
             _readerWriter = new ConnectionReaderWriter(_protocol);
-            await _protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg).ConfigureAwait(false);
+            await _protocol.Writer.WriteAsync(_byteWriter, _protocolMsg).ConfigureAwait(false);
             _heartbeat = new Timer(async (obj) =>
             {
-                await _protocol.Writer.WriteAsync(new ByteWriter(), _heartbeatFrame);
+                await _protocol.Writer.WriteAsync(_byteWriter, _heartbeatFrame);
             }, null, 0, MainInfo.Heartbeat);
 
-            await _openOkSrc.Task.ConfigureAwait(false);            
+            await _openOkSrc.Task.ConfigureAwait(false);
         }
 
         public Task<bool> CloseAsync(string reason)
         {
-
             return CloseAsync(Constants.ReplySuccess, reason, 10, 50);
         }
+
         public async Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             var info = new CloseInfo(replyCode, replyText, failedClassId, failedMethodId);

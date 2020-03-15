@@ -1,8 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
@@ -23,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         public ValueTask SendBasicConsume(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
                                           bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            var info = new ConsumerInfo(queueName, consumerTag,noLocal,noAck,exclusive,false,arguments);
+            var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
             return _protocol.Writer.WriteAsync(new BasicConsumeWriter(_channelId), info);
         }
         public async ValueTask<string> ReadBasicConsumeOk()
@@ -55,7 +53,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             var result = await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
             _protocol.Reader.Advance();
-            if(result.IsCompleted)
+            if (result.IsCompleted)
             {
                 //TODO: сделать чтонибудь
             }

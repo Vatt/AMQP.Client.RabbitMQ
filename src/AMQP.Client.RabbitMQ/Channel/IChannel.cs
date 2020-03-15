@@ -1,12 +1,12 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
+﻿using System;
+using System.Collections.Generic;
+using System.IO.Pipelines;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Collections.Generic;
-using System.IO.Pipelines;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
@@ -20,14 +20,14 @@ namespace AMQP.Client.RabbitMQ.Channel
     {
         Task OpenAsync(RabbitMQProtocol protocol);
     }
-    internal interface IChannel:IRabbitMQOpenable,IRabbitMQClosable
+    internal interface IChannel : IRabbitMQOpenable, IRabbitMQClosable
     {
         ValueTask HandleFrameHeaderAsync(FrameHeader header);
         Task<CloseInfo> WaitClose();
     }
-    public interface IRabbitMQChannel: IRabbitMQClosable
+    public interface IRabbitMQChannel : IRabbitMQClosable
     {
-        public ushort ChannelId { get; }        
+        public ushort ChannelId { get; }
         ValueTask<bool> ExchangeDeclareAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
         ValueTask ExchangeDeclareNoWaitAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
         ValueTask<bool> ExchangeDeclarePassiveAsync(string name, string type, bool durable = false, bool autoDelete = false, Dictionary<string, object> arguments = null);
@@ -56,5 +56,5 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> body);
     }
-    
+
 }

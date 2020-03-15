@@ -1,10 +1,10 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
@@ -31,7 +31,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
     //    }
     //}
 
-    internal ref struct ValueReader 
+    internal ref struct ValueReader
     {
         private SequenceReader<byte> _reader;
         public SequencePosition Position => _reader.Position;
@@ -41,7 +41,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         {
             _reader = new SequenceReader<byte>(data);
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Advance(long count)
         {
@@ -99,12 +99,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadOctet(out byte octet)
         {
-            return _reader.TryRead(out octet); 
+            return _reader.TryRead(out octet);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadLongLong(out long longlong)
         {
-           return _reader.TryReadBigEndian(out longlong);
+            return _reader.TryReadBigEndian(out longlong);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadLong(out int longValue)
@@ -141,13 +141,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadShortStr(out string shortStr)
-        {   
-            if(!ReadOctet(out byte len))
+        {
+            if (!ReadOctet(out byte len))
             {
                 shortStr = String.Empty;
                 return false;
             }
-            return ReadStringInternal(len,out shortStr);
+            return ReadStringInternal(len, out shortStr);
 
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -160,7 +160,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             }
             return ReadStringInternal(len, out longString);
         }
-        
+
         public bool ReadBool(out bool boolValue)
         {
             if (!ReadOctet(out byte val))
@@ -168,20 +168,20 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
                 boolValue = default;
                 return false;
             }
-            boolValue =  Convert.ToBoolean(val);
+            boolValue = Convert.ToBoolean(val);
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadTimestamp(out long timestamp)
         {
-            if(!ReadLongLong(out timestamp)) { return false; }
+            if (!ReadLongLong(out timestamp)) { return false; }
             return true;
         }
-        public bool ReadTable(out Dictionary<string, object> table )
+        public bool ReadTable(out Dictionary<string, object> table)
         {
             table = default;
 
-            if(!ReadLong(out int tabLen)) { return false; }
+            if (!ReadLong(out int tabLen)) { return false; }
             if (tabLen == 0) { return true; }
             if (_reader.Remaining < tabLen) { return false; }
 
@@ -203,7 +203,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 case 'F':
                     {
-                        var tryRead = ReadTable(out Dictionary<string, object>  table);
+                        var tryRead = ReadTable(out Dictionary<string, object> table);
                         value = table;
                         return tryRead;
                     }

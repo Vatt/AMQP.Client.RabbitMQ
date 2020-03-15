@@ -1,8 +1,6 @@
-﻿using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
@@ -10,7 +8,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
     {
         public void WriteMessage(byte[] message, IBufferWriter<byte> output)
         {
-            if(message.Length > 1024)
+            if (message.Length > 1024)
             {
                 throw new Exception($"{nameof(ByteWriter)}:message to long. Maximum length - 1024");
             }

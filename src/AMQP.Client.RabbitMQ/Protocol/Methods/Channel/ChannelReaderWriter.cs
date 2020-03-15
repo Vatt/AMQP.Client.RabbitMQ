@@ -1,6 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
@@ -44,7 +44,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 
         public ValueTask SendChannelClose(ushort channelId, CloseInfo info)
         {
-            return _protocol.Writer.WriteAsync(new CloseWriter(channelId,20,40), info);
+            return _protocol.Writer.WriteAsync(new CloseWriter(channelId, 20, 40), info);
         }
 
         public async ValueTask<bool> ReadChannelCloseOk()

@@ -1,18 +1,18 @@
-﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Handlers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Handlers;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 
 namespace JSONTest
 {
     class JSONObject
     {
         public int IntValue { get; set; }
-      //  public float FloatFalue { get; set; }
+        //  public float FloatFalue { get; set; }
         public string StringValue { get; set; }
         public DateTimeOffset Date { get; set; }
         public Dictionary<string, Dictionary<string, int>> TableValue { get; set; }
@@ -21,7 +21,7 @@ namespace JSONTest
         {
             JSONObject json = new JSONObject();
             json.IntValue = 65536;
-         //   json.FloatFalue = 65536.1f;
+            //   json.FloatFalue = 65536.1f;
             json.StringValue = "JSONTEST";
             json.Date = DateTimeOffset.Now;
             json.TableValue = new Dictionary<string, Dictionary<string, int>>();
@@ -95,7 +95,7 @@ namespace JSONTest
             await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
 
-            var consumer = channel.CreateChunkedConsumer("TestQueue", "JsonConsumer",noAck:true);            
+            var consumer = channel.CreateChunkedConsumer("TestQueue", "JsonConsumer", noAck: true);
             JSONObject value;
             consumer.Received += (deliver, result) =>
             {
@@ -103,7 +103,7 @@ namespace JSONTest
                 value = JsonSerializer.Deserialize<JSONObject>(ref reader);
                 if (result.IsCompleted)
                 {
-                    
+
                 }
                 //while (reader.Read())
                 //{
@@ -131,7 +131,7 @@ namespace JSONTest
                 //            // Other token types elided for brevity
                 //    }
                 //}
-                
+
             };
             await consumer.ConsumerStartAsync();
             await connection.WaitEndReading();

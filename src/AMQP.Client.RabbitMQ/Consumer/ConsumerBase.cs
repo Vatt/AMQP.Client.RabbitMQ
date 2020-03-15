@@ -1,11 +1,11 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {
@@ -41,8 +41,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         }
         public async ValueTask<string> CancelAsync()
         {
-            await _semaphore.WaitAsync().ConfigureAwait(false);            
-            CancelSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);            
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+            CancelSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             await _protocol.Writer.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(_info.ConsumerTag, false)).ConfigureAwait(false);
             var result = await CancelSrc.Task.ConfigureAwait(false);
             IsCanceled = true;

@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
             Properties = properties;
             Mechanism = mechanism;
             Locale = locale;
-        }   
+        }
         public static RabbitMQClientInfo DefaultClientInfo()
         {
             Dictionary<string, object> props = new Dictionary<string, object>{
@@ -20,7 +20,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
                 { "version", "0.0.1" },
                 { "platform", ".Net" },
                 { "copyright", "" },
-                { "information","" },                
+                { "information","" },
                 { "capabilities", new Dictionary<string,object>
                                     {
                                         { "publisher_confirms", true},
@@ -30,11 +30,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
                                         { "connection.blocked", true},
                                         { "authentication_failure_close", true},
 
-                                    } 
+                                    }
                 },
                 { "connection_name","" },
             };
-            return new RabbitMQClientInfo(props, "PLAIN","en_US") ;
+            return new RabbitMQClientInfo(props, "PLAIN", "en_US");
         }
     }
 }

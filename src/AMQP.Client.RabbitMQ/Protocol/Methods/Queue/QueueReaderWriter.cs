@@ -1,5 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Common;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
@@ -30,7 +30,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         {
             return _protocol.Writer.WriteAsync(new QueueBindWriter(ChannelId), info);
         }
-        
+
         public ValueTask SendQueueUnbind(QueueUnbindInfo info)
         {
             return _protocol.Writer.WriteAsync(new QueueUnbindWriter(ChannelId), info);

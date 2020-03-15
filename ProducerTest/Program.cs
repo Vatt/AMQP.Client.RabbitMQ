@@ -1,10 +1,8 @@
-﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using System;
+﻿using System;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 
 namespace ProducerTest
 {

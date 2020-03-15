@@ -1,21 +1,21 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using System;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol.Common;
+﻿using System;
 using System.Collections.Concurrent;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System.Runtime.CompilerServices;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 
 namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnection : IDisposable
     {
- 
+
         private static int _channelId = 0; //Interlocked?
         //private readonly ConcurrentDictionary<ushort, IChannel> _channels;
         private readonly ConcurrentDictionary<ushort, RabbitMQChannel> _channels;
@@ -23,8 +23,8 @@ namespace AMQP.Client.RabbitMQ
         private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
         private TaskCompletionSource<bool> _endReading;
 
-        private Task _readingTask;      
-        private Task _watchTask;      
+        private Task _readingTask;
+        private Task _watchTask;
         public RabbitMQServerInfo ServerInfo => Channel0.ServerInfo;
         public RabbitMQMainInfo MainInfo => Channel0.MainInfo;
         public RabbitMQClientInfo ClientInfo => Channel0.ClientInfo;
@@ -48,10 +48,10 @@ namespace AMQP.Client.RabbitMQ
             Channel0 = new RabbitMQChannelZero(_builder, _connectionClosedSrc, _cts.Token);
             await Channel0.CreateConnection().ConfigureAwait(false);
             _watchTask = Watch();
-            _protocol =  new RabbitMQProtocol(Channel0.ConnectionContext);
+            _protocol = new RabbitMQProtocol(Channel0.ConnectionContext);
             _readingTask = StartReading();
             await Channel0.OpenAsync(_protocol);
-            
+
         }
         private async Task Watch()
         {
@@ -60,7 +60,7 @@ namespace AMQP.Client.RabbitMQ
                 var info = await _connectionClosedSrc.Task.ConfigureAwait(false);
                 Console.WriteLine($"Connection closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
@@ -71,7 +71,7 @@ namespace AMQP.Client.RabbitMQ
                 Channel0.ConnectionContext.Abort();
                 _cts.Cancel();
             }
-            
+
 
         }
         private async Task StartReading()
@@ -88,7 +88,7 @@ namespace AMQP.Client.RabbitMQ
                         break;
                     }
                     var header = result.Message;
-                   
+
                     switch (header.FrameType)
                     {
                         case Constants.FrameMethod:
@@ -172,7 +172,7 @@ namespace AMQP.Client.RabbitMQ
             if (!_channels.TryGetValue(header.Channel, out RabbitMQChannel channel))
             {
                 throw new Exception($"{nameof(RabbitMQConnection)}: channel-id({header.Channel}) missmatch");
-            }            
+            }
             return channel.HandleFrameHeaderAsync(header);
         }
 

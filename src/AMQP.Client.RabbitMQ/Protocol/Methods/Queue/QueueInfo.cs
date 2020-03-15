@@ -2,7 +2,7 @@
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    public readonly struct  QueueInfo
+    public readonly struct QueueInfo
     {
         public readonly string Name;
         public readonly bool Passive;

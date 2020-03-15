@@ -1,10 +1,7 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Infrastructure;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Text;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -18,7 +15,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
         public void WriteMessage(ReadOnlyMemory<byte> message, IBufferWriter<byte> output)
         {
-            if(message.IsEmpty) { return;  }
+            if (message.IsEmpty) { return; }
             var writer = new ValueWriter(output);
             FrameWriter.WriteFrameHeader(Constants.FrameBody, _channelId, message.Length, ref writer);
             writer.WriteBytes(message.Span);

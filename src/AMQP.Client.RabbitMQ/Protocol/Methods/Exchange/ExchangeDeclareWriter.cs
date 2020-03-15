@@ -1,8 +1,8 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
@@ -13,7 +13,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
         {
             _channelId = channelId;
         }
-        public void WriteMessage(ExchangeInfo message,IBufferWriter<byte> output)
+        public void WriteMessage(ExchangeInfo message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);
@@ -24,7 +24,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
             writer.WriteShortInt(0); //reseved-1
             writer.WriteShortStr(message.Name);
             writer.WriteShortStr(message.Type);
-            
+
             writer.WriteBit(message.Passive);
             writer.WriteBit(message.Durable);
             writer.WriteBit(message.AutoDelete);

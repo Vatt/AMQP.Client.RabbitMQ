@@ -1,15 +1,15 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using System.IO.Pipelines;
 using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 
 namespace AMQP.Client.RabbitMQ.Handlers
 {
@@ -46,7 +46,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                     {
                         var result = await ReadBasicConsumeOk().ConfigureAwait(false);
                         //_consumeOkSrc.SetResult(result);
-                        if(!_consumers.TryGetValue(result, out var consumer))
+                        if (!_consumers.TryGetValue(result, out var consumer))
                         {
                             throw new Exception($"{nameof(BasicHandler)}: cant signal consume-ok to consumer. Tag:{result}");
                         }
@@ -113,7 +113,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                                                                 bool exclusive = false, Dictionary<string, object> arguments = null)
         {
             var info = new ConsumerInfo(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
-            var consumer = new RabbitMQConsumer(info, _protocol,  scheduler, channel);
+            var consumer = new RabbitMQConsumer(info, _protocol, scheduler, channel);
             if (!_consumers.TryAdd(consumerTag, consumer))
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))

@@ -1,8 +1,8 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using System;
+using System.Buffers;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
-using System;
-using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
@@ -10,7 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQServerInfo message)
         {
-            
+
             message = default;
             ValueReader reader = new ValueReader(input);
             if (!reader.ReadOctet(out var major)) { return false; }

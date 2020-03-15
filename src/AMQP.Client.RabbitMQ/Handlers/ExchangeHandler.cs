@@ -1,11 +1,11 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 
 namespace AMQP.Client.RabbitMQ.Handlers
 {
@@ -23,7 +23,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         private Dictionary<string, ExchangeInfo> _exchanges;
         private TaskCompletionSource<bool> _declareOkSrc;
         private TaskCompletionSource<bool> _deleteOkSrc;
-        public ExchangeHandler(ushort channelId, RabbitMQProtocol protocol):base(channelId,protocol)
+        public ExchangeHandler(ushort channelId, RabbitMQProtocol protocol) : base(channelId, protocol)
         {
             _exchanges = new Dictionary<string, ExchangeInfo>();
             _semafore = new SemaphoreSlim(1);
@@ -67,7 +67,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            
+
             await SendExchangeDeclareAsync(info).ConfigureAwait(false);
             var result = await _declareOkSrc.Task.ConfigureAwait(false);
             if (result)
@@ -104,7 +104,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             var info = new ExchangeDeleteInfo(name, ifUnused);
             _exchanges.Remove(info.Name);
             return SendExchangeDeleteAsync(info);
-            
+
 
         }
     }

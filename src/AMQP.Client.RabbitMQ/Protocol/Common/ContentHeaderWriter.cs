@@ -1,12 +1,10 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -31,7 +29,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             writer.WriteShortInt(message.ClassId);
             writer.WriteShortInt(message.Weight);
             writer.WriteLongLong(message.BodySize);
-            
+
             WriteBitFlagsAndContinuation(ref message.Properties, ref writer);
 
 
@@ -69,7 +67,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             writer.Commit();
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteBitFlagsAndContinuation(ref ContentHeaderProperties properties,ref ValueWriter writer)
+        private void WriteBitFlagsAndContinuation(ref ContentHeaderProperties properties, ref ValueWriter writer)
         {
             if (properties.ContentType != null) { WritePresence(true); }
             if (properties.ContentEncoding != null) { WritePresence(true); }

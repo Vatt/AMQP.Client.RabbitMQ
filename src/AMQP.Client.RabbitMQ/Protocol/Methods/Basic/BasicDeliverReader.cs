@@ -1,8 +1,8 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using System;
+using System.Buffers;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
-using System;
-using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
@@ -18,8 +18,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             if (!reader.ReadShortStr(out var exchangeName)) { return false; }
             if (!reader.ReadShortStr(out var routingKey)) { return false; }
             if (!reader.ReadOctet(out byte endMarker)) { return false; }
-            if(endMarker != Constants.FrameEnd)
-            {                
+            if (endMarker != Constants.FrameEnd)
+            {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
             message = new DeliverInfo(consumerTag, deliveryTag, redelivered, exchangeName, routingKey);

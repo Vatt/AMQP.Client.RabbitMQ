@@ -1,7 +1,7 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -20,8 +20,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             message = default;
             SequenceReader<byte> reader = new SequenceReader<byte>(input);
-            if(!reader.TryReadBigEndian(out short classId)){ return false; }
-            if (!reader.TryReadBigEndian(out short methodId)){ return false; }
+            if (!reader.TryReadBigEndian(out short classId)) { return false; }
+            if (!reader.TryReadBigEndian(out short methodId)) { return false; }
             message = new MethodHeader(classId, methodId);
             consumed = reader.Position;
             examined = consumed;

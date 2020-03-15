@@ -1,6 +1,6 @@
-﻿using AMQP.Client.RabbitMQ;
-using System.Net;
+﻿using System.Net;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ;
 
 namespace ConsumerTest
 {
@@ -19,12 +19,12 @@ namespace ConsumerTest
 
             consumer.Received += (gavno, result) =>
             {
-                
+
                 //await channel.Ack(deliver.DeliveryTag);
             };
             await consumer.ConsumerStartAsync();
             await connection.WaitEndReading();
-            
+
         }
     }
 }

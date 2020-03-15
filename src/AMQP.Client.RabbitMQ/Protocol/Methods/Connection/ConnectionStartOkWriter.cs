@@ -1,13 +1,12 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
-    public class ConnectionStartOkWriter :IMessageWriter<RabbitMQClientInfo>
+    public class ConnectionStartOkWriter : IMessageWriter<RabbitMQClientInfo>
     {
         private readonly RabbitMQConnectionInfo _info;
         public ConnectionStartOkWriter(RabbitMQConnectionInfo info)
@@ -17,8 +16,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         public void WriteMessage(RabbitMQClientInfo message, IBufferWriter<byte> output)
         {
             var writer = new ValueWriter(output);
-            writer.WriteOctet(1); 
-            writer.WriteShortInt(0); 
+            writer.WriteOctet(1);
+            writer.WriteShortInt(0);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(10, 11, ref writer);

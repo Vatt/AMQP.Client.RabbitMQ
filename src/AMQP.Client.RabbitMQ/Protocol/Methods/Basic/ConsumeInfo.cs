@@ -11,7 +11,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         public readonly bool Exclusive;
         public readonly bool NoWait;
         public readonly Dictionary<string, object> Arguments;
-        public ConsumerInfo(string queue, string tag, bool noLocal = false, bool noAck = false, 
+        public ConsumerInfo(string queue, string tag, bool noLocal = false, bool noAck = false,
                             bool exclusive = false, bool nowait = false, Dictionary<string, object> arguments = null)
         {
             QueueName = queue;

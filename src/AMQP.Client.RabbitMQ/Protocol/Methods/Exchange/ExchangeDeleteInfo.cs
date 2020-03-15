@@ -1,6 +1,6 @@
 ﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
-    public readonly struct  ExchangeDeleteInfo
+    public readonly struct ExchangeDeleteInfo
     {
         public readonly string Name;
         public readonly bool IfUnused;

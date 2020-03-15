@@ -1,6 +1,6 @@
-﻿using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
+using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
@@ -10,7 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         {
             message = false;
             SequenceReader<byte> reader = new SequenceReader<byte>(input);
-            if(reader.Remaining < 2)
+            if (reader.Remaining < 2)
             {
                 return false;
             }
