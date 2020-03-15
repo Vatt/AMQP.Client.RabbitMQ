@@ -98,7 +98,8 @@ namespace AMQP.Client.RabbitMQ.Channel
                     }
                 case 51://close-ok
                     {
-                        _closeSrc.SetResult(await _readerWriter.ReadCloseOk());
+                        var closeOk = await _readerWriter.ReadCloseOk().ConfigureAwait(false);
+                        _closeSrc.SetResult(closeOk);
                         break;
                     }
 
@@ -130,10 +131,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             _protocol = protocol;
             _readerWriter = new ConnectionReaderWriter(_protocol);
             await _protocol.Writer.WriteAsync(_byteWriter, _protocolMsg).ConfigureAwait(false);
-            _heartbeat = new Timer(async (obj) =>
-            {
-                await _protocol.Writer.WriteAsync(_byteWriter, _heartbeatFrame);
-            }, null, 0, MainInfo.Heartbeat);
+            _heartbeat = new Timer(Heartbeat, null, 0, MainInfo.Heartbeat);
 
             await _openOkSrc.Task.ConfigureAwait(false);
         }
@@ -150,6 +148,23 @@ namespace AMQP.Client.RabbitMQ.Channel
             await _closeSrc.Task.ConfigureAwait(false);
             _connectionClosedSrc.SetResult(new CloseInfo(Constants.Success, replyText, 0, 0));
             return true;
+        }
+
+        private void Heartbeat(object state)
+        {
+            _ = HeartbeatAsync();
+        }
+
+        private async ValueTask HeartbeatAsync()
+        {
+            try
+            {
+                await _protocol.Writer.WriteAsync(_byteWriter, _heartbeatFrame).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                //TODO logger
+            }
         }
     }
 }
