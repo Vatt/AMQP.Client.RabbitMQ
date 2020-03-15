@@ -94,7 +94,6 @@ namespace AMQP.Client.RabbitMQ
                         case Constants.FrameHeartbeat:
                             {
                                 await _protocol.ReadNoPayload().ConfigureAwait(false);
-                                _protocol.Reader.Advance();
                                 break;
                             }
                         default:

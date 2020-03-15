@@ -1,6 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,103 +14,48 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         private static readonly NoPayloadReader _noPayloadReader = new NoPayloadReader();
         private static readonly FrameHeaderReader _frameHeaderReader = new FrameHeaderReader();
         private static readonly ShortStrPayloadReader _shortStrPayloadReader = new ShortStrPayloadReader();
-        public static ValueTask SendHeartbeat(this RabbitMQProtocol protocol)
+        public static ValueTask SendHeartbeat(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new ByteWriter(), _heartbeatFrame);
+            return protocol.WriteAsync(new ByteWriter(), _heartbeatFrame, token);
         }
-        public static ValueTask SendProtocol(this RabbitMQProtocol protocol)
+        public static ValueTask SendProtocol(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new ByteWriter(), _protocolMsg);
+            return protocol.WriteAsync(new ByteWriter(), _protocolMsg, token);
         }
-        public static async ValueTask<FrameHeader> ReadFrameHeader(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static ValueTask<FrameHeader> ReadFrameHeader(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_frameHeaderReader, token).ConfigureAwait(false);
-            protocol.Reader.Advance();
-            if (result.IsCompleted)
-            {
-                //TODO:  сделать чтонибудь
-            }
-            return result.Message;
+            return protocol.ReadAsync(_frameHeaderReader, token);
         }
-        public static async ValueTask<MethodHeader> ReadMethodHeader(this RabbitMQProtocol protocol)
+        public static ValueTask<MethodHeader> ReadMethodHeader(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_methodHeaderReader).ConfigureAwait(false);
-            protocol.Reader.Advance();
-            if (result.IsCanceled)
-            {
-                //TODO:  сделать чтонибудь
-            }
-            return result.Message;
+            return protocol.ReadAsync(_methodHeaderReader, token);
         }
-        public static async ValueTask<bool> ReadCloseOk(this RabbitMQProtocol protocol)
+        public static ValueTask<bool> ReadCloseOk(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            return await ReadNoPayload(protocol);
+            return ReadNoPayload(protocol, token);
         }
 
-        public static async ValueTask<CloseInfo> ReadClose(this RabbitMQProtocol protocol)
+        public static ValueTask<CloseInfo> ReadClose(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_closeReader).ConfigureAwait(false);
-            if (result.IsCanceled)
-            {
-                //TODO:  сделать чтонибудь
-            }
-            protocol.Reader.Advance();
-            return result.Message;
+            return protocol.ReadAsync(_closeReader, token);
         }
-        public static async ValueTask<bool> ReadNoPayload(this RabbitMQProtocol protocol)
+        public static ValueTask<bool> ReadNoPayload(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_noPayloadReader).ConfigureAwait(false);
-            if (result.IsCanceled)
-            {
-                //TODO:  сделать чтонибудь
-            }
-            protocol.Reader.Advance();
-            return result.Message;
+            return protocol.ReadAsync(_noPayloadReader, token);
         }
-        public static ValueTask SendClose(this RabbitMQProtocol protocol, ushort channelId, short classId, short methodId, CloseInfo info)
+        public static ValueTask SendClose(this RabbitMQProtocol protocol, ushort channelId, short classId, short methodId, CloseInfo info, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new CloseWriter(channelId, classId, methodId), info);
+            return protocol.WriteAsync(new CloseWriter(channelId, classId, methodId), info, token);
         }
-        public static ValueTask SendCloseOk(this RabbitMQProtocol protocol, byte type, ushort channel, short classId, short methodId)
+        public static ValueTask SendCloseOk(this RabbitMQProtocol protocol, byte type, ushort channel, short classId, short methodId, CancellationToken token = default)
         {
             var info = new NoPaylodMethodInfo(type, channel, classId, methodId);
-            return protocol.Writer.WriteAsync(new NoPayloadMethodWrtier(), info);
+            return protocol.WriteAsync(new NoPayloadMethodWrtier(), info, token);
         }
-        internal static async ValueTask<string> ReadShortStrPayload(this RabbitMQProtocol protocol)
+        internal static ValueTask<string> ReadShortStrPayload(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_shortStrPayloadReader).ConfigureAwait(false);
-            if (result.IsCanceled)
-            {
-                //TODO:  сделать чтонибудь
-            }
-            protocol.Reader.Advance();
-            return result.Message;
+            return protocol.ReadAsync(_shortStrPayloadReader, token);
         }
 
-        public static async ValueTask<ContentHeader> ReadContentHeaderWithFrameHeader(this RabbitMQProtocol protocol, ushort channelId)
-        {
-            var reader = new ContentHeaderFullReader(channelId);
-            var result = await protocol.Reader.ReadAsync(reader).ConfigureAwait(false);
-            if (result.IsCanceled)
-            {
-                //TODO:  сделать чтонибудь
-            }
-            protocol.Reader.Advance();
-            return result.Message;
-        }
-
-        public static ValueTask PublishAll(this RabbitMQProtocol protocol, ushort channelId, PublishFullContent content)
-        {
-            return protocol.Writer.WriteAsync(new PublishFullWriter(channelId), content);
-        }
-        public static ValueTask PublishPartial(this RabbitMQProtocol protocol, ushort channelId, PublishInfoAndContent infoAndContent)
-        {
-            var writer = new PublishInfoAndContentWriter(channelId);
-            return protocol.Writer.WriteAsync(writer, infoAndContent);
-        }
-        public static ValueTask PublishBody(this RabbitMQProtocol protocol, ushort channelId, ReadOnlyMemory<byte>[] batch)
-        {
-            return protocol.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch);
-        }
     }
 }

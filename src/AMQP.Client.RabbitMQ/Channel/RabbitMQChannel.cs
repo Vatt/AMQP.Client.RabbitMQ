@@ -35,8 +35,6 @@ namespace AMQP.Client.RabbitMQ.Channel
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        //private readonly PublishInfoAndContentWriter _publishInfoAndContentWriter;
-        //private readonly PublishFullWriter _publishFullWriter;
         private readonly PipeScheduler _scheduler;
 
         internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler)
@@ -44,8 +42,6 @@ namespace AMQP.Client.RabbitMQ.Channel
             _channelId = id;
             _isClosed = true;
             _scheduler = scheduler;
-            //_publishInfoAndContentWriter = new PublishInfoAndContentWriter(_channelId);
-            //_publishFullWriter = new PublishFullWriter(_channelId);
             _mainInfo = info;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
             _writerSemaphore = new SemaphoreSlim(1);
@@ -268,7 +264,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Ack)}: channel is canceled");
             }
-            return _protocol.Writer.WriteAsync(new BasicAckWriter(_channelId), new AckInfo(deliveryTag, multiple));
+            var info = new AckInfo(deliveryTag, multiple);
+            return _protocol.SendAck(ChannelId, ref info);
         }
 
         public ValueTask Reject(long deliveryTag, bool requeue)
@@ -277,7 +274,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Reject)}: channel is canceled");
             }
-            return _protocol.Writer.WriteAsync(new BasicRejectWriter(_channelId), new RejectInfo(deliveryTag, requeue));
+            var info = new RejectInfo(deliveryTag, requeue);
+            return _protocol.SendReject(ChannelId, ref info);
         }
         public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
@@ -289,18 +287,16 @@ namespace AMQP.Client.RabbitMQ.Channel
             var content = new ContentHeader(60, message.Length, ref properties);
             if (message.Length <= _mainInfo.FrameMax)
             {
-                var publishAll = new PublishFullContent(message, ref info, ref content);
-                //await _protocol.Writer.WriteAsync(_publishFullWriter, publishAll).ConfigureAwait(false);
-                await _protocol.PublishAll(ChannelId, publishAll).ConfigureAwait(false);
+                var allinfo = new PublishAllInfo(message, ref info, ref content);
+                await _protocol.PublishAll(ChannelId, allinfo).ConfigureAwait(false);
                 return;
             }
 
 
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             int written = 0;
-            var contentArgs = new PublishInfoAndContent(ref info, ref content);
-            //await _protocol.Writer.WriteAsync(_publishInfoAndContentWriter, contentArgs).ConfigureAwait(false);
-            await _protocol.PublishPartial(ChannelId, contentArgs).ConfigureAwait(false);
+            var partialInfo = new PublishPartialInfo(ref info, ref content);
+            await _protocol.PublishPartial(ChannelId, partialInfo).ConfigureAwait(false);
             while (written < content.BodySize)
             {
                 int batchCnt = 0;
@@ -311,7 +307,6 @@ namespace AMQP.Client.RabbitMQ.Channel
                     batchCnt++;
                     written += writable;
                 }
-                //await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _publishBatch).ConfigureAwait(false);
                 await _protocol.PublishBody(ChannelId, _publishBatch).ConfigureAwait(false);
                 _publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }

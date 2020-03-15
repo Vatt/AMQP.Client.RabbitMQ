@@ -24,10 +24,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _reader.Restart(deliver.Header.BodySize);
             while (!_reader.IsComplete)
             {
-                var result = await _protocol.Reader.ReadAsync(_reader).ConfigureAwait(false);
-                var chunk = new ChunkedConsumeResult(result.Message, _reader.IsComplete);
+                var result = await _protocol.ReadAsync(_reader).ConfigureAwait(false);
+                var chunk = new ChunkedConsumeResult(result, _reader.IsComplete);
                 Received?.Invoke(deliver, chunk);
-                _protocol.Reader.Advance();
             }
         }
     }

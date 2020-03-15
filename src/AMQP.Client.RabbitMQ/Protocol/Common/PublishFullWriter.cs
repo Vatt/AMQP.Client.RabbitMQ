@@ -7,7 +7,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    internal class PublishFullWriter : IMessageWriter<PublishFullContent>
+    internal class PublishFullWriter : IMessageWriter<PublishAllInfo>
     {
         private ushort _channelId;
         private BasicPublishWriter _basicPublishWriter;
@@ -22,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             _bodyFrameWriter = new BodyFrameWriter(_channelId);
         }
 
-        public void WriteMessage(PublishFullContent message, IBufferWriter<byte> output)
+        public void WriteMessage(PublishAllInfo message, IBufferWriter<byte> output)
         {
             var writer = new ValueWriter(output);
             _basicPublishWriter.WriteMessage(ref message.Info, ref writer);
@@ -32,13 +32,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         }
     }
 
-    public class PublishFullContent
+    public class PublishAllInfo
     {
         private BasicPublishInfo _info;
         private ContentHeader _contentHeader;
         public ReadOnlyMemory<byte> Body { get; }
 
-        public PublishFullContent(ReadOnlyMemory<byte> body, ref BasicPublishInfo info, ref ContentHeader header)
+        public PublishAllInfo(ReadOnlyMemory<byte> body, ref BasicPublishInfo info, ref ContentHeader header)
         {
             Body = body;
             _info = info;

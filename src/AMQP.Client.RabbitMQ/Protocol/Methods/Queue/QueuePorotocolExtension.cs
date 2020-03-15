@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
@@ -9,48 +10,36 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         private static readonly QueuePurgeOkDeleteOkReader _queuePurgeOkDeleteOkReader = new QueuePurgeOkDeleteOkReader();
         public static ValueTask SendQueueDeclare(this RabbitMQProtocol protocol, ushort channelId, QueueInfo info)
         {
-            return protocol.Writer.WriteAsync(new QueueDeclareWriter(channelId), info);
+            return protocol.WriteAsync(new QueueDeclareWriter(channelId), info);
         }
-        public static async ValueTask<QueueDeclareOk> ReadQueueDeclareOk(this RabbitMQProtocol protocol)
+        public static ValueTask<QueueDeclareOk> ReadQueueDeclareOk(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_queueDeclareOkReader).ConfigureAwait(false);
-            protocol.Reader.Advance();
-            if (result.IsCompleted)
-            {
-                //TODO:Сделать что нибудь
-            }
-            return result.Message;
+            return protocol.ReadAsync(_queueDeclareOkReader, token);
         }
-        public static ValueTask SendQueueBind(this RabbitMQProtocol protocol, ushort channelId, QueueBindInfo info)
+        public static ValueTask SendQueueBind(this RabbitMQProtocol protocol, ushort channelId, QueueBindInfo info, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new QueueBindWriter(channelId), info);
+            return protocol.WriteAsync(new QueueBindWriter(channelId), info, token);
         }
 
-        public static ValueTask SendQueueUnbind(this RabbitMQProtocol protocol, ushort channelId, QueueUnbindInfo info)
+        public static ValueTask SendQueueUnbind(this RabbitMQProtocol protocol, ushort channelId, QueueUnbindInfo info, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new QueueUnbindWriter(channelId), info);
+            return protocol.WriteAsync(new QueueUnbindWriter(channelId), info, token);
         }
-        public static ValueTask SendQueuePurge(this RabbitMQProtocol protocol, ushort channelId, QueuePurgeInfo info)
+        public static ValueTask SendQueuePurge(this RabbitMQProtocol protocol, ushort channelId, QueuePurgeInfo info, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new QueuePurgeWriter(channelId), info);
+            return protocol.WriteAsync(new QueuePurgeWriter(channelId), info, token);
         }
-        public static ValueTask SendQueueDelete(this RabbitMQProtocol protocol, ushort channelId, QueueDeleteInfo info)
+        public static ValueTask SendQueueDelete(this RabbitMQProtocol protocol, ushort channelId, QueueDeleteInfo info, CancellationToken token = default)
         {
-            return protocol.Writer.WriteAsync(new QueueDeleteWriter(channelId), info);
+            return protocol.WriteAsync(new QueueDeleteWriter(channelId), info, token);
         }
-        public static async ValueTask<int> ReadQueuePurgeOkDeleteOk(this RabbitMQProtocol protocol)
+        public static ValueTask<int> ReadQueuePurgeOkDeleteOk(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            var result = await protocol.Reader.ReadAsync(_queuePurgeOkDeleteOkReader).ConfigureAwait(false);
-            protocol.Reader.Advance();
-            if (result.IsCompleted)
-            {
-                //TODO:Сделать что нибудь
-            }
-            return result.Message;
+            return protocol.ReadAsync(_queuePurgeOkDeleteOkReader, token);
         }
-        public static ValueTask<bool> ReadBindOkUnbindOk(this RabbitMQProtocol protocol)
+        public static ValueTask<bool> ReadBindOkUnbindOk(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
-            return protocol.ReadNoPayload();
+            return protocol.ReadNoPayload(token);
         }
     }
 }

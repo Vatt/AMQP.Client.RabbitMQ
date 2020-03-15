@@ -1,6 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Runtime.CompilerServices;
@@ -41,7 +40,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
             CancelSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await _protocol.Writer.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(_info.ConsumerTag, false)).ConfigureAwait(false);
+            await _protocol.WriteAsync(new BasicConsumeCancelWriter(ChannelId), new ConsumeCancelInfo(_info.ConsumerTag, false)).ConfigureAwait(false);
             var result = await CancelSrc.Task.ConfigureAwait(false);
             IsCanceled = true;
             _semaphore.Release();
@@ -55,7 +54,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 throw new Exception("Consumer already canceled");
             }
             var contentResult = await _protocol.ReadContentHeaderWithFrameHeader(ChannelId).ConfigureAwait(false);
-            _protocol.Reader.Advance();
             await ProcessBodyMessage(new RabbitMQDeliver(info.DeliverTag, contentResult)).ConfigureAwait(false);
         }
         internal abstract ValueTask ProcessBodyMessage(RabbitMQDeliver deliver);
