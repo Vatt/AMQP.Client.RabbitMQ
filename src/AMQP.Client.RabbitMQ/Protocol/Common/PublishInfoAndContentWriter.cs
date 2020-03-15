@@ -1,8 +1,8 @@
-﻿using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using Bedrock.Framework.Protocols;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -28,7 +28,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         }
     }
 
-    internal class PublishInfoAndContent
+    public class PublishInfoAndContent
     {
         private BasicPublishInfo _info;
         private ContentHeader _contentHeader;

@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
-namespace AMQP.Client.RabbitMQ.Protocol.Methods.Common
+namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class CloseWriter : IMessageWriter<CloseInfo>
+    internal class CloseWriter : IMessageWriter<CloseInfo>
     {
         private readonly ushort _channelId;
         private readonly short _classId;

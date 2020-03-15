@@ -1,9 +1,9 @@
-﻿using System;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Channel;
+﻿using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using System;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {

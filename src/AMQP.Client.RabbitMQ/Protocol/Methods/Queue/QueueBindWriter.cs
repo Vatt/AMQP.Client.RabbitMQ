@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    public class QueueBindWriter : IMessageWriter<QueueBindInfo>
+    internal class QueueBindWriter : IMessageWriter<QueueBindInfo>
     {
         private readonly ushort _channelId;
         public QueueBindWriter(ushort channelId)

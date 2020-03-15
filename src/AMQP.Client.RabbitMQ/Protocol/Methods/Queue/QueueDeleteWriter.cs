@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    public class QueueDeleteWriter : IMessageWriter<QueueDeleteInfo>
+    internal class QueueDeleteWriter : IMessageWriter<QueueDeleteInfo>
     {
         private readonly ushort _channelId;
         public QueueDeleteWriter(ushort channelId)

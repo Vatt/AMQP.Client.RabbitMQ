@@ -1,8 +1,8 @@
-﻿using System;
-using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
+using System;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
@@ -14,7 +14,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
      * | channel-max | frame-max | heartbeat |
      * +-------------+-----------+-----------+
      */
-    public class ConnectionTuneReader : IMessageReader<RabbitMQMainInfo>
+    internal class ConnectionTuneReader : IMessageReader<RabbitMQMainInfo>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQMainInfo message)
         {

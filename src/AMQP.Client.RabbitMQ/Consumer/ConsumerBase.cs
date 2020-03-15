@@ -1,11 +1,11 @@
-﻿using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Channel;
+﻿using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {
@@ -18,7 +18,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
         internal TaskCompletionSource<string> ConsumeOkSrc;
         private ConsumerInfo _info;
         private SemaphoreSlim _semaphore;
-        private ContentHeaderFullReader _contentHeaderFullReader;
 
         public bool IsCanceled { get; protected set; }
         internal ConsumerBase(ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
@@ -29,12 +28,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
             ConsumeOkSrc = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             IsCanceled = true;
             _semaphore = new SemaphoreSlim(1);
-            _contentHeaderFullReader = new ContentHeaderFullReader(channel.ChannelId);
         }
         public async ValueTask ConsumerStartAsync()
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
-            await _protocol.Writer.WriteAsync(new BasicConsumeWriter(ChannelId), _info).ConfigureAwait(false);
+            await _protocol.SendBasicConsume(ChannelId, _info).ConfigureAwait(false);
             await ConsumeOkSrc.Task.ConfigureAwait(false);
             IsCanceled = false;
             _semaphore.Release();
@@ -56,9 +54,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
             {
                 throw new Exception("Consumer already canceled");
             }
-            var contentResult = await _protocol.Reader.ReadAsync(_contentHeaderFullReader).ConfigureAwait(false);
+            var contentResult = await _protocol.ReadContentHeaderWithFrameHeader(ChannelId).ConfigureAwait(false);
             _protocol.Reader.Advance();
-            await ProcessBodyMessage(new RabbitMQDeliver(info.DeliverTag, contentResult.Message)).ConfigureAwait(false);
+            await ProcessBodyMessage(new RabbitMQDeliver(info.DeliverTag, contentResult)).ConfigureAwait(false);
         }
         internal abstract ValueTask ProcessBodyMessage(RabbitMQDeliver deliver);
 

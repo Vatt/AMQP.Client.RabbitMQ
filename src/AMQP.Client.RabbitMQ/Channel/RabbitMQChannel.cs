@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
+﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Handlers;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
@@ -12,9 +6,14 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
@@ -25,8 +24,6 @@ namespace AMQP.Client.RabbitMQ.Channel
         private bool _isClosed;
         private readonly int _publishBatchSize = 4;
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
-
-        //private Action<ushort> _handlerCloseCallback;
         private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -35,12 +32,11 @@ namespace AMQP.Client.RabbitMQ.Channel
         private RabbitMQMainInfo _mainInfo;
         private readonly SemaphoreSlim _writerSemaphore;
         private RabbitMQProtocol _protocol;
-        private ChannelReaderWriter _readerWriter;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
-        private readonly PublishInfoAndContentWriter _publishInfoAndContentWriter;
-        private readonly PublishFullWriter _publishFullWriter;
+        //private readonly PublishInfoAndContentWriter _publishInfoAndContentWriter;
+        //private readonly PublishFullWriter _publishFullWriter;
         private readonly PipeScheduler _scheduler;
 
         internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler)
@@ -48,9 +44,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             _channelId = id;
             _isClosed = true;
             _scheduler = scheduler;
-            _publishInfoAndContentWriter = new PublishInfoAndContentWriter(_channelId);
-            _publishFullWriter = new PublishFullWriter(_channelId);
-            //_handlerCloseCallback = closeCallback;
+            //_publishInfoAndContentWriter = new PublishInfoAndContentWriter(_channelId);
+            //_publishFullWriter = new PublishFullWriter(_channelId);
             _mainInfo = info;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
             _writerSemaphore = new SemaphoreSlim(1);
@@ -72,7 +67,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         public async ValueTask ProcessMethod()
         {
-            var method = await _readerWriter.ReadMethodHeader().ConfigureAwait(false);
+            var method = await _protocol.ReadMethodHeader().ConfigureAwait(false);
             switch (method.ClassId)
             {
                 case 20://Channels class
@@ -105,7 +100,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 11://open-ok
                     {
-                        _isClosed = await _readerWriter.ReadChannelOpenOk().ConfigureAwait(false);
+                        await _protocol.ReadChannelOpenOk().ConfigureAwait(false);
+                        _isClosed = false;
                         _openSrc.SetResult(_isClosed);
 
                         break;
@@ -113,7 +109,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 40: //close
                     {
                         _isClosed = false;
-                        var info = await _readerWriter.ReadChannelClose().ConfigureAwait(false);
+                        var info = await _protocol.ReadClose().ConfigureAwait(false);
                         await ProcessChannelClose();
                         _channelCloseSrc.SetResult(info);
                         break;
@@ -121,7 +117,7 @@ namespace AMQP.Client.RabbitMQ.Channel
                     }
                 case 41://close-ok
                     {
-                        var result = await _readerWriter.ReadChannelCloseOk().ConfigureAwait(false);
+                        var result = await _protocol.ReadCloseOk().ConfigureAwait(false);
                         _isClosed = false;
                         _manualCloseSrc.SetResult(_isClosed);
                         break;
@@ -134,11 +130,10 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async Task OpenAsync(RabbitMQProtocol protocol)
         {
             _protocol = protocol;
-            _readerWriter = new ChannelReaderWriter(_protocol);
             _exchangeMethodHandler = new ExchangeHandler(_channelId, _protocol);
             _queueMethodHandler = new QueueHandler(_channelId, _protocol);
             _basicHandler = new BasicHandler(_channelId, _protocol, _writerSemaphore);
-            await _readerWriter.SendChannelOpen(_channelId).ConfigureAwait(false);
+            await _protocol.SendChannelOpen(_channelId).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
             _isClosed = false;
 
@@ -154,7 +149,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
-            await _readerWriter.SendChannelClose(_channelId, new CloseInfo(replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
+            await _protocol.SendClose(_channelId, 20, 40, new CloseInfo(replyCode, replyText, failedClassId, failedMethodId)).ConfigureAwait(false);
             var result = await _manualCloseSrc.Task.ConfigureAwait(false);
             await ProcessChannelClose().ConfigureAwait(false);
             _channelCloseSrc.SetResult(new CloseInfo(Constants.Success, replyText, 0, 0));
@@ -294,8 +289,9 @@ namespace AMQP.Client.RabbitMQ.Channel
             var content = new ContentHeader(60, message.Length, ref properties);
             if (message.Length <= _mainInfo.FrameMax)
             {
-                var fullPublish = new PublishFullContent(message, ref info, ref content);
-                await _protocol.Writer.WriteAsync(_publishFullWriter, fullPublish).ConfigureAwait(false);
+                var publishAll = new PublishFullContent(message, ref info, ref content);
+                //await _protocol.Writer.WriteAsync(_publishFullWriter, publishAll).ConfigureAwait(false);
+                await _protocol.PublishAll(ChannelId, publishAll).ConfigureAwait(false);
                 return;
             }
 
@@ -303,7 +299,8 @@ namespace AMQP.Client.RabbitMQ.Channel
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             int written = 0;
             var contentArgs = new PublishInfoAndContent(ref info, ref content);
-            await _protocol.Writer.WriteAsync(_publishInfoAndContentWriter, contentArgs).ConfigureAwait(false);
+            //await _protocol.Writer.WriteAsync(_publishInfoAndContentWriter, contentArgs).ConfigureAwait(false);
+            await _protocol.PublishPartial(ChannelId, contentArgs).ConfigureAwait(false);
             while (written < content.BodySize)
             {
                 int batchCnt = 0;
@@ -314,7 +311,8 @@ namespace AMQP.Client.RabbitMQ.Channel
                     batchCnt++;
                     written += writable;
                 }
-                await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _publishBatch).ConfigureAwait(false);
+                //await _protocol.Writer.WriteManyAsync(new BodyFrameWriter(_channelId), _publishBatch).ConfigureAwait(false);
+                await _protocol.PublishBody(ChannelId, _publishBatch).ConfigureAwait(false);
                 _publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
 

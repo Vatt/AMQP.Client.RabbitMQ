@@ -1,4 +1,4 @@
-﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Common
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     public readonly struct CloseInfo
     {

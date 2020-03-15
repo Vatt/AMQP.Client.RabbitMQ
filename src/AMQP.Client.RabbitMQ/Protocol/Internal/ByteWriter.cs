@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {

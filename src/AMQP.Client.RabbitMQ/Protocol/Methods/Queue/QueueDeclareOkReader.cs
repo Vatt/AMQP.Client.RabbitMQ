@@ -1,12 +1,12 @@
-﻿using System;
-using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
+using System;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    public class QueueDeclareOkReader : IMessageReader<QueueDeclareOk>
+    internal class QueueDeclareOkReader : IMessageReader<QueueDeclareOk>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out QueueDeclareOk message)
         {

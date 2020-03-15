@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
-    public class BasicConsumeCancelWriter : IMessageWriter<ConsumeCancelInfo>
+    internal class BasicConsumeCancelWriter : IMessageWriter<ConsumeCancelInfo>
     {
         private readonly ushort _channelId;
         public BasicConsumeCancelWriter(ushort channelId)

@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
-    public class ConnectionStartOkWriter : IMessageWriter<RabbitMQClientInfo>
+    internal class ConnectionStartOkWriter : IMessageWriter<RabbitMQClientInfo>
     {
         private readonly RabbitMQConnectionInfo _info;
         public ConnectionStartOkWriter(RabbitMQConnectionInfo info)
