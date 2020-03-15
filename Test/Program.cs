@@ -67,7 +67,7 @@ namespace Test
 
             };
 
-            var consumer2 = channel2.CreateConsumer("TestQueue2", "TestConsumer2", PipeScheduler.ThreadPool, noAck: true);
+            var consumer2 = channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
             consumer2.Received += async (sender, result) =>
             {
                 //await channel2.Ack(deliver.DeliveryTag, true);
@@ -164,7 +164,7 @@ namespace Test
             var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
             await channel.QueueBindAsync("TestQueue", "TestExchange");
 
-            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer",PipeScheduler.ThreadPool, noAck: true);
+            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
             consumer.Received += (sender, result) =>
             {
                 //await channel.Ack(deliver.DeliveryTag, false);

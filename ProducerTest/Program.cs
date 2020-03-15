@@ -10,16 +10,11 @@ namespace ProducerTest
 {
     class Program
     {
+        private const string Host = "centos0.mshome.net";
         static async Task Main(string[] args)
         {
-            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint("centos0.mshome.net", 5672));
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Heartbeat(60 * 10)
-                                 .ProductName("AMQP.Client.RabbitMQ")
-                                 .ProductVersion("0.0.1")
-                                 .ConnectionName("AMQP.Client.RabbitMQ:Test")
-                                 .ClientInformation("TEST TEST TEST")
-                                 .ClientCopyright("©")
                                  .Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();

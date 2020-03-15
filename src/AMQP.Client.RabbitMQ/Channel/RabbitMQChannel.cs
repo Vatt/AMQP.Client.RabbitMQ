@@ -41,10 +41,13 @@ namespace AMQP.Client.RabbitMQ.Channel
         private BasicHandler _basicHandler;
         private readonly PublishInfoAndContentWriter _publishInfoAndContentWriter;
         private readonly PublishFullWriter _publishFullWriter;
+        private readonly PipeScheduler _scheduler;
+
         internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler)
         {
             _channelId = id;
             _isClosed = true;
+            _scheduler = scheduler;
             _publishInfoAndContentWriter = new PublishInfoAndContentWriter(_channelId);
             _publishFullWriter = new PublishFullWriter(_channelId);
             //_handlerCloseCallback = closeCallback;
@@ -252,6 +255,13 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             return _basicHandler.CreateConsumer(queueName, consumerTag, this, scheduler, noLocal, noAck, exclusive, arguments);
         }
+
+        public RabbitMQConsumer CreateConsumer(string queueName, string consumerTag, bool noLocal = false, bool noAck = false,
+                                       bool exclusive = false, Dictionary<string, object> arguments = null)
+        {
+            return _basicHandler.CreateConsumer(queueName, consumerTag, this, _scheduler, noLocal, noAck, exclusive, arguments);
+        }
+
         public ValueTask QoS(int prefetchSize, ushort prefetchCount, bool global)
         {
             return _basicHandler.QoS(prefetchSize, prefetchCount, global);
