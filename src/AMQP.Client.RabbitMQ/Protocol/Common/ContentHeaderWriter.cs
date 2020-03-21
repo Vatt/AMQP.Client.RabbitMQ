@@ -1,14 +1,14 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class ContentHeaderWriter : IMessageWriter<ContentHeader>
+    internal class ContentHeaderWriter : IMessageWriter<ContentHeader>
     {
         private readonly ushort _channelId;
         private int _bitCount;

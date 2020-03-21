@@ -1,11 +1,11 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Handlers;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Net;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Handlers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
 namespace Test
 {
     class Program

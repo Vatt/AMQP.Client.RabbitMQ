@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {

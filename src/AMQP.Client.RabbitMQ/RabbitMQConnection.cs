@@ -1,23 +1,21 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Channel;
+﻿using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using System;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnection : IDisposable
     {
 
-        private static int _channelId = 0; //Interlocked?
-        //private readonly ConcurrentDictionary<ushort, IChannel> _channels;
+        private static int _channelId = 0;
         private readonly ConcurrentDictionary<ushort, RabbitMQChannel> _channels;
         private RabbitMQChannelZero Channel0;
         private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
@@ -38,7 +36,6 @@ namespace AMQP.Client.RabbitMQ
             _builder = builder;
             _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
             _endReading = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            //_channels = new ConcurrentDictionary<ushort, IChannel>();
             _channels = new ConcurrentDictionary<ushort, RabbitMQChannel>();
             _cts = new CancellationTokenSource();
         }
@@ -76,40 +73,32 @@ namespace AMQP.Client.RabbitMQ
         }
         private async Task StartReading()
         {
-            var headerReader = new FrameHeaderReader();
             try
             {
                 while (true)
                 {
-                    var result = await _protocol.Reader.ReadAsync(headerReader, _cts.Token).ConfigureAwait(false);
-                    _protocol.Reader.Advance();
-                    if (result.IsCompleted)
-                    {
-                        break;
-                    }
-                    var header = result.Message;
+                    var frameHeader = await _protocol.ReadFrameHeader(_cts.Token);
 
-                    switch (header.FrameType)
+                    switch (frameHeader.FrameType)
                     {
                         case Constants.FrameMethod:
                             {
-                                if (header.Channel == 0)
+                                if (frameHeader.Channel == 0)
                                 {
-                                    await Channel0.HandleAsync(header).ConfigureAwait(false);
+                                    await Channel0.HandleAsync(frameHeader).ConfigureAwait(false);
                                     break;
                                 }
-                                await ProcessChannels(header).ConfigureAwait(false);
+                                await ProcessChannels(frameHeader).ConfigureAwait(false);
                                 break;
                             }
                         case Constants.FrameHeartbeat:
                             {
-                                await _protocol.Reader.ReadAsync(new NoPayloadReader()).ConfigureAwait(false);
-                                _protocol.Reader.Advance();
+                                await _protocol.ReadNoPayload().ConfigureAwait(false);
                                 break;
                             }
                         default:
                             {
-                                _connectionClosedSrc.SetException(new Exception($"Frame type missmatch:{header.FrameType}, {header.Channel}, {header.PaylodaSize}"));
+                                _connectionClosedSrc.SetException(new Exception($"Frame type missmatch:{frameHeader.FrameType}, {frameHeader.Channel}, {frameHeader.PaylodaSize}"));
                                 break;
                             }
                     }

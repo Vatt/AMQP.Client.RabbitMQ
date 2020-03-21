@@ -1,31 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Channel;
+﻿using AMQP.Client.RabbitMQ.Channel;
 using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Handlers
 {
-    internal class BasicHandler : BasicReaderWriter
+    internal class BasicHandler
     {
         private Dictionary<string, ConsumerBase> _consumers;
         private TaskCompletionSource<bool> _commonSrc;
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _writerSemaphore;
-        private readonly ShortStrPayloadReader _shortStrPayloadReader = new ShortStrPayloadReader();
-
-        public BasicHandler(ushort channelId, RabbitMQProtocol protocol, SemaphoreSlim writerSemaphore) : base(channelId, protocol)
+        //private readonly ShortStrPayloadReader _shortStrPayloadReader = new ShortStrPayloadReader();
+        protected readonly RabbitMQProtocol _protocol;
+        protected readonly ushort _channelId;
+        public BasicHandler(ushort channelId, RabbitMQProtocol protocol, SemaphoreSlim writerSemaphore)
         {
             _consumers = new Dictionary<string, ConsumerBase>();
             _semaphore = new SemaphoreSlim(1);
             _writerSemaphore = writerSemaphore;
+            _channelId = channelId;
+            _protocol = protocol;
+
         }
         public async ValueTask HandleMethodHeader(MethodHeader header)
         {
@@ -34,7 +38,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             {
                 case 60://deliver method
                     {
-                        var deliver = await ReadBasicDeliver().ConfigureAwait(false);
+                        var deliver = await _protocol.ReadBasicDeliverAsync().ConfigureAwait(false);
                         if (!_consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
                         {
                             throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer");
@@ -44,7 +48,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                     }
                 case 21:// consume-ok 
                     {
-                        var result = await ReadBasicConsumeOk().ConfigureAwait(false);
+                        var result = await _protocol.ReadBasicConsumeOkAsync().ConfigureAwait(false);
                         //_consumeOkSrc.SetResult(result);
                         if (!_consumers.TryGetValue(result, out var consumer))
                         {
@@ -55,23 +59,18 @@ namespace AMQP.Client.RabbitMQ.Handlers
                     }
                 case 11: // qos-ok
                     {
-                        _commonSrc.SetResult(await ReadBasicQoSOk().ConfigureAwait(false));
+                        _commonSrc.SetResult(await _protocol.ReadBasicQoSOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 31://consumer cancel-ok
                     {
-                        var result = await _protocol.Reader.ReadAsync(_shortStrPayloadReader).ConfigureAwait(false);
-                        _protocol.Reader.Advance();
-                        if (result.IsCompleted)
-                        {
-                            //TODO: сделать чтонибудь
-                        }
-                        if (!_consumers.Remove(result.Message, out var consumer))
+                        var result = await _protocol.ReadShortStrPayload();
+                        if (!_consumers.Remove(result, out var consumer))
                         {
                             throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer or consumer already canceled");
                         }
 
-                        consumer.CancelSrc.SetResult(result.Message);
+                        consumer.CancelSrc.SetResult(result);
                         break;
                     }
                 default: throw new Exception($"{nameof(BasicHandler)}.{nameof(HandleMethodHeader)}: cannot read frame (class-id,method-id):({header.ClassId},{header.MethodId})");
@@ -95,7 +94,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
                 {
-                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
+                    throw new ArgumentException($"{nameof(BasicHandler)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
                 }
                 if (existedConsumer is RabbitMQChunkedConsumer)
                 {
@@ -104,7 +103,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                 }
                 else
                 {
-                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
+                    throw new ArgumentException($"{nameof(BasicHandler)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
                 }
             }
             return consumer;
@@ -118,7 +117,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             {
                 if (!_consumers.TryGetValue(consumerTag, out ConsumerBase existedConsumer))
                 {
-                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
+                    throw new ArgumentException($"{nameof(BasicHandler)}.{nameof(CreateChunkedConsumer)} cant create consumer:{consumerTag}");
                 }
                 if (existedConsumer is RabbitMQConsumer)
                 {
@@ -127,7 +126,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                 }
                 else
                 {
-                    throw new ArgumentException($"{nameof(BasicReaderWriter)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
+                    throw new ArgumentException($"{nameof(BasicHandler)}.{nameof(CreateChunkedConsumer)} consumer {consumerTag} already exists but with a different type");
                 }
             }
             return consumer;
@@ -138,7 +137,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             await _semaphore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QoSInfo(prefetchSize, prefetchCount, global);
-            await SendBasicQoS(ref info).ConfigureAwait(false);
+            await _protocol.SendBasicQoSAsync(_channelId, ref info).ConfigureAwait(false);
             var result = await _commonSrc.Task;
             _semaphore.Release();
         }

@@ -1,13 +1,13 @@
-﻿using System;
-using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
+using System;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class ContentHeaderFullReader : IMessageReader<ContentHeader>
+    internal class ContentHeaderFullReader : IMessageReader<ContentHeader>
     {
         private readonly ushort _channel;
         private ushort _bitCount = 0;

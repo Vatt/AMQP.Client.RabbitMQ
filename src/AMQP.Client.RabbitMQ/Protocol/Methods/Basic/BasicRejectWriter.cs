@@ -1,10 +1,10 @@
-﻿using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using Bedrock.Framework.Protocols;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
-    public class BasicRejectWriter : IMessageWriter<RejectInfo>
+    internal class BasicRejectWriter : IMessageWriter<RejectInfo>
     {
         private readonly ushort _channel;
         public BasicRejectWriter(ushort channel)

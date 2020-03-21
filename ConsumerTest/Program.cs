@@ -1,6 +1,6 @@
-﻿using System.Net;
+﻿using AMQP.Client.RabbitMQ;
+using System.Net;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ;
 
 namespace ConsumerTest
 {

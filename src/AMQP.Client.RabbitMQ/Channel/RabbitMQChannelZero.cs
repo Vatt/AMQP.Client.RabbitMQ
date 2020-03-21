@@ -1,16 +1,16 @@
-﻿using System;
-using System.Diagnostics;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Protocol;
+﻿using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using Bedrock.Framework;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Diagnostics;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Channel
 {
@@ -22,8 +22,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         private static readonly Bedrock.Framework.Client _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider())
                                                                                      .UseSockets()
                                                                                      .Build();
-        private static readonly byte[] _protocolMsg = new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 };
-        private static byte[] _heartbeatFrame => new byte[8] { 8, 0, 0, 0, 0, 0, 0, 206 };
+
         public RabbitMQServerInfo ServerInfo { get; private set; }
         public RabbitMQClientInfo ClientInfo { get; private set; }
         public RabbitMQMainInfo MainInfo { get; private set; }
@@ -35,7 +34,6 @@ namespace AMQP.Client.RabbitMQ.Channel
         private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
         private const ushort _channelId = 0;
         public ConnectionContext ConnectionContext;
-        ConnectionReaderWriter _readerWriter;
         private RabbitMQProtocol _protocol;
         public bool IsClosed => _isClosed;
 
@@ -61,7 +59,7 @@ namespace AMQP.Client.RabbitMQ.Channel
             Debug.Assert(_channelId == header.Channel);
             Debug.Assert(header.FrameType == Constants.FrameMethod);
 
-            var method = await _readerWriter.ReadMethodHeader().ConfigureAwait(false);
+            var method = await _protocol.ReadMethodHeader().ConfigureAwait(false);
             await HandleMethod(method).ConfigureAwait(false);
         }
 
@@ -72,33 +70,33 @@ namespace AMQP.Client.RabbitMQ.Channel
             {
                 case 10:
                     {
-                        ServerInfo = await _readerWriter.ReadStartAsync().ConfigureAwait(false);
-                        await _readerWriter.SendStartOk(ClientInfo, _connectionInfo).ConfigureAwait(false);
+                        ServerInfo = await _protocol.ReadStartAsync().ConfigureAwait(false);
+                        await _protocol.SendStartOkAsync(ClientInfo, _connectionInfo).ConfigureAwait(false);
                         break;
                     }
 
                 case 30:
                     {
                         MainInfo = await ProcessTuneMethodAsync().ConfigureAwait(false);
-                        await _readerWriter.SendTuneOk(MainInfo).ConfigureAwait(false);
-                        await _readerWriter.SendOpen(_connectionInfo.VHost).ConfigureAwait(false);
+                        await _protocol.SendTuneOkAsync(MainInfo).ConfigureAwait(false);
+                        await _protocol.SendOpenAsync(_connectionInfo.VHost).ConfigureAwait(false);
                         break;
                     }
                 case 41:
                     {
-                        _isClosed = await _readerWriter.ReadOpenOkAsync().ConfigureAwait(false);
+                        _isClosed = await _protocol.ReadConnectionOpenOkAsync().ConfigureAwait(false);
                         _openOkSrc.SetResult(_isClosed);
                         break;
                     }
                 case 50: //close
                     {
                         //await SendCloseOk();
-                        _connectionClosedSrc.SetResult(await _readerWriter.ReadCloseMethod().ConfigureAwait(false));
+                        _connectionClosedSrc.SetResult(await _protocol.ReadClose().ConfigureAwait(false));
                         break;
                     }
                 case 51://close-ok
                     {
-                        var closeOk = await _readerWriter.ReadCloseOk().ConfigureAwait(false);
+                        var closeOk = await _protocol.ReadCloseOk().ConfigureAwait(false);
                         _closeSrc.SetResult(closeOk);
                         break;
                     }
@@ -110,7 +108,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         }
         private async ValueTask<RabbitMQMainInfo> ProcessTuneMethodAsync()
         {
-            var info = await _readerWriter.ReadTuneMethodAsync().ConfigureAwait(false);
+            var info = await _protocol.ReadTuneMethodAsync().ConfigureAwait(false);
             var mainInfo = MainInfo;
             if ((mainInfo.ChannelMax > info.ChannelMax) || (mainInfo.ChannelMax == 0 && info.ChannelMax != 0))
             {
@@ -129,8 +127,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async Task OpenAsync(RabbitMQProtocol protocol)
         {
             _protocol = protocol;
-            _readerWriter = new ConnectionReaderWriter(_protocol);
-            await _protocol.Writer.WriteAsync(_byteWriter, _protocolMsg).ConfigureAwait(false);
+            await _protocol.SendProtocol().ConfigureAwait(false);
             _heartbeat = new Timer(Heartbeat, null, 0, MainInfo.Heartbeat);
 
             await _openOkSrc.Task.ConfigureAwait(false);
@@ -144,7 +141,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         public async Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId)
         {
             var info = new CloseInfo(replyCode, replyText, failedClassId, failedMethodId);
-            await _readerWriter.SendCloseMethodAsync(info).ConfigureAwait(false);
+            await _protocol.SendConnectionCloseAsync(info).ConfigureAwait(false);
             await _closeSrc.Task.ConfigureAwait(false);
             _connectionClosedSrc.SetResult(new CloseInfo(Constants.Success, replyText, 0, 0));
             return true;
@@ -159,7 +156,7 @@ namespace AMQP.Client.RabbitMQ.Channel
         {
             try
             {
-                await _protocol.Writer.WriteAsync(_byteWriter, _heartbeatFrame).ConfigureAwait(false);
+                await _protocol.SendHeartbeat().ConfigureAwait(false);
             }
             catch (Exception e)
             {

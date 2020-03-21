@@ -1,6 +1,6 @@
-﻿using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using Bedrock.Framework.Protocols;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
@@ -13,7 +13,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
      * +----------+----------+-----------+-----------+-----------+
      *      10        31          short       int        short
      */
-    public class ConnectionTuneOkWriter : IMessageWriter<RabbitMQMainInfo>
+    internal class ConnectionTuneOkWriter : IMessageWriter<RabbitMQMainInfo>
     {
         public void WriteMessage(RabbitMQMainInfo message, IBufferWriter<byte> output)
         {

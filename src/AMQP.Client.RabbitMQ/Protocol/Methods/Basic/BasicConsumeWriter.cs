@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
-    public class BasicConsumeWriter : IMessageWriter<ConsumerInfo>
+    internal class BasicConsumeWriter : IMessageWriter<ConsumerInfo>
     {
         private readonly ushort _channelId;
         public BasicConsumeWriter(ushort channelId)

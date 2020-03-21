@@ -1,12 +1,12 @@
-﻿using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using Bedrock.Framework.Protocols;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    internal class PublishInfoAndContentWriter : IMessageWriter<PublishInfoAndContent>
+    internal class PublishInfoAndContentWriter : IMessageWriter<PublishPartialInfo>
     {
         private ushort _channelId;
         private BasicPublishWriter _basicPublishWriter;
@@ -19,7 +19,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             _contentHeaderWriter = new ContentHeaderWriter(_channelId);
         }
 
-        public void WriteMessage(PublishInfoAndContent message, IBufferWriter<byte> output)
+        public void WriteMessage(PublishPartialInfo message, IBufferWriter<byte> output)
         {
             var writer = new ValueWriter(output);
             _basicPublishWriter.WriteMessage(ref message.Info, ref writer);
@@ -28,12 +28,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         }
     }
 
-    internal class PublishInfoAndContent
+    public class PublishPartialInfo
     {
         private BasicPublishInfo _info;
         private ContentHeader _contentHeader;
 
-        public PublishInfoAndContent(ref BasicPublishInfo info, ref ContentHeader header)
+        public PublishPartialInfo(ref BasicPublishInfo info, ref ContentHeader header)
         {
             _info = info;
             _contentHeader = header;

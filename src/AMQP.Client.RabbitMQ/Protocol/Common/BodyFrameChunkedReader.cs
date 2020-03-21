@@ -1,13 +1,18 @@
-﻿using System;
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
+using System;
+using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class BodyFrameChunkedReader : IMessageReader<ReadOnlySequence<byte>>
+    public interface IChunkedBodyFrameReader : IMessageReader<ReadOnlySequence<byte>>
+    {
+        bool IsComplete { get; }
+        void Reset(long contentBodySize);
+    }
+    internal class BodyFrameChunkedReader : IChunkedBodyFrameReader
     {
         public long _localConsumed = 0;
         public long _contentConsumed = 0;
@@ -89,7 +94,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             return true;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Restart(long contentBodySize)
+        public void Reset(long contentBodySize)
         {
             _localConsumed = 0;
             _contentConsumed = 0;

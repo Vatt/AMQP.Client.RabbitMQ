@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Bedrock.Framework.Protocols;
+using System;
 using System.Buffers;
-using Bedrock.Framework.Protocols;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
-    public class ConnectionOpenOkReader : IMessageReader<bool>
+    internal class ConnectionOpenOkReader : IMessageReader<bool>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
         {

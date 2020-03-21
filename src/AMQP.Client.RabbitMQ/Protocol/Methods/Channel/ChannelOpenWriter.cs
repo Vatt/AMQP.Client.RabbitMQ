@@ -1,10 +1,10 @@
-﻿using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
 using Bedrock.Framework.Protocols;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {
-    class ChannelOpenWriter : IMessageWriter<ushort>
+    internal class ChannelOpenWriter : IMessageWriter<ushort>
     {
         public void WriteMessage(ushort message, IBufferWriter<byte> output)
         {
