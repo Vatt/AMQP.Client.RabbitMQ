@@ -7,11 +7,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
     {
         private static readonly ChannelOpenWriter _channelOpenWriter = new ChannelOpenWriter();
         private static readonly ChannelOpenOkReader channelOpenOkReader = new ChannelOpenOkReader();
-        public static ValueTask SendChannelOpen(this RabbitMQProtocol protocol, ushort channelId, CancellationToken token = default)
+        public static ValueTask SendChannelOpenAsync(this RabbitMQProtocol protocol, ushort channelId, CancellationToken token = default)
         {
             return protocol.WriteAsync(_channelOpenWriter, channelId, token);
         }
-        public static ValueTask<bool> ReadChannelOpenOk(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static ValueTask<bool> ReadChannelOpenOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(channelOpenOkReader, token);
         }

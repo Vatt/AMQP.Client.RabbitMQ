@@ -31,7 +31,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public async ValueTask ConsumerStartAsync()
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);
-            await _protocol.SendBasicConsume(ChannelId, _info).ConfigureAwait(false);
+            await _protocol.SendBasicConsumeAsync(ChannelId, _info).ConfigureAwait(false);
             await ConsumeOkSrc.Task.ConfigureAwait(false);
             IsCanceled = false;
             _semaphore.Release();
@@ -53,7 +53,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             {
                 throw new Exception("Consumer already canceled");
             }
-            var contentResult = await _protocol.ReadContentHeaderWithFrameHeader(ChannelId).ConfigureAwait(false);
+            var contentResult = await _protocol.ReadContentHeaderWithFrameHeaderAsync(ChannelId).ConfigureAwait(false);
             await ProcessBodyMessage(new RabbitMQDeliver(info.DeliverTag, contentResult)).ConfigureAwait(false);
         }
         internal abstract ValueTask ProcessBodyMessage(RabbitMQDeliver deliver);

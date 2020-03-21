@@ -71,15 +71,15 @@ namespace AMQP.Client.RabbitMQ.Channel
                 case 10:
                     {
                         ServerInfo = await _protocol.ReadStartAsync().ConfigureAwait(false);
-                        await _protocol.SendStartOk(ClientInfo, _connectionInfo).ConfigureAwait(false);
+                        await _protocol.SendStartOkAsync(ClientInfo, _connectionInfo).ConfigureAwait(false);
                         break;
                     }
 
                 case 30:
                     {
                         MainInfo = await ProcessTuneMethodAsync().ConfigureAwait(false);
-                        await _protocol.SendTuneOk(MainInfo).ConfigureAwait(false);
-                        await _protocol.SendOpen(_connectionInfo.VHost).ConfigureAwait(false);
+                        await _protocol.SendTuneOkAsync(MainInfo).ConfigureAwait(false);
+                        await _protocol.SendOpenAsync(_connectionInfo.VHost).ConfigureAwait(false);
                         break;
                     }
                 case 41:

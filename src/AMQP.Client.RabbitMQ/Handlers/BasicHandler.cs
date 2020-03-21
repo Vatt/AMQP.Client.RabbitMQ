@@ -38,7 +38,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             {
                 case 60://deliver method
                     {
-                        var deliver = await _protocol.ReadBasicDeliver().ConfigureAwait(false);
+                        var deliver = await _protocol.ReadBasicDeliverAsync().ConfigureAwait(false);
                         if (!_consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
                         {
                             throw new Exception($"{nameof(BasicHandler)}: cant signal to consumer");
@@ -48,7 +48,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                     }
                 case 21:// consume-ok 
                     {
-                        var result = await _protocol.ReadBasicConsumeOk().ConfigureAwait(false);
+                        var result = await _protocol.ReadBasicConsumeOkAsync().ConfigureAwait(false);
                         //_consumeOkSrc.SetResult(result);
                         if (!_consumers.TryGetValue(result, out var consumer))
                         {
@@ -59,7 +59,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
                     }
                 case 11: // qos-ok
                     {
-                        _commonSrc.SetResult(await _protocol.ReadBasicQoSOk().ConfigureAwait(false));
+                        _commonSrc.SetResult(await _protocol.ReadBasicQoSOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 31://consumer cancel-ok
@@ -137,7 +137,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             await _semaphore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QoSInfo(prefetchSize, prefetchCount, global);
-            await _protocol.SendBasicQoS(_channelId, ref info).ConfigureAwait(false);
+            await _protocol.SendBasicQoSAsync(_channelId, ref info).ConfigureAwait(false);
             var result = await _commonSrc.Task;
             _semaphore.Release();
         }

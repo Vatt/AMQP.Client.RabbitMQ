@@ -10,7 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
         {
             return protocol.WriteAsync(new ExchangeDeclareWriter(channelId), message, token);
         }
-        public static ValueTask<bool> ReadExchangeDeclareOk(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static ValueTask<bool> ReadExchangeDeclareOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
             return protocol.ReadNoPayload(token);
         }
@@ -18,7 +18,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
         {
             return protocol.WriteAsync(new ExchangeDeleteWriter(channelId), info, token);
         }
-        public static ValueTask<bool> ReadExchangeDeleteOk(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static ValueTask<bool> ReadExchangeDeleteOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
         {
             return protocol.ReadNoPayload(token);
         }

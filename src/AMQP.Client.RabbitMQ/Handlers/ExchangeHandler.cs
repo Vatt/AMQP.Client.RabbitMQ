@@ -39,12 +39,12 @@ namespace AMQP.Client.RabbitMQ.Handlers
             {
                 case 11: //declare-ok
                     {
-                        _declareOkSrc.SetResult(await _protocol.ReadExchangeDeclareOk().ConfigureAwait(false));
+                        _declareOkSrc.SetResult(await _protocol.ReadExchangeDeclareOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 21:
                     {
-                        _deleteOkSrc.SetResult(await _protocol.ReadExchangeDeleteOk().ConfigureAwait(false));
+                        _deleteOkSrc.SetResult(await _protocol.ReadExchangeDeleteOkAsync().ConfigureAwait(false));
                         break;
                     }
                 default:

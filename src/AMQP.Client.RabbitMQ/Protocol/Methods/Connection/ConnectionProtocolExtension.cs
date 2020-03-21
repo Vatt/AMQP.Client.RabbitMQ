@@ -9,15 +9,15 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         private static ConnectionStartReader _connectionStartReader = new ConnectionStartReader();
         private static ConnectionTuneReader _connectionTuneReader = new ConnectionTuneReader();
         private static ConnectionOpenOkReader _connectionOpenOkReader = new ConnectionOpenOkReader();
-        public static ValueTask SendStartOk(this RabbitMQProtocol protocol, RabbitMQClientInfo clientInfo, RabbitMQConnectionInfo connInfo, CancellationToken token = default)
+        public static ValueTask SendStartOkAsync(this RabbitMQProtocol protocol, RabbitMQClientInfo clientInfo, RabbitMQConnectionInfo connInfo, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ConnectionStartOkWriter(connInfo), clientInfo, token);
         }
-        public static ValueTask SendTuneOk(this RabbitMQProtocol protocol, RabbitMQMainInfo info, CancellationToken token = default)
+        public static ValueTask SendTuneOkAsync(this RabbitMQProtocol protocol, RabbitMQMainInfo info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ConnectionTuneOkWriter(), info, token);
         }
-        public static ValueTask SendOpen(this RabbitMQProtocol protocol, string vhost, CancellationToken token = default)
+        public static ValueTask SendOpenAsync(this RabbitMQProtocol protocol, string vhost, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ConnectionOpenWriter(), vhost, token);
         }

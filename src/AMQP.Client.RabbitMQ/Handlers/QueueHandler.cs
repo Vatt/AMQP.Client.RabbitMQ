@@ -34,27 +34,27 @@ namespace AMQP.Client.RabbitMQ.Handlers
             {
                 case 11: //declare-ok
                     {
-                        _declareOkSrc.SetResult(await _protocol.ReadQueueDeclareOk().ConfigureAwait(false));
+                        _declareOkSrc.SetResult(await _protocol.ReadQueueDeclareOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 21://bind-ok
                     {
-                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOk().ConfigureAwait(false));
+                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 51://unbind-ok
                     {
-                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOk().ConfigureAwait(false));
+                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 31://purge-ok
                     {
-                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueuePurgeOkDeleteOk().ConfigureAwait(false));
+                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueuePurgeOkAsync().ConfigureAwait(false));
                         break;
                     }
                 case 41: //delete-ok
                     {
-                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueuePurgeOkDeleteOk().ConfigureAwait(false));
+                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueueDeleteOkAsync().ConfigureAwait(false));
                         break;
                     }
                 default:
@@ -67,7 +67,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueInfo(name, durable, exclusive, autoDelete, arguments: arguments);
-            await _protocol.SendQueueDeclare(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueDeclareAsync(_channelId, info).ConfigureAwait(false);
             var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
@@ -76,14 +76,14 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public ValueTask DeclareNoWaitAsync(string name, bool durable, bool exclusive, bool autoDelete, Dictionary<string, object> arguments)
         {
             var info = new QueueInfo(name, durable, exclusive, autoDelete, nowait: true, arguments: arguments);
-            return _protocol.SendQueueDeclare(_channelId, info);
+            return _protocol.SendQueueDeclareAsync(_channelId, info);
         }
         public async ValueTask<QueueDeclareOk> DeclarePassiveAsync(string name)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueInfo(name);
-            await _protocol.SendQueueDeclare(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueDeclareAsync(_channelId, info).ConfigureAwait(false);
             var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
@@ -94,7 +94,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             await _semafore.WaitAsync().ConfigureAwait(false);
             _declareOkSrc = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueInfo(name, true, arguments: new Dictionary<string, object> { { "x-queue-type", "quorum" } });
-            await _protocol.SendQueueDeclare(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueDeclareAsync(_channelId, info).ConfigureAwait(false);
             var okInfo = await _declareOkSrc.Task.ConfigureAwait(false);
             _queues.Add(okInfo.Name, info);
             _semafore.Release();
@@ -105,7 +105,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             await _semafore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueBindInfo(queueName, exchangeName, routingKey, false, arguments);
-            await _protocol.SendQueueBind(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueBindAsync(_channelId, info).ConfigureAwait(false);
             var result = await _commonSrc.Task.ConfigureAwait(false);
             _semafore.Release();
             return result;
@@ -114,14 +114,14 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public ValueTask QueueBindNoWaitAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
             var info = new QueueBindInfo(queueName, exchangeName, routingKey, true, arguments);
-            return _protocol.SendQueueBind(_channelId, info);
+            return _protocol.SendQueueBindAsync(_channelId, info);
         }
         public async ValueTask<bool> QueueUnbindAsync(string queueName, string exchangeName, string routingKey = "", Dictionary<string, object> arguments = null)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
             _commonSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueUnbindInfo(queueName, exchangeName, routingKey, arguments);
-            await _protocol.SendQueueUnbind(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueUnbindAsync(_channelId, info).ConfigureAwait(false);
             var result = await _commonSrc.Task.ConfigureAwait(false);
             _semafore.Release();
             return result;
@@ -131,7 +131,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
             await _semafore.WaitAsync().ConfigureAwait(false);
             _purgeOrDeleteSrc = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueuePurgeInfo(queueName, false);
-            await _protocol.SendQueuePurge(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueuePurgeAsync(_channelId, info).ConfigureAwait(false);
             var result = await _purgeOrDeleteSrc.Task.ConfigureAwait(false);
             _semafore.Release();
             return result;
@@ -140,14 +140,14 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public ValueTask QueuePurgeNoWaitAsync(string queueName)
         {
             var info = new QueuePurgeInfo(queueName, true);
-            return _protocol.SendQueuePurge(_channelId, info);
+            return _protocol.SendQueuePurgeAsync(_channelId, info);
         }
         public async ValueTask<int> QueueDeleteAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
         {
             await _semafore.WaitAsync().ConfigureAwait(false);
             _purgeOrDeleteSrc = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, false);
-            await _protocol.SendQueueDelete(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueDeleteAsync(_channelId, info).ConfigureAwait(false);
             var result = await _purgeOrDeleteSrc.Task.ConfigureAwait(false);
             _queues.Remove(queueName);
             _semafore.Release();
@@ -156,7 +156,7 @@ namespace AMQP.Client.RabbitMQ.Handlers
         public async ValueTask QueueDeleteNoWaitAsync(string queueName, bool ifUnused = false, bool ifEmpty = false)
         {
             var info = new QueueDeleteInfo(queueName, ifUnused, ifEmpty, true);
-            await _protocol.SendQueueDelete(_channelId, info).ConfigureAwait(false);
+            await _protocol.SendQueueDeleteAsync(_channelId, info).ConfigureAwait(false);
             _queues.Remove(queueName);
         }
     }
