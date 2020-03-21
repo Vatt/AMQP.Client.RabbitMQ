@@ -14,7 +14,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
 {
     public class RabbitMQConsumer : ConsumerBase
     {
-        private readonly BodyFrameChunkedReader _reader;
+        private readonly IChunkedBodyFrameReader _reader;
         private byte[] _activeDeliver;
         private int _deliverPosition;
         public event EventHandler<DeliverArgs> Received;
@@ -23,7 +23,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         internal RabbitMQConsumer(ConsumerInfo info, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
             : base(info, protocol, channel)
         {
-            _reader = new BodyFrameChunkedReader(channel.ChannelId);
+            _reader = protocol.CreateResetableChunkedBodyReader(channel.ChannelId);
             _scheduler = scheduler;
             _deliverPosition = 0;
         }
@@ -32,7 +32,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         {
             _deliverPosition = 0;
             _activeDeliver = ArrayPool<byte>.Shared.Rent((int)deliver.Header.BodySize);
-            _reader.Restart(deliver.Header.BodySize);
+            _reader.Reset(deliver.Header.BodySize);
 
             while (!_reader.IsComplete)
             {

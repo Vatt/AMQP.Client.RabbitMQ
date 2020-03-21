@@ -56,5 +56,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
         }
+        public static IChunkedBodyFrameReader CreateResetableChunkedBodyReader(this RabbitMQProtocol protocol, ushort channelId)
+        {
+            return new BodyFrameChunkedReader(channelId);
+        }
     }
 }
