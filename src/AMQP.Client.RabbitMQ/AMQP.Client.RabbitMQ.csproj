@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="Bedrock.Framework" Version="0.1.58-alpha.g6983000a5c" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.7.0" />
   </ItemGroup>
 
 </Project>
