@@ -29,7 +29,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             message = default;
             if (input.Length == 0) { return false; }
-            ValueReader reader = new ValueReader(input);
+            ValueReader reader = new ValueReader(input, consumed);
 
             if (needHead)
             {

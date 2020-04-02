@@ -1,15 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Collections.Generic;
-using System.IO.Pipelines;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Channel
+﻿namespace AMQP.Client.RabbitMQ.Channel
 {
+    /*
     public interface IRabbitMQClosable
     {
         public bool IsClosed { get; }
@@ -18,7 +9,7 @@ namespace AMQP.Client.RabbitMQ.Channel
     }
     internal interface IRabbitMQOpenable
     {
-        Task OpenAsync(RabbitMQProtocol protocol);
+        Task OpenAsync(RabbitMQProtocolWriter protocol);
     }
     internal interface IChannel : IRabbitMQOpenable, IRabbitMQClosable
     {
@@ -56,5 +47,5 @@ namespace AMQP.Client.RabbitMQ.Channel
 
         ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> body);
     }
-
+    */
 }

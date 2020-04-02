@@ -1,18 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Handlers
+﻿namespace AMQP.Client.RabbitMQ.Handlers
 {
+    /*
     internal class BasicHandler
     {
         private Dictionary<string, ConsumerBase> _consumers;
@@ -20,9 +8,9 @@ namespace AMQP.Client.RabbitMQ.Handlers
         private readonly SemaphoreSlim _semaphore;
         private readonly SemaphoreSlim _writerSemaphore;
         //private readonly ShortStrPayloadReader _shortStrPayloadReader = new ShortStrPayloadReader();
-        protected readonly RabbitMQProtocol _protocol;
+        protected readonly RabbitMQProtocolWriter _protocol;
         protected readonly ushort _channelId;
-        public BasicHandler(ushort channelId, RabbitMQProtocol protocol, SemaphoreSlim writerSemaphore)
+        public BasicHandler(ushort channelId, RabbitMQProtocolWriter protocol, SemaphoreSlim writerSemaphore)
         {
             _consumers = new Dictionary<string, ConsumerBase>();
             _semaphore = new SemaphoreSlim(1);
@@ -142,4 +130,5 @@ namespace AMQP.Client.RabbitMQ.Handlers
             _semaphore.Release();
         }
     }
+    */
 }

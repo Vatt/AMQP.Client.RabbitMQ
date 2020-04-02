@@ -1,25 +1,18 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Consumer
+﻿namespace AMQP.Client.RabbitMQ.Consumer
 {
+    /*
     public abstract class ConsumerBase
     {
         public ushort ChannelId => Channel.ChannelId;
         public RabbitMQChannel Channel { get; }
-        protected readonly RabbitMQProtocol _protocol;
+        protected readonly RabbitMQProtocolWriter _protocol;
         internal TaskCompletionSource<string> CancelSrc;
         internal TaskCompletionSource<string> ConsumeOkSrc;
         private ConsumerInfo _info;
         private SemaphoreSlim _semaphore;
 
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
+        internal ConsumerBase(ConsumerInfo info, RabbitMQProtocolWriter protocol, RabbitMQChannel channel)
         {
             Channel = channel;
             _protocol = protocol;
@@ -59,4 +52,5 @@ namespace AMQP.Client.RabbitMQ.Consumer
         internal abstract ValueTask ProcessBodyMessage(RabbitMQDeliver deliver);
 
     }
+    */
 }

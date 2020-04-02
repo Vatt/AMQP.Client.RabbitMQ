@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsumerTest", "ConsumerTes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProducerTest", "ProducerTest\ProducerTest.csproj", "{75EA9814-3820-4003-9658-FC623EA708DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JSONTest", "JSONTest\JSONTest.csproj", "{49D72AED-A546-4BAF-B2F0-38339DA6EBBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JSONTest", "JSONTest\JSONTest.csproj", "{49D72AED-A546-4BAF-B2F0-38339DA6EBBD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

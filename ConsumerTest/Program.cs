@@ -1,6 +1,4 @@
-﻿using AMQP.Client.RabbitMQ;
-using System.Net;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace ConsumerTest
 {
@@ -9,7 +7,8 @@ namespace ConsumerTest
         private const string Host = "centos0.mshome.net";
         static async Task Main(string[] args)
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            /*
+            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
@@ -23,8 +22,8 @@ namespace ConsumerTest
                 //await channel.Ack(deliver.DeliveryTag);
             };
             await consumer.ConsumerStartAsync();
-            await connection.WaitEndReading();
-
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
     }
 }

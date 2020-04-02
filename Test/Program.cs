@@ -1,9 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Handlers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
-using System.Collections.Generic;
-using System.IO.Pipelines;
 using System.Net;
 using System.Threading.Tasks;
 namespace Test
@@ -26,12 +22,21 @@ namespace Test
             //await RunDefault();
             //await ChannelTest();
 
+            await RunDefault();
+            //await Task.WhenAll(StartConsumer(), StartPublisher());
+        }
+        public static async Task RunDefault()
+        {
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            var factory = builder.Build();
+            await RabbitMQConnection.ConnectionStartAsync(factory.CreateConnection());
 
-            await Task.WhenAll(StartConsumer(), StartPublisher());
+            await Task.Delay(TimeSpan.FromHours(1));
         }
         public static async Task ChannelTest()
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            /*
+            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
@@ -96,40 +101,13 @@ namespace Test
                 }
             });
 
-            await connection.WaitEndReading();
-        }
-        private static async Task RunDefault()
-        {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
-            var connection = factory.CreateConnection();
-            await connection.StartAsync();
-            var channel = await connection.CreateChannel();
-            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-
-            var queueOk = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel.QueueBindAsync("TestQueue", "TestExchange");
-
-            var properties = ContentHeaderProperties.Default();
-            properties.AppId = "testapp";
-            for (var i = 0; i < 40000; i++)
-            {
-                properties.CorrelationId = Guid.NewGuid().ToString();
-                await channel.Publish("TestExchange", string.Empty, false, false, properties, new byte[32]);
-            }
-
-            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
-            consumer.Received += (sender, result) =>
-            {
-                // await channel.Ack(deliver.DeliveryTag);
-            };
-            await consumer.ConsumerStartAsync();
-            await connection.WaitEndReading();
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
         private static async Task StartPublisher()
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            /*
+            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
@@ -143,17 +121,20 @@ namespace Test
             properties.AppId = "testapp";
             //var body = new byte[16 * 1024 * 1024 + 1];
             var body = new byte[32];
+            //var body = new byte[16*1024];
+            //var body = new byte[1024];
             while (!channel.IsClosed)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
             }
-            await connection.WaitEndReading();
-
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
         private static async Task StartConsumer()
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            /*
+            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
@@ -171,12 +152,14 @@ namespace Test
             };
             await consumer.ConsumerStartAsync();
             //await channel.CloseChannelAsync("kek");
-            await connection.WaitEndReading();
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
 
         private static async Task RunNothing()
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            /*
+            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
@@ -189,7 +172,8 @@ namespace Test
             await channel.CloseAsync("kek");
             //waiter();
             //await connection.CloseConnection();
-            await connection.WaitEndReading();
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
     }
 

@@ -1,22 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
-using AMQP.Client.RabbitMQ.Handlers;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Channel
+﻿namespace AMQP.Client.RabbitMQ.Channel
 {
+    /*
     public class RabbitMQChannel// : IRabbitMQChannel, IChannel
     {
 
@@ -29,15 +13,15 @@ namespace AMQP.Client.RabbitMQ.Channel
         private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         public ushort ChannelId => _channelId;
         public bool IsClosed => _isClosed;
-        private RabbitMQMainInfo _mainInfo;
+        private TuneConf _mainInfo;
         private readonly SemaphoreSlim _writerSemaphore;
-        private RabbitMQProtocol _protocol;
+        private RabbitMQProtocolWriter _protocol;
         private ExchangeHandler _exchangeMethodHandler;
         private QueueHandler _queueMethodHandler;
         private BasicHandler _basicHandler;
         private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQChannel(ushort id, RabbitMQMainInfo info, PipeScheduler scheduler)
+        internal RabbitMQChannel(ushort id, TuneConf info, PipeScheduler scheduler)
         {
             _channelId = id;
             _isClosed = true;
@@ -123,7 +107,7 @@ namespace AMQP.Client.RabbitMQ.Channel
 
             }
         }
-        public async Task OpenAsync(RabbitMQProtocol protocol)
+        public async Task OpenAsync(RabbitMQProtocolWriter protocol)
         {
             _protocol = protocol;
             _exchangeMethodHandler = new ExchangeHandler(_channelId, _protocol);
@@ -319,4 +303,5 @@ namespace AMQP.Client.RabbitMQ.Channel
             _writerSemaphore.Dispose();
         }
     }
+    */
 }

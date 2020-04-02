@@ -6,7 +6,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    internal class QueuePurgeOkDeleteOkReader : IMessageReader<int>
+    internal class QueuePurgeOkDeleteOkReader : IMessageReader<int>, IMessageReaderAdapter<int>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out int message)
         {
@@ -25,6 +25,16 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
             }
             consumed = reader.Position;
             examined = consumed;
+            return true;
+        }
+
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, out int message)
+        {
+            SequenceReader<byte> reader = new SequenceReader<byte>(input);
+            if (!reader.TryReadBigEndian(out message))
+            {
+                return false;
+            }
             return true;
         }
     }

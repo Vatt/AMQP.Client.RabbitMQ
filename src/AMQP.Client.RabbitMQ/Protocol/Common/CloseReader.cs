@@ -6,12 +6,12 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    internal class CloseReader : IMessageReader<CloseInfo>
+    internal class CloseReader : IMessageReader<CloseInfo>, IMessageReaderAdapter<CloseInfo>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out CloseInfo message)
         {
             message = default;
-            ValueReader reader = new ValueReader(input);
+            ValueReader reader = new ValueReader(input, consumed);
             if (!reader.ReadShortInt(out short replyCode)) { return false; }
             if (!reader.ReadShortStr(out var replyText)) { return false; }
             if (!reader.ReadShortInt(out short failedClassId)) { return false; }
@@ -25,6 +25,18 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
             consumed = reader.Position;
             examined = consumed;
+            return true;
+        }
+
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, out CloseInfo message)
+        {
+            message = default;
+            ValueReader reader = new ValueReader(input);
+            if (!reader.ReadShortInt(out short replyCode)) { return false; }
+            if (!reader.ReadShortStr(out var replyText)) { return false; }
+            if (!reader.ReadShortInt(out short failedClassId)) { return false; }
+            if (!reader.ReadShortInt(out short failedMethodId)) { return false; }
+            message = new CloseInfo(replyCode, replyText, failedClassId, failedMethodId);
             return true;
         }
     }

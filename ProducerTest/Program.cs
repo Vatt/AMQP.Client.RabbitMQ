@@ -1,8 +1,4 @@
-﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using System;
-using System.Net;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace ProducerTest
 {
@@ -11,7 +7,8 @@ namespace ProducerTest
         private const string Host = "centos0.mshome.net";
         static async Task Main(string[] args)
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            /*
+            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
@@ -27,6 +24,7 @@ namespace ProducerTest
                 //await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
             }
+            */
         }
     }
 }

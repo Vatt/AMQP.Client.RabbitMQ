@@ -14,12 +14,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
      * | channel-max | frame-max | heartbeat |
      * +-------------+-----------+-----------+
      */
-    internal class ConnectionTuneReader : IMessageReader<RabbitMQMainInfo>
+    internal class ConnectionTuneReader : IMessageReader<TuneConf>, IMessageReaderAdapter<TuneConf>
     {
-        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out RabbitMQMainInfo message)
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out TuneConf message)
         {
             message = default;
-            ValueReader reader = new ValueReader(input);
+            ValueReader reader = new ValueReader(input, consumed);
             if (!reader.ReadShortInt(out ushort chanellMax)) { return false; }
             if (!reader.ReadLong(out var frameMax)) { return false; }
             if (!reader.ReadShortInt(out short heartbeat)) { return false; }
@@ -28,9 +28,20 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
-            message = new RabbitMQMainInfo(chanellMax, frameMax, heartbeat);
+            message = new TuneConf(chanellMax, frameMax, heartbeat);
             consumed = reader.Position;
             examined = reader.Position;
+            return true;
+        }
+
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, out TuneConf message)
+        {
+            message = default;
+            ValueReader reader = new ValueReader(input);
+            if (!reader.ReadShortInt(out ushort chanellMax)) { return false; }
+            if (!reader.ReadLong(out var frameMax)) { return false; }
+            if (!reader.ReadShortInt(out short heartbeat)) { return false; }
+            message = new TuneConf(chanellMax, frameMax, heartbeat);
             return true;
         }
     }

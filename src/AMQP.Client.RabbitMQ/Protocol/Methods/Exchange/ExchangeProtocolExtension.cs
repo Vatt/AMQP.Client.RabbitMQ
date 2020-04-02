@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,21 +7,21 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
     public static class ExchangeProtocolExtension
     {
-        public static ValueTask SendExchangeDeclareAsync(this RabbitMQProtocol protocol, ushort channelId, ExchangeInfo message, CancellationToken token = default)
+        public static ValueTask SendExchangeDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ExchangeInfo message, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ExchangeDeclareWriter(channelId), message, token);
         }
-        public static ValueTask<bool> ReadExchangeDeclareOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static bool ReadExchangeDeclareOkAsync(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
-            return protocol.ReadNoPayload(token);
+            return protocol.ReadNoPayload(input);
         }
-        public static ValueTask SendExchangeDeleteAsync(this RabbitMQProtocol protocol, ushort channelId, ExchangeDeleteInfo info, CancellationToken token = default)
+        public static ValueTask SendExchangeDeleteAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ExchangeDeleteInfo info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ExchangeDeleteWriter(channelId), info, token);
         }
-        public static ValueTask<bool> ReadExchangeDeleteOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static bool ReadExchangeDeleteOkAsync(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
-            return protocol.ReadNoPayload(token);
+            return protocol.ReadNoPayload(input);
         }
     }
 }

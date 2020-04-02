@@ -2,18 +2,18 @@
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
-    public struct RabbitMQClientInfo
+    public struct ClientConf
     {
         public Dictionary<string, object> Properties;
         public readonly string Mechanism;
         public readonly string Locale;
-        public RabbitMQClientInfo(Dictionary<string, object> properties, string mechanism, string locale)
+        public ClientConf(Dictionary<string, object> properties, string mechanism, string locale)
         {
             Properties = properties;
             Mechanism = mechanism;
             Locale = locale;
         }
-        public static RabbitMQClientInfo DefaultClientInfo()
+        public static ClientConf DefaultClientInfo()
         {
             Dictionary<string, object> props = new Dictionary<string, object>{
                 { "product", "AMQP.Client.RabbitMQ" },
@@ -34,7 +34,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
                 },
                 { "connection_name","" },
             };
-            return new RabbitMQClientInfo(props, "PLAIN", "en_US");
+            return new ClientConf(props, "PLAIN", "en_US");
         }
     }
 }

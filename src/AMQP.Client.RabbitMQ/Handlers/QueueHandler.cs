@@ -1,14 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Handlers
+﻿namespace AMQP.Client.RabbitMQ.Handlers
 {
+    /*
     public class QueueHandler
     {
         private readonly SemaphoreSlim _semafore;
@@ -17,8 +9,8 @@ namespace AMQP.Client.RabbitMQ.Handlers
         private TaskCompletionSource<bool> _commonSrc;
         private TaskCompletionSource<int> _purgeOrDeleteSrc;
         private readonly ushort _channelId;
-        private readonly RabbitMQProtocol _protocol;
-        public QueueHandler(ushort channelId, RabbitMQProtocol protocol)
+        private readonly RabbitMQProtocolWriter _protocol;
+        public QueueHandler(ushort channelId, RabbitMQProtocolWriter protocol)
         {
             _queues = new Dictionary<string, QueueInfo>();
             _semafore = new SemaphoreSlim(1);
@@ -39,22 +31,22 @@ namespace AMQP.Client.RabbitMQ.Handlers
                     }
                 case 21://bind-ok
                     {
-                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOkAsync().ConfigureAwait(false));
+                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOk().ConfigureAwait(false));
                         break;
                     }
                 case 51://unbind-ok
                     {
-                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOkAsync().ConfigureAwait(false));
+                        _commonSrc.SetResult(await _protocol.ReadBindOkUnbindOk().ConfigureAwait(false));
                         break;
                     }
                 case 31://purge-ok
                     {
-                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueuePurgeOkAsync().ConfigureAwait(false));
+                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueuePurgeOk().ConfigureAwait(false));
                         break;
                     }
                 case 41: //delete-ok
                     {
-                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueueDeleteOkAsync().ConfigureAwait(false));
+                        _purgeOrDeleteSrc.SetResult(await _protocol.ReadQueueDeleteOk().ConfigureAwait(false));
                         break;
                     }
                 default:
@@ -160,5 +152,6 @@ namespace AMQP.Client.RabbitMQ.Handlers
             _queues.Remove(queueName);
         }
     }
+    */
 }
 

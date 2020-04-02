@@ -1,19 +1,12 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Consumer
+﻿namespace AMQP.Client.RabbitMQ.Consumer
 {
-
+    /*
     public class RabbitMQChunkedConsumer : ConsumerBase
     {
         private readonly IChunkedBodyFrameReader _reader;
 
         public event Action<RabbitMQDeliver, ChunkedConsumeResult> Received;
-        internal RabbitMQChunkedConsumer(ConsumerInfo info, RabbitMQProtocol protocol, RabbitMQChannel channel)
+        internal RabbitMQChunkedConsumer(ConsumerInfo info, RabbitMQProtocolWriter protocol, RabbitMQChannel channel)
             : base(info, protocol, channel)
         {
             _reader = protocol.CreateResetableChunkedBodyReader(channel.ChannelId);
@@ -30,4 +23,5 @@ namespace AMQP.Client.RabbitMQ.Consumer
             }
         }
     }
+    */
 }

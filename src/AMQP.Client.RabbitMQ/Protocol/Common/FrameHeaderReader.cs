@@ -37,7 +37,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
             //consumed = reader.Position;
             //examined = consumed;
-            ValueReader reader = new ValueReader(input);
+            ValueReader reader = new ValueReader(input, consumed);
             message = default;
             if (input.Length < 7)
             {

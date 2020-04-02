@@ -1,10 +1,5 @@
-﻿using AMQP.Client.RabbitMQ;
-using AMQP.Client.RabbitMQ.Handlers;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace JSONTest
@@ -49,8 +44,9 @@ namespace JSONTest
         }
         public static async ValueTask RunJSONPublisher()
         {
+            /*
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            RabbitMQConnectionFactoryBuilder1 builder = new RabbitMQConnectionFactoryBuilder1(new IPEndPoint(address, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Heartbeat(60)
                                  .ProductName("AMQP.Client.RabbitMQ")
@@ -74,12 +70,14 @@ namespace JSONTest
             //{
             //    await channel.Publish("TestExchange", String.Empty, false, false, properties, body);
             //}
-            await connection.WaitEndReading();
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
         public static async ValueTask RunJSONConsumer()
         {
+            /*
             var address = Dns.GetHostAddresses("centos0.mshome.net")[0];
-            RabbitMQConnectionFactoryBuilder builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(address, 5672));
+            RabbitMQConnectionFactoryBuilder1 builder = new RabbitMQConnectionFactoryBuilder1(new IPEndPoint(address, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Heartbeat(60)
                                  .ProductName("AMQP.Client.RabbitMQ")
@@ -134,7 +132,8 @@ namespace JSONTest
 
             };
             await consumer.ConsumerStartAsync();
-            await connection.WaitEndReading();
+            await Task.Delay(TimeSpan.FromHours(1));
+            */
         }
     }
 }

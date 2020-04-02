@@ -1,17 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System;
-using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-
-namespace AMQP.Client.RabbitMQ.Consumer
+﻿namespace AMQP.Client.RabbitMQ.Consumer
 {
+    /*
     public class RabbitMQConsumer : ConsumerBase
     {
         private readonly IChunkedBodyFrameReader _reader;
@@ -20,7 +9,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQConsumer(ConsumerInfo info, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
+        internal RabbitMQConsumer(ConsumerInfo info, RabbitMQProtocolWriter protocol, PipeScheduler scheduler, RabbitMQChannel channel)
             : base(info, protocol, channel)
         {
             _reader = protocol.CreateResetableChunkedBodyReader(channel.ChannelId);
@@ -101,4 +90,5 @@ namespace AMQP.Client.RabbitMQ.Consumer
             }
         }
     }
+    */
 }

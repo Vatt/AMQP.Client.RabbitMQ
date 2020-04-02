@@ -6,14 +6,14 @@ using System.Buffers.Binary;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
-    internal class ConnectionStartOkWriter : IMessageWriter<RabbitMQClientInfo>
+    internal class ConnectionStartOkWriter : IMessageWriter<ClientConf>
     {
-        private readonly RabbitMQConnectionInfo _info;
-        public ConnectionStartOkWriter(RabbitMQConnectionInfo info)
+        private readonly ConnectionConf _info;
+        public ConnectionStartOkWriter(ConnectionConf info)
         {
             _info = info;
         }
-        public void WriteMessage(RabbitMQClientInfo message, IBufferWriter<byte> output)
+        public void WriteMessage(ClientConf message, IBufferWriter<byte> output)
         {
             var writer = new ValueWriter(output);
             writer.WriteOctet(1);

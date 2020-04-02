@@ -13,9 +13,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
      * +----------+----------+-----------+-----------+-----------+
      *      10        31          short       int        short
      */
-    internal class ConnectionTuneOkWriter : IMessageWriter<RabbitMQMainInfo>
+    internal class ConnectionTuneOkWriter : IMessageWriter<TuneConf>
     {
-        public void WriteMessage(RabbitMQMainInfo message, IBufferWriter<byte> output)
+        public void WriteMessage(TuneConf message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             FrameWriter.WriteFrameHeader(1, 0, 12, ref writer);
