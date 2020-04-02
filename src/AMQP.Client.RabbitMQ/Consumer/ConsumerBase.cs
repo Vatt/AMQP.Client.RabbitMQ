@@ -12,7 +12,7 @@
         private SemaphoreSlim _semaphore;
 
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(ConsumerInfo info, RabbitMQProtocolWriter protocol, RabbitMQChannel channel)
+        internal ConsumerBase(ConsumerInfo info, RabbitMQProtocolReader protocol, RabbitMQChannel channel)
         {
             Channel = channel;
             _protocol = protocol;
@@ -53,4 +53,5 @@
 
     }
     */
+
 }

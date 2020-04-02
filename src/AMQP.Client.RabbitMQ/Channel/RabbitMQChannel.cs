@@ -1,7 +1,7 @@
 ﻿namespace AMQP.Client.RabbitMQ.Channel
 {
     /*
-    public class RabbitMQChannel// : IRabbitMQChannel, IChannel
+    public class RabbitMQChannel
     {
 
         private readonly ushort _channelId;
@@ -16,9 +16,6 @@
         private TuneConf _mainInfo;
         private readonly SemaphoreSlim _writerSemaphore;
         private RabbitMQProtocolWriter _protocol;
-        private ExchangeHandler _exchangeMethodHandler;
-        private QueueHandler _queueMethodHandler;
-        private BasicHandler _basicHandler;
         private readonly PipeScheduler _scheduler;
 
         internal RabbitMQChannel(ushort id, TuneConf info, PipeScheduler scheduler)
@@ -304,4 +301,5 @@
         }
     }
     */
+
 }

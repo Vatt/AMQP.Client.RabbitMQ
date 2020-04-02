@@ -1,21 +1,6 @@
 ﻿namespace AMQP.Client.RabbitMQ.Channel
 {
     /*
-    public interface IRabbitMQClosable
-    {
-        public bool IsClosed { get; }
-        Task<bool> CloseAsync(string reason);
-        Task<bool> CloseAsync(short replyCode, string replyText, short failedClassId, short failedMethodId);
-    }
-    internal interface IRabbitMQOpenable
-    {
-        Task OpenAsync(RabbitMQProtocolWriter protocol);
-    }
-    internal interface IChannel : IRabbitMQOpenable, IRabbitMQClosable
-    {
-        ValueTask HandleFrameHeaderAsync(FrameHeader header);
-        Task<CloseInfo> WaitClose();
-    }
     public interface IRabbitMQChannel : IRabbitMQClosable
     {
         public ushort ChannelId { get; }

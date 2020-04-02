@@ -12,11 +12,10 @@ namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnection : IConnectionHandler
     {
-
-
         private Task _readingTask;
         private Task _watchTask;
         private RabbitMQListener _listener;
+        private ChannelHandler _channelHandler;
         private RabbitMQProtocolWriter _protocol;
         private CancellationTokenSource _cts;
         private TaskCompletionSource<CloseInfo> _connectionCloseSrc;
@@ -37,21 +36,20 @@ namespace AMQP.Client.RabbitMQ
         {
             try
             {
-                await _listener.StartAsync(reader, this, _cts.Token);
+                await _listener.StartAsync(reader, this, _channelHandler, _cts.Token);
             }
             catch (Exception e)
             {
                 _connectionCloseSrc.SetException(e);
             }
         }
-        private async ValueTask StartAsync(RabbitMQProtocolReader reader, RabbitMQProtocolWriter writer)
+        private void StartAsync(RabbitMQProtocolReader reader, RabbitMQProtocolWriter writer)
         {
-            _cts = new CancellationTokenSource();
             _protocol = writer;
+            _channelHandler = new ChannelHandler(_protocol);
             _connectionCloseSrc = new TaskCompletionSource<CloseInfo>();
             StartReadingAsync(reader);
             _watchTask = WatchAsync();
-            await _protocol.SendProtocol(_cts.Token);
 
         }
         private async Task WatchAsync()
@@ -60,6 +58,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 var info = await _connectionCloseSrc.Task.ConfigureAwait(false);
                 Console.WriteLine($"Connection closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
+                _cts.Cancel();
             }
             catch (Exception e)
             {
@@ -77,7 +76,10 @@ namespace AMQP.Client.RabbitMQ
             _connectionCloseSrc.SetResult(info);
             return default;
         }
-
+        public Task<RabbitMQChannel> OpenChannel()
+        {
+            return _channelHandler.OpenChannel();
+        }
         public ValueTask OnCloseOkAsync()
         {
             return default;
@@ -114,11 +116,15 @@ namespace AMQP.Client.RabbitMQ
         }
         public static async Task ConnectionStartAsync(RabbitMQConnection connection)
         {
-            var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider())
+            var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
                                                                    .UseSockets()
                                                                    .Build();
-            var ctx = await _client.ConnectAsync(connection.Options.Endpoint).ConfigureAwait(false);
-            await connection.StartAsync(new RabbitMQProtocolReader(ctx), new RabbitMQProtocolWriter(ctx));
+            connection._cts = new CancellationTokenSource();
+            var ctx = await _client.ConnectAsync(connection.Options.Endpoint, connection._cts.Token).ConfigureAwait(false);
+            var writer = new RabbitMQProtocolWriter(ctx);
+            var reader = new RabbitMQProtocolReader(ctx);
+            await writer.SendProtocol(connection._cts.Token);
+            connection.StartAsync(reader, writer);
         }
         public static void ConnectionCloseAsync(RabbitMQConnection connection)
         {

@@ -29,8 +29,11 @@ namespace Test
         {
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
-            await RabbitMQConnection.ConnectionStartAsync(factory.CreateConnection());
+            var connection = factory.CreateConnection();
+            await RabbitMQConnection.ConnectionStartAsync(connection);
+            var channel = await connection.OpenChannel();
 
+            //RabbitMQConnection.ConnectionCloseAsync(connection);
             await Task.Delay(TimeSpan.FromHours(1));
         }
         public static async Task ChannelTest()
