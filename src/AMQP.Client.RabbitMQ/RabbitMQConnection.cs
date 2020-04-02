@@ -19,6 +19,7 @@ namespace AMQP.Client.RabbitMQ
         private RabbitMQProtocolWriter _protocol;
         private CancellationTokenSource _cts;
         private TaskCompletionSource<CloseInfo> _connectionCloseSrc;
+        private TaskCompletionSource<bool> _closeSrc;
 
         public readonly ConnectionOptions Options;
         public ServerConf ServerOptions;
@@ -43,14 +44,33 @@ namespace AMQP.Client.RabbitMQ
                 _connectionCloseSrc.SetException(e);
             }
         }
-        private void StartAsync(RabbitMQProtocolReader reader, RabbitMQProtocolWriter writer)
+        public async Task StartAsync(/* RabbitMQProtocolReader reader, RabbitMQProtocolWriter writer*/ )
         {
-            _protocol = writer;
+
+            var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
+                .UseSockets()
+                .Build();
+            _cts = new CancellationTokenSource();
+            var ctx = await _client.ConnectAsync(Options.Endpoint, _cts.Token).ConfigureAwait(false);
+            _protocol = new RabbitMQProtocolWriter(ctx);
+            await _protocol.SendProtocol(_cts.Token);
+
+
             _channelHandler = new ChannelHandler(_protocol);
             _connectionCloseSrc = new TaskCompletionSource<CloseInfo>();
-            StartReadingAsync(reader);
+            _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            StartReadingAsync(new RabbitMQProtocolReader(ctx));
             _watchTask = WatchAsync();
 
+        }
+        public async Task CloseAsync(string reason = null)
+        {
+            string replyText = reason == null ? "Connection closed gracefully" : reason;
+            var info = new CloseInfo(Constants.Success, replyText, 0, 0);
+            await _protocol.SendConnectionCloseAsync(info).ConfigureAwait(false);
+            await _closeSrc.Task.ConfigureAwait(false);
+            _connectionCloseSrc.SetResult(info);
+            _cts.Cancel();
         }
         private async Task WatchAsync()
         {
@@ -82,6 +102,7 @@ namespace AMQP.Client.RabbitMQ
         }
         public ValueTask OnCloseOkAsync()
         {
+            _closeSrc.SetResult(true);
             return default;
         }
 
@@ -113,22 +134,6 @@ namespace AMQP.Client.RabbitMQ
             }
             await _protocol.SendTuneOkAsync(Options.TuneOptions).ConfigureAwait(false);
             await _protocol.SendOpenAsync(Options.ConnOptions.VHost).ConfigureAwait(false);
-        }
-        public static async Task ConnectionStartAsync(RabbitMQConnection connection)
-        {
-            var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
-                                                                   .UseSockets()
-                                                                   .Build();
-            connection._cts = new CancellationTokenSource();
-            var ctx = await _client.ConnectAsync(connection.Options.Endpoint, connection._cts.Token).ConfigureAwait(false);
-            var writer = new RabbitMQProtocolWriter(ctx);
-            var reader = new RabbitMQProtocolReader(ctx);
-            await writer.SendProtocol(connection._cts.Token);
-            connection.StartAsync(reader, writer);
-        }
-        public static void ConnectionCloseAsync(RabbitMQConnection connection)
-        {
-            connection._connectionCloseSrc.SetResult(new CloseInfo(Constants.ReplySuccess, "Connection closed gracefully", 0, 0));
         }
     }
 }

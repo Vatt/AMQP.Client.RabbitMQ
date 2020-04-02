@@ -1,4 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -28,13 +30,23 @@ namespace Test
         public static async Task RunDefault()
         {
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Build();
+            var factory = builder.Heartbeat(60).Build();
             var connection = factory.CreateConnection();
-            await RabbitMQConnection.ConnectionStartAsync(connection);
-            var channel = await connection.OpenChannel();
+            await connection.StartAsync();
+            RabbitMQChannel channel = await connection.OpenChannel();
 
-            //RabbitMQConnection.ConnectionCloseAsync(connection);
-            await Task.Delay(TimeSpan.FromHours(1));
+            await channel.ExchangeDeclareAsync(Exchange.Create("TestExchange", ExchangeType.Direct));
+            await channel.ExchangeDeclareAsync(Exchange.CreateNoWait("TestExchange2", ExchangeType.Direct));
+            await channel.QueueDeclareAsync(Queue.Create("TestQueue"));
+            await channel.QueueDeclareNoWaitAsync(Queue.Create("TestQueue2"));
+
+            await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
+            await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
+            await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
+            await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
+
+            await connection.CloseAsync();
+            await Task.Delay(TimeSpan.FromHours(2));
         }
         public static async Task ChannelTest()
         {

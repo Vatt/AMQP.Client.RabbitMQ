@@ -8,7 +8,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
-    public class FrameReader : IMessageReader<Frame>
+    internal class FrameReader : IMessageReader<Frame>
     {
         private FrameHeaderReader frameReader = new FrameHeaderReader();
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out Frame message)

@@ -1,7 +1,12 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,30 +22,80 @@ namespace AMQP.Client.RabbitMQ.Protocol
             _connectionHandler = connection;
             _channelHandler = channel;
             _token = token;
+            var frameReader = new FrameReader();
             while (true)
             {
-                var frame = await reader.ReadAsync(new FrameReader(), token).ConfigureAwait(false);
-                if (frame.Header.Channel == 0)
+                var frame = await reader.ReadAsync(frameReader, token).ConfigureAwait(false);
+                if (frame.Header.FrameType == Constants.FrameHeartbeat)
                 {
-                    await ProcessConnection(reader, frame);
+                    await _connectionHandler.OnHeartbeatAsync();
+                    reader.Advance();
+                    continue;
                 }
+                //if (frame.Header.Channel == 0)
+                //{
+                //    await ProcessConnection(reader, ref frame);
+                //}
+                await ProcessMethod(reader, ref frame);
                 reader.Advance();
             }
         }
-        public ValueTask ProcessConnection(RabbitMQProtocolReader protocol, Frame frame)
+        internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)
         {
+            if (frame.Header.FrameType != Constants.FrameMethod)
+            {
+                ThrowHelpers.ReaderThrowHelper.ThrowIfFrameTypeMissmatch();
+            }
             var method = protocol.ReadMethodHeader(frame.Payload);
             var payload = frame.Payload.Slice(4);// MethodHeader size
+            switch (method.ClassId)
+            {
+                case 10:
+                    {
+                        return ProcessConnection(protocol, ref frame.Header, ref method, ref payload);
+                    }
+                case 20:
+                    {
+                        return ProcessChannel(protocol, ref frame.Header, ref method, ref payload);
+                    }
+                case 40:
+                    {
+                        return ProcessExchange(protocol, ref frame.Header, ref method, ref payload);
+                    }
+                case 50:
+                    {
+                        return ProcessQueue(protocol, ref frame.Header, ref method, ref payload);
+                    }
+
+                case 60:
+                    {
+                        return ProcessBasic(protocol, ref frame.Header, ref method, ref payload);
+                    }
+
+                default:
+                    {
+                        throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessMethod)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    }
+            }
+        }
+        internal ValueTask ProcessConnection(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, ref ReadOnlySequence<byte> payload)
+        {
+            if (header.Channel != 0)
+            {
+                ThrowHelpers.ReaderThrowHelper.ThrowIfFrameTypeMissmatch();
+            }
             switch (method.MethodId)
             {
                 case 10:
                     {
-                        return _connectionHandler.OnStartAsync(protocol.ReadStart(payload));
+                        var serverConf = protocol.ReadStart(payload);
+                        return _connectionHandler.OnStartAsync(serverConf);
                     }
 
                 case 30:
                     {
-                        return _connectionHandler.OnTuneAsync(protocol.ReadTuneMethod(payload));
+                        var tuneConf = protocol.ReadTuneMethod(payload);
+                        return _connectionHandler.OnTuneAsync(tuneConf);
                     }
                 case 41:
                     {
@@ -49,7 +104,8 @@ namespace AMQP.Client.RabbitMQ.Protocol
                     }
                 case 50: //close
                     {
-                        return _connectionHandler.OnCloseAsync(protocol.ReadClose(payload));
+                        var closeInfo = protocol.ReadClose(payload);
+                        return _connectionHandler.OnCloseAsync(closeInfo);
                     }
                 case 51://close-ok
                     {
@@ -62,29 +118,104 @@ namespace AMQP.Client.RabbitMQ.Protocol
 
             }
         }
-
-        public ValueTask ProcessChannel(RabbitMQProtocolReader protocol, Frame frame)
+        internal ValueTask ProcessChannel(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, ref ReadOnlySequence<byte> payload)
         {
-            var method = protocol.ReadMethodHeader(frame.Payload);
-            var payload = frame.Payload.Slice(4);// MethodHeader size
             switch (method.MethodId)
             {
                 case 11://open-ok
                     {
-                        return _channelHandler.OnChannelOpenOkAsync(frame.Header.Channel);
+                        return _channelHandler.OnChannelOpenOkAsync(header.Channel);
                     }
                 case 40: //close
                     {
-                        return _channelHandler.OnChannelCloseAsync(frame.Header.Channel, protocol.ReadClose(payload));
+                        var closeInfo = protocol.ReadClose(payload);
+                        return _channelHandler.OnChannelCloseAsync(header.Channel, closeInfo);
 
                     }
                 case 41://close-ok
                     {
-                        return _channelHandler.OnChannelCloseOkAsync(frame.Header.Channel);
+                        return _channelHandler.OnChannelCloseOkAsync(header.Channel);
                     }
                 default:
                     throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessChannel)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
 
+            }
+        }
+        internal ValueTask ProcessExchange(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, ref ReadOnlySequence<byte> payload)
+        {
+            switch (method.MethodId)
+            {
+                case 11: //declare-ok
+                    {
+                        var declareOk = protocol.ReadExchangeDeclareOk(payload);
+                        return _channelHandler.OnExchangeDeclareOkAsync(header.Channel);
+                    }
+                case 21://delete-ok
+                    {
+                        var declareOk = protocol.ReadExchangeDeleteOk(payload);
+                        return _channelHandler.OnExchangeDeleteOkAsync(header.Channel);
+                    }
+                default:
+                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessExchange)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+            }
+        }
+        internal ValueTask ProcessQueue(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, ref ReadOnlySequence<byte> payload)
+        {
+            switch (method.MethodId)
+            {
+                case 11: //declare-ok
+                    {
+                        var declareOk = protocol.ReadQueueDeclareOk(payload);
+                        return _channelHandler.OnQueueDeclareOkAsync(header.Channel, declareOk);
+                    }
+                case 21://bind-ok
+                    {
+                        var bindOk = protocol.ReadQueueBindOk(payload); // maybe delete this
+                        return _channelHandler.OnQueueBindOkAsync(header.Channel);
+                    }
+                case 51://unbind-ok
+                    {
+                        var unbindOk = protocol.ReadQueueUnbindOk(payload);// maybe delete this
+                        return _channelHandler.OnQueueUnbindOkAsync(header.Channel);
+                    }
+                case 31://purge-ok
+                    {
+                        var purged = protocol.ReadQueuePurgeOk(payload);
+                        return _channelHandler.OnQueuePurgeOkAsync(header.Channel, purged);
+                    }
+                case 41: //delete-ok
+                    {
+                        var deleted = protocol.ReadQueueDeleteOk(payload);
+                        return _channelHandler.OnQueueDeleteOkAsync(header.Channel, deleted);
+                    }
+                default:
+                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessQueue)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+            }
+        }
+        public ValueTask ProcessBasic(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, ref ReadOnlySequence<byte> payload)
+        {
+            switch (method.MethodId)
+            {
+                case 60://deliver method
+                    {
+                        var deliver = protocol.ReadBasicDeliver(payload);
+                        return _channelHandler.OnDeliverAsync(header.Channel, ref deliver);
+                    }
+                case 21:// consume-ok 
+                    {
+                        var tag = protocol.ReadBasicConsumeOk(payload);
+                        return _channelHandler.OnConsumeOkAsync(header.Channel, tag);
+                    }
+                case 11: // qos-ok
+                    {
+                        return _channelHandler.OnQosOkAsync(header.Channel);
+                    }
+                case 31://consumer cancel-ok
+                    {
+                        var tag = protocol.ReadBasicConsumeCancelOk(payload);
+                        return _channelHandler.OnConsumerCancelOkAsync(header.Channel, tag);
+                    }
+                default: throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessBasic)}: cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
             }
         }
     }

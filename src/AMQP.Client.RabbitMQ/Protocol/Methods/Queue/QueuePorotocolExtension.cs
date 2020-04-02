@@ -9,11 +9,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
     {
         private static readonly QueueDeclareOkReader _queueDeclareOkReader = new QueueDeclareOkReader();
         private static readonly QueuePurgeOkDeleteOkReader _queuePurgeOkDeleteOkReader = new QueuePurgeOkDeleteOkReader();
-        public static ValueTask SendQueueDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueInfo info)
+        public static ValueTask SendQueueDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, Queue info)
         {
             return protocol.WriteAsync(new QueueDeclareWriter(channelId), info);
         }
-        public static QueueDeclareOk ReadQueueDeclareOkAsync(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        public static QueueDeclareOk ReadQueueDeclareOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_queueDeclareOkReader, input);
         }
@@ -30,7 +30,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         {
             return protocol.WriteAsync(new QueuePurgeWriter(channelId), info, token);
         }
-        public static ValueTask SendQueueDeleteAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueDeleteInfo info, CancellationToken token = default)
+        public static ValueTask SendQueueDeleteAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueDelete info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueDeleteWriter(channelId), info, token);
         }
@@ -42,7 +42,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         {
             return protocol.Read(_queuePurgeOkDeleteOkReader, input);
         }
-        public static bool ReadBindOkUnbindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        public static bool ReadQueueBindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        {
+            return protocol.ReadNoPayload(input);
+        }
+        public static bool ReadQueueUnbindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.ReadNoPayload(input);
         }

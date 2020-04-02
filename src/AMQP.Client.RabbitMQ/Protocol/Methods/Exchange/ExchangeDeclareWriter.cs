@@ -6,14 +6,14 @@ using System.Buffers.Binary;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
-    internal class ExchangeDeclareWriter : IMessageWriter<ExchangeInfo>
+    internal class ExchangeDeclareWriter : IMessageWriter<Exchange>
     {
         private readonly ushort _channelId;
         public ExchangeDeclareWriter(ushort channelId)
         {
             _channelId = channelId;
         }
-        public void WriteMessage(ExchangeInfo message, IBufferWriter<byte> output)
+        public void WriteMessage(Exchange message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);

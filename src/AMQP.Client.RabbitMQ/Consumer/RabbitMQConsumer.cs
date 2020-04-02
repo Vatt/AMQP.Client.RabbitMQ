@@ -1,23 +1,34 @@
-﻿namespace AMQP.Client.RabbitMQ.Consumer
+﻿using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using System;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+
+namespace AMQP.Client.RabbitMQ.Consumer
 {
-    /*
+
     public class RabbitMQConsumer : ConsumerBase
     {
-        private readonly IChunkedBodyFrameReader _reader;
+        private IChunkedBodyFrameReader _reader;
         private byte[] _activeDeliver;
         private int _deliverPosition;
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
-        internal RabbitMQConsumer(ConsumerInfo info, RabbitMQProtocolWriter protocol, PipeScheduler scheduler, RabbitMQChannel channel)
-            : base(info, protocol, channel)
+        public RabbitMQConsumer(ConsumerConf info, PipeScheduler scheduler, RabbitMQChannel channel)
+            : base(info, channel)
         {
-            _reader = protocol.CreateResetableChunkedBodyReader(channel.ChannelId);
+            _reader = new BodyFrameChunkedReader(Channel.ChannelId);
             _scheduler = scheduler;
             _deliverPosition = 0;
         }
 
-        internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver)
+        internal override async ValueTask ProcessBodyMessage(RabbitMQProtocolReader protocol, RabbitMQDeliver deliver)
         {
             _deliverPosition = 0;
             _activeDeliver = ArrayPool<byte>.Shared.Rent((int)deliver.Header.BodySize);
@@ -25,9 +36,9 @@
 
             while (!_reader.IsComplete)
             {
-                var result = await _protocol.ReadWithoutAdvanceAsync(_reader).ConfigureAwait(false);
+                var result = await protocol.ReadWithoutAdvanceAsync(_reader).ConfigureAwait(false);
                 Copy(result);
-                _protocol.ReaderAdvance();
+                protocol.Advance();
             }
 
             var arg = new DeliverArgs(ref deliver, _activeDeliver);
@@ -90,5 +101,5 @@
             }
         }
     }
-    */
+
 }
