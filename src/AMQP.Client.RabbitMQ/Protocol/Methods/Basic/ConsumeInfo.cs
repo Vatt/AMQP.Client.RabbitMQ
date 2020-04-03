@@ -2,7 +2,7 @@
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
-    public readonly struct ConsumerConf
+    public readonly struct Consume
     {
         public readonly string QueueName;
         public readonly string ConsumerTag;
@@ -11,7 +11,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         public readonly bool NoAck;
         public readonly bool Exclusive;
         public readonly bool NoWait;
-        internal ConsumerConf(string queue, string tag, bool noLocal = false, bool noAck = false, bool exclusive = false, bool nowait = false, Dictionary<string, object> arguments = null)
+        internal Consume(string queue, string tag, bool noLocal = false, bool noAck = false, bool exclusive = false, bool nowait = false, Dictionary<string, object> arguments = null)
         {
             QueueName = queue;
             ConsumerTag = tag;
@@ -21,13 +21,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             NoWait = nowait;
             Arguments = arguments;
         }
-        public static ConsumerConf Create(string queueName, string consumerTag, bool noLocal = false, bool noAck = false, bool exclusive = false, Dictionary<string, object> arguments = null)
+        public static Consume Create(string queueName, string consumerTag, bool noLocal = false, bool noAck = false, bool exclusive = false, Dictionary<string, object> arguments = null)
         {
-            return new ConsumerConf(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
+            return new Consume(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
         }
-        public static ConsumerConf Create(string queueName, string consumerTag, bool noAck = false)
+        public static Consume Create(string queueName, string consumerTag, bool noAck = false)
         {
-            return new ConsumerConf(queueName, consumerTag, false, noAck, false, false, null);
+            return new Consume(queueName, consumerTag, false, noAck, false, false, null);
         }
     }
 }

@@ -10,7 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
 {
     internal class FrameReader : IMessageReader<Frame>
     {
-        private FrameHeaderReader frameReader = new FrameHeaderReader();
+        private static readonly FrameHeaderReader frameReader = new FrameHeaderReader();
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out Frame message)
         {
             message = default;

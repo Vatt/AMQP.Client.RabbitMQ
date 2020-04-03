@@ -6,14 +6,14 @@ using System.Buffers.Binary;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    internal class QueueUnbindWriter : IMessageWriter<QueueUnbindInfo>
+    internal class QueueUnbindWriter : IMessageWriter<QueueUnbind>
     {
         private readonly ushort _channelId;
         public QueueUnbindWriter(ushort channelId)
         {
             _channelId = channelId;
         }
-        public void WriteMessage(QueueUnbindInfo message, IBufferWriter<byte> output)
+        public void WriteMessage(QueueUnbind message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);

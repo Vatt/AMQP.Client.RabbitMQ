@@ -11,7 +11,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
     public static class BasicProtocolExtension
     {
         private static readonly BasicDeliverReader _basicDeliverReader = new BasicDeliverReader();
-        public static ValueTask SendBasicConsumeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ConsumerConf info, CancellationToken token = default)
+        public static ValueTask SendBasicConsumeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, Consume info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new BasicConsumeWriter(channelId), info, token);
         }

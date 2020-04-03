@@ -13,7 +13,7 @@ namespace AMQP.Client.RabbitMQ
             ChannelId = id;
             _handler = handler;
         }
-        public ValueTask ExchangeDeclareAsync(Exchange exchange)
+        public ValueTask ExchangeDeclareAsync(ExchangeDeclare exchange)
         {
             return _handler.ExchangeDeclareAsync(this, exchange);
         }
@@ -21,11 +21,11 @@ namespace AMQP.Client.RabbitMQ
         {
             return _handler.ExchangeDeleteAsync(this, exchange);
         }
-        public ValueTask<QueueDeclareOk> QueueDeclareAsync(Queue queue)
+        public ValueTask<QueueDeclareOk> QueueDeclareAsync(QueueDeclare queue)
         {
             return _handler.QueueDeclareAsync(this, queue);
         }
-        public ValueTask QueueDeclareNoWaitAsync(Queue queue)
+        public ValueTask QueueDeclareNoWaitAsync(QueueDeclare queue)
         {
             queue.NoWait = true;
             return _handler.QueueDeclareNoWaitAsync(this, queue);
@@ -38,6 +38,23 @@ namespace AMQP.Client.RabbitMQ
         {
             queue.NoWait = true;
             return _handler.QueueDeleteNoWaitAsync(this, queue);
+        }
+        public ValueTask<int> QueuePurgeAsync(QueuePurge queue)
+        {
+            return _handler.QueuePurgeAsync(this, queue);
+        }
+        public ValueTask QueuePurgeNoWaitAsync(QueuePurge queue)
+        {
+            queue.NoWait = true;
+            return _handler.QueuePurgeNoWaitAsync(this, queue);
+        }
+        public ValueTask QueueBindAsync(QueueBind bind)
+        {
+            return _handler.QueueBindAsync(this, bind);
+        }
+        public ValueTask QueueUnbindAsync(QueueUnbind unbind)
+        {
+            return _handler.QueueUnbindAsync(this, unbind);
         }
     }
 }

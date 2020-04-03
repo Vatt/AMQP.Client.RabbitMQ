@@ -7,14 +7,14 @@ using System.Buffers.Binary;
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
 
-    internal class QueueDeclareWriter : IMessageWriter<Queue>
+    internal class QueueDeclareWriter : IMessageWriter<QueueDeclare>
     {
         private readonly ushort ChannelId;
         public QueueDeclareWriter(ushort channelId)
         {
             ChannelId = channelId;
         }
-        public void WriteMessage(Queue message, IBufferWriter<byte> output)
+        public void WriteMessage(QueueDeclare message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);

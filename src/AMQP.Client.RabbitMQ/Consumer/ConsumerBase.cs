@@ -12,11 +12,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
     {
         public ushort ChannelId => Channel.ChannelId;
         public RabbitMQChannel Channel { get; }
-        private ConsumerConf _info;
+        private Consume _info;
         private SemaphoreSlim _semaphore;
 
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(ConsumerConf info, RabbitMQChannel channel)
+        internal ConsumerBase(Consume info, RabbitMQChannel channel)
         {
             Channel = channel;
             _info = info;

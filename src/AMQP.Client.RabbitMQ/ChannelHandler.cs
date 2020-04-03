@@ -20,9 +20,9 @@ namespace AMQP.Client.RabbitMQ
         public TaskCompletionSource<QueueDeclareOk> QueueTcs;
 
         public readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1);
-        public Dictionary<string, Queue> Queues = new Dictionary<string, Queue>();
-        public Dictionary<string, Exchange> Exchanges = new Dictionary<string, Exchange>();
-        public Dictionary<string, QueueBindInfo> Binds = new Dictionary<string, QueueBindInfo>();
+        public Dictionary<string, QueueDeclare> Queues = new Dictionary<string, QueueDeclare>();
+        public Dictionary<string, ExchangeDeclare> Exchanges = new Dictionary<string, ExchangeDeclare>();
+        public Dictionary<string, QueueBind> Binds = new Dictionary<string, QueueBind>();
         public Dictionary<string, ConsumerBase> Consumers = new Dictionary<string, ConsumerBase>();
         public ChannelData()
         {
@@ -34,6 +34,9 @@ namespace AMQP.Client.RabbitMQ
         private static int _channelId = 0;
         private readonly ConcurrentDictionary<ushort, ChannelData> _channels;
         private RabbitMQProtocolWriter _protocol;
+        internal ConcurrentDictionary<ushort, ChannelData> Channels => _channels;
+        internal RabbitMQProtocolWriter Protocol => _protocol;
+
         private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         //private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -47,7 +50,7 @@ namespace AMQP.Client.RabbitMQ
         {
             var id = Interlocked.Increment(ref _channelId);
             await _protocol.SendChannelOpenAsync((ushort)id).ConfigureAwait(false);
-            await _openSrc.Task;
+            await _openSrc.Task.ConfigureAwait(false);
             _channels.GetOrAdd((ushort)id, key => new ChannelData());
             return new RabbitMQChannel((ushort)id, this);
         }
@@ -95,14 +98,14 @@ namespace AMQP.Client.RabbitMQ
         public ValueTask OnExchangeDeclareOkAsync(ushort channelId)
         {
             _channels.TryGetValue(channelId, out var data);
-            data.CommonTcs.SetResult(0);
+            data.CommonTcs.SetResult(-1);
             return default;
         }
 
         public ValueTask OnExchangeDeleteOkAsync(ushort channelId)
         {
             _channels.TryGetValue(channelId, out var data);
-            data.CommonTcs.SetResult(0);
+            data.CommonTcs.SetResult(-1);
             return default;
         }
 
@@ -113,7 +116,9 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueueBindOkAsync(ushort channelId)
         {
-            throw new NotImplementedException();
+            _channels.TryGetValue(channelId, out var data);
+            data.CommonTcs.SetResult(-1);
+            return default;
         }
 
         public ValueTask OnQueueDeclareOkAsync(ushort channelId, QueueDeclareOk declare)
@@ -139,66 +144,9 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueueUnbindOkAsync(ushort channelId)
         {
-            throw new NotImplementedException();
+            _channels.TryGetValue(channelId, out var data);
+            data.CommonTcs.SetResult(-1);
+            return default;
         }
-        public async ValueTask ExchangeDeclareAsync(RabbitMQChannel channel, Exchange exchange)
-        {
-            _channels.TryGetValue(channel.ChannelId, out var data);
-            data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await _protocol.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
-            if (exchange.NoWait)
-            {
-                data.Exchanges.Add(exchange.Name, exchange);
-                return;
-            }
-            await data.CommonTcs.Task.ConfigureAwait(false);
-            data.Exchanges.Add(exchange.Name, exchange);
-        }
-        public async ValueTask ExchangeDeleteAsync(RabbitMQChannel channel, ExchangeDelete exchange)
-        {
-            _channels.TryGetValue(channel.ChannelId, out var data);
-            data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await _protocol.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
-            if (exchange.NoWait)
-            {
-                data.Exchanges.Remove(exchange.Name);
-                return;
-            }
-            await data.CommonTcs.Task.ConfigureAwait(false);
-            data.Exchanges.Remove(exchange.Name);
-        }
-        public async ValueTask<QueueDeclareOk> QueueDeclareAsync(RabbitMQChannel channel, Queue queue)
-        {
-            _channels.TryGetValue(channel.ChannelId, out var data);
-            data.QueueTcs = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await _protocol.SendQueueDeclareAsync(channel.ChannelId, queue).ConfigureAwait(false);
-            var declare = await data.QueueTcs.Task.ConfigureAwait(false);
-            data.Queues.Add(queue.Name, queue);
-            return declare;
-        }
-        public async ValueTask QueueDeclareNoWaitAsync(RabbitMQChannel channel, Queue queue)
-        {
-            _channels.TryGetValue(channel.ChannelId, out var data);
-            await _protocol.SendQueueDeclareAsync(channel.ChannelId, queue).ConfigureAwait(false);
-            data.Queues.Add(queue.Name, queue);
-        }
-        public async ValueTask<int> QueueDeleteAsync(RabbitMQChannel channel, QueueDelete queue)
-        {
-            _channels.TryGetValue(channel.ChannelId, out var data);
-            data.CommonTcs = new TaskCompletionSource<int>();
-            await _protocol.SendQueueDeleteAsync(channel.ChannelId, queue).ConfigureAwait(false);
-            var deleted = await data.CommonTcs.Task.ConfigureAwait(false);
-            data.Queues.Remove(queue.Name);
-            return deleted;
-        }
-        public async ValueTask QueueDeleteNoWaitAsync(RabbitMQChannel channel, QueueDelete queue)
-        {
-            _channels.TryGetValue(channel.ChannelId, out var data);
-            data.CommonTcs = new TaskCompletionSource<int>();
-            await _protocol.SendQueueDeleteAsync(channel.ChannelId, queue).ConfigureAwait(false);
-            data.Queues.Remove(queue.Name);
-        }
-
-
     }
 }

@@ -27,4 +27,8 @@
     <PackageReference Include="System.IO.Pipelines" Version="4.7.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Handlers\" />
+  </ItemGroup>
+
 </Project>

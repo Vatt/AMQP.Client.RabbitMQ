@@ -1,7 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Diagnostics;
@@ -20,7 +19,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
 
-        public RabbitMQConsumer(ConsumerConf info, PipeScheduler scheduler, RabbitMQChannel channel)
+        public RabbitMQConsumer(Protocol.Methods.Basic.Consume info, PipeScheduler scheduler, RabbitMQChannel channel)
             : base(info, channel)
         {
             _reader = new BodyFrameChunkedReader(Channel.ChannelId);

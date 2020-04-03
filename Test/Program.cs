@@ -2,6 +2,7 @@
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 namespace Test
@@ -35,12 +36,19 @@ namespace Test
             await connection.StartAsync();
             RabbitMQChannel channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(Exchange.Create("TestExchange", ExchangeType.Direct));
-            await channel.ExchangeDeclareAsync(Exchange.CreateNoWait("TestExchange2", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(Queue.Create("TestQueue"));
-            await channel.QueueDeclareNoWaitAsync(Queue.Create("TestQueue2"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
+            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            await channel.QueueDeclareNoWaitAsync(QueueDeclare.Create("TestQueue2"));
+            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
+            await channel.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
+            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
 
-            await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
+
+            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
+            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
+            var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
             await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));

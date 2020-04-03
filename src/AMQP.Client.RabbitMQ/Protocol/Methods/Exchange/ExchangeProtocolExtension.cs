@@ -7,7 +7,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
     public static class ExchangeProtocolExtension
     {
-        public static ValueTask SendExchangeDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, Exchange message, CancellationToken token = default)
+        public static ValueTask SendExchangeDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ExchangeDeclare message, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ExchangeDeclareWriter(channelId), message, token);
         }

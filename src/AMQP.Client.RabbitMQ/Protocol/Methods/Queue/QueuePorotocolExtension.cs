@@ -9,7 +9,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
     {
         private static readonly QueueDeclareOkReader _queueDeclareOkReader = new QueueDeclareOkReader();
         private static readonly QueuePurgeOkDeleteOkReader _queuePurgeOkDeleteOkReader = new QueuePurgeOkDeleteOkReader();
-        public static ValueTask SendQueueDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, Queue info)
+        public static ValueTask SendQueueDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueDeclare info)
         {
             return protocol.WriteAsync(new QueueDeclareWriter(channelId), info);
         }
@@ -17,16 +17,16 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         {
             return protocol.Read(_queueDeclareOkReader, input);
         }
-        public static ValueTask SendQueueBindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueBindInfo info, CancellationToken token = default)
+        public static ValueTask SendQueueBindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueBind info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueBindWriter(channelId), info, token);
         }
 
-        public static ValueTask SendQueueUnbindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueUnbindInfo info, CancellationToken token = default)
+        public static ValueTask SendQueueUnbindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueUnbind info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueUnbindWriter(channelId), info, token);
         }
-        public static ValueTask SendQueuePurgeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueuePurgeInfo info, CancellationToken token = default)
+        public static ValueTask SendQueuePurgeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueuePurge info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueuePurgeWriter(channelId), info, token);
         }
