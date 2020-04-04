@@ -17,7 +17,7 @@ namespace AMQP.Client.RabbitMQ
         private Task _watchTask;
         private RabbitMQListener _listener;
         private ChannelHandler _channelHandler;
-        private RabbitMQProtocolWriter _protocol;
+        private RabbitMQProtocolWriter _writer;
         private ConnectionContext _ctx;
         private CancellationTokenSource _cts;
         private TaskCompletionSource<CloseInfo> _connectionCloseSrc;
@@ -54,11 +54,11 @@ namespace AMQP.Client.RabbitMQ
                 .Build();
             _cts = new CancellationTokenSource();
             _ctx = await _client.ConnectAsync(Options.Endpoint, _cts.Token).ConfigureAwait(false);
-            _protocol = new RabbitMQProtocolWriter(_ctx);
-            await _protocol.SendProtocol(_cts.Token);
+            _writer = new RabbitMQProtocolWriter(_ctx);
+            await _writer.SendProtocol(_cts.Token);
 
 
-            _channelHandler = new ChannelHandler(_protocol);
+            _channelHandler = new ChannelHandler(_writer, new RabbitMQProtocolReader(_ctx));
             _connectionCloseSrc = new TaskCompletionSource<CloseInfo>();
             _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(new RabbitMQProtocolReader(_ctx));
@@ -69,7 +69,7 @@ namespace AMQP.Client.RabbitMQ
         {
             string replyText = reason == null ? "Connection closed gracefully" : reason;
             var info = new CloseInfo(Constants.Success, replyText, 0, 0);
-            await _protocol.SendConnectionCloseAsync(info).ConfigureAwait(false);
+            await _writer.SendConnectionCloseAsync(info).ConfigureAwait(false);
             await _closeSrc.Task.ConfigureAwait(false);
             _connectionCloseSrc.SetResult(info);
             _cts.Cancel();
@@ -123,7 +123,7 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask OnStartAsync(ServerConf conf)
         {
             ServerOptions = conf;
-            await _protocol.SendStartOkAsync(Options.ClientOptions, Options.ConnOptions).ConfigureAwait(false);
+            await _writer.SendStartOkAsync(Options.ClientOptions, Options.ConnOptions).ConfigureAwait(false);
         }
 
         public async ValueTask OnTuneAsync(TuneConf conf)
@@ -136,8 +136,8 @@ namespace AMQP.Client.RabbitMQ
             {
                 Options.TuneOptions.FrameMax = conf.FrameMax;
             }
-            await _protocol.SendTuneOkAsync(Options.TuneOptions).ConfigureAwait(false);
-            await _protocol.SendOpenAsync(Options.ConnOptions.VHost).ConfigureAwait(false);
+            await _writer.SendTuneOkAsync(Options.TuneOptions).ConfigureAwait(false);
+            await _writer.SendOpenAsync(Options.ConnOptions.VHost).ConfigureAwait(false);
         }
     }
 }

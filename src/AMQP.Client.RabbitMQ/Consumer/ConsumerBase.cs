@@ -12,11 +12,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
     {
         public ushort ChannelId => Channel.ChannelId;
         public RabbitMQChannel Channel { get; }
-        private Consume _info;
+        private ConsumeConf _info;
         private SemaphoreSlim _semaphore;
 
         public bool IsCanceled { get; protected set; }
-        internal ConsumerBase(Consume info, RabbitMQChannel channel)
+        internal ConsumerBase(ConsumeConf info, RabbitMQChannel channel)
         {
             Channel = channel;
             _info = info;
@@ -47,7 +47,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             return default;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async ValueTask Delivery(RabbitMQProtocolReader protocol, DeliverInfo info)
+        internal async ValueTask Delivery(RabbitMQProtocolReader protocol, Deliver info)
         {
             if (IsCanceled)
             {

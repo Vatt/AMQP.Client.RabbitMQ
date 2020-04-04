@@ -9,7 +9,7 @@ namespace AMQP.Client.RabbitMQ
         {
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await handler.Protocol.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
+            await handler.Writer.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
             if (exchange.NoWait)
             {
                 data.Exchanges.Add(exchange.Name, exchange);
@@ -22,7 +22,7 @@ namespace AMQP.Client.RabbitMQ
         {
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await handler.Protocol.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
+            await handler.Writer.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
             if (exchange.NoWait)
             {
                 data.Exchanges.Remove(exchange.Name);

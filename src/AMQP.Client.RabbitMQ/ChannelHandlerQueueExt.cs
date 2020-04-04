@@ -10,7 +10,7 @@ namespace AMQP.Client.RabbitMQ
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.QueueTcs = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.NoWait = false;
-            await handler.Protocol.SendQueueDeclareAsync(channel.ChannelId, queue).ConfigureAwait(false);
+            await handler.Writer.SendQueueDeclareAsync(channel.ChannelId, queue).ConfigureAwait(false);
             var declare = await data.QueueTcs.Task.ConfigureAwait(false);
             data.Queues.Add(queue.Name, queue);
             return declare;
@@ -19,7 +19,7 @@ namespace AMQP.Client.RabbitMQ
         {
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             queue.NoWait = true;
-            await handler.Protocol.SendQueueDeclareAsync(channel.ChannelId, queue).ConfigureAwait(false);
+            await handler.Writer.SendQueueDeclareAsync(channel.ChannelId, queue).ConfigureAwait(false);
             data.Queues.Add(queue.Name, queue);
         }
         public static async ValueTask<int> QueueDeleteAsync(this ChannelHandler handler, RabbitMQChannel channel, QueueDelete queue)
@@ -27,7 +27,7 @@ namespace AMQP.Client.RabbitMQ
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.NoWait = false;
-            await handler.Protocol.SendQueueDeleteAsync(channel.ChannelId, queue).ConfigureAwait(false);
+            await handler.Writer.SendQueueDeleteAsync(channel.ChannelId, queue).ConfigureAwait(false);
             var deleted = await data.CommonTcs.Task.ConfigureAwait(false);
             data.Queues.Remove(queue.Name);
             return deleted;
@@ -37,7 +37,7 @@ namespace AMQP.Client.RabbitMQ
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.NoWait = true;
-            await handler.Protocol.SendQueueDeleteAsync(channel.ChannelId, queue).ConfigureAwait(false);
+            await handler.Writer.SendQueueDeleteAsync(channel.ChannelId, queue).ConfigureAwait(false);
             data.Queues.Remove(queue.Name);
         }
         public static async ValueTask<int> QueuePurgeAsync(this ChannelHandler handler, RabbitMQChannel channel, QueuePurge queue)
@@ -45,7 +45,7 @@ namespace AMQP.Client.RabbitMQ
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.NoWait = false;
-            await handler.Protocol.SendQueuePurgeAsync(channel.ChannelId, queue).ConfigureAwait(false);
+            await handler.Writer.SendQueuePurgeAsync(channel.ChannelId, queue).ConfigureAwait(false);
             var deleted = await data.CommonTcs.Task.ConfigureAwait(false);
             data.Queues.Remove(queue.Name);
             return deleted;
@@ -55,14 +55,14 @@ namespace AMQP.Client.RabbitMQ
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.NoWait = true;
-            await handler.Protocol.SendQueuePurgeAsync(channel.ChannelId, queue).ConfigureAwait(false);
+            await handler.Writer.SendQueuePurgeAsync(channel.ChannelId, queue).ConfigureAwait(false);
             data.Queues.Remove(queue.Name);
         }
         public static async ValueTask QueueBindAsync(this ChannelHandler handler, RabbitMQChannel channel, QueueBind bind)
         {
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await handler.Protocol.SendQueueBindAsync(channel.ChannelId, bind).ConfigureAwait(false);
+            await handler.Writer.SendQueueBindAsync(channel.ChannelId, bind).ConfigureAwait(false);
             if (bind.NoWait)
             {
                 data.Binds.Add(bind.QueueName, bind);
@@ -76,7 +76,7 @@ namespace AMQP.Client.RabbitMQ
         {
             handler.Channels.TryGetValue(channel.ChannelId, out var data);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await handler.Protocol.SendQueueUnbindAsync(channel.ChannelId, unbind).ConfigureAwait(false);
+            await handler.Writer.SendQueueUnbindAsync(channel.ChannelId, unbind).ConfigureAwait(false);
             await data.CommonTcs.Task.ConfigureAwait(false);
         }
     }

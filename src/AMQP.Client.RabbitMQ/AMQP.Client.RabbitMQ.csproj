@@ -19,7 +19,7 @@
 
 
   <ItemGroup>
-    <None Include="..\..\.editorconfig" Link=".editorconfig" />
+    <None Remove="Handlers\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,7 +28,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Handlers\" />
+    <Compile Remove="Handlers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="Handlers\**" />
   </ItemGroup>
 
 </Project>

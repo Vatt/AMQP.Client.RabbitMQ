@@ -1,12 +1,16 @@
 ﻿using AMQP.Client.RabbitMQ;
+using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 namespace Test
 {
+    //Закрытие канала от сервера проверить можно кривым указанием очереди в консумере
     class Program
     {
         private const string Host = "centos0.mshome.net";
@@ -45,15 +49,22 @@ namespace Test
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
             await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
 
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            consumer.Received += (sender, result) =>
+            {
+                //await channel.Ack(deliver.DeliveryTag, false);
+                Console.WriteLine(Encoding.UTF8.GetString(result.Body));
+            };
+            await channel.ConsumerStartAsync(consumer);
 
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
+            /*await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
             await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
             var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
             await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
-
             await connection.CloseAsync();
+            */
             await Task.Delay(TimeSpan.FromHours(2));
         }
         public static async Task ChannelTest()

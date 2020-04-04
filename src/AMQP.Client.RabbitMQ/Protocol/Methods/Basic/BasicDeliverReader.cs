@@ -6,9 +6,9 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
-    internal class BasicDeliverReader : IMessageReader<DeliverInfo>, IMessageReaderAdapter<DeliverInfo>
+    internal class BasicDeliverReader : IMessageReader<Deliver>, IMessageReaderAdapter<Deliver>
     {
-        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out DeliverInfo message)
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out Deliver message)
         {
             message = default;
             ValueReader reader = new ValueReader(input, consumed);
@@ -22,13 +22,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
-            message = new DeliverInfo(consumerTag, deliveryTag, redelivered, exchangeName, routingKey);
+            message = new Deliver(consumerTag, deliveryTag, redelivered, exchangeName, routingKey);
             consumed = reader.Position;
             examined = consumed;
             return true;
         }
 
-        public bool TryParseMessage(in ReadOnlySequence<byte> input, out DeliverInfo message)
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, out Deliver message)
         {
             message = default;
             ValueReader reader = new ValueReader(input);
@@ -37,7 +37,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             if (!reader.ReadBool(out bool redelivered)) { return false; }
             if (!reader.ReadShortStr(out var exchangeName)) { return false; }
             if (!reader.ReadShortStr(out var routingKey)) { return false; }
-            message = new DeliverInfo(consumerTag, deliveryTag, redelivered, exchangeName, routingKey);
+            message = new Deliver(consumerTag, deliveryTag, redelivered, exchangeName, routingKey);
             return true;
         }
     }
