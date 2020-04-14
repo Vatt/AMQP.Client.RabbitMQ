@@ -16,7 +16,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
                                           ContetnFrame,MethodFrame,      const value 206
                                           BodyFrame,Heartbeatframe,etc.                               
     */
-    public class FrameHeaderReader : IMessageReader<FrameHeader>
+    public class FrameHeaderReader : IMessageReader<FrameHeader>, IMessageReaderAdapter<FrameHeader>
     {
         public FrameHeaderReader()
         {
@@ -52,6 +52,21 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             examined = consumed;
             return true;
 
+        }
+
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, out FrameHeader message)
+        {
+            ValueReader reader = new ValueReader(input);
+            message = default;
+            if (input.Length < 7)
+            {
+                return false;
+            }
+            reader.ReadOctet(out byte type);
+            reader.ReadShortInt(out short channel);
+            reader.ReadLong(out int payloadSize);
+            message = new FrameHeader(type, (ushort)channel, payloadSize);
+            return true;
         }
     }
 
