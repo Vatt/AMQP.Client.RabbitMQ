@@ -15,17 +15,17 @@ namespace AMQP.Client.RabbitMQ.Protocol
         {
             message = default;
 
-            var try_read = frameReader.TryParseMessage(input, ref consumed, ref examined, out var header);
+            var try_read = frameReader.TryParseMessage(input, out var header);
             if (!try_read)
             {
                 return false;
             }
-            if (input.Length < header.PaylodaSize)
+            if (input.Length < header.PayloadSize)
             {
                 return false;
             }
-            SequenceReader<byte> reader = new SequenceReader<byte>(input.Slice(consumed));
-            message = new Frame(header, input.Slice(consumed, header.PaylodaSize));
+            SequenceReader<byte> reader = new SequenceReader<byte>(input.Slice(7));
+            message = new Frame(header, input.Slice(7, header.PayloadSize));
             reader.Advance(message.Payload.Length);
             if (!reader.TryRead(out byte endMarker))
             {
