@@ -48,7 +48,6 @@ namespace AMQP.Client.RabbitMQ
             _protocol = new RabbitMQProtocol(Channel0.ConnectionContext);
             _readingTask = StartReading();
             await Channel0.OpenAsync(_protocol);
-
         }
         private async Task Watch()
         {
@@ -68,9 +67,8 @@ namespace AMQP.Client.RabbitMQ
                 Channel0.ConnectionContext.Abort();
                 _cts.Cancel();
             }
-
-
         }
+
         private async Task StartReading()
         {
             try
@@ -126,7 +124,7 @@ namespace AMQP.Client.RabbitMQ
             }
 
             var channel = _channels.GetOrAdd((ushort)id, key => new RabbitMQChannel((ushort)id, MainInfo, _builder.PipeScheduler));
-            await channel.OpenAsync(_protocol);
+            await channel.OpenAsync(_protocol).ConfigureAwait(false);
             return channel;
         }
 
@@ -146,7 +144,6 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask CloseConnection()
         {
             await Channel0.CloseAsync("Connection closed gracefully").ConfigureAwait(false);
-
         }
 
         public Task WaitEndReading()
