@@ -79,6 +79,7 @@ namespace AMQP.Client.RabbitMQ
             return _handler.QueueUnbindAsync(this, unbind);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Task ConsumerStartAsync(RabbitMQConsumer consumer)
         {
             return _handler.ConsumerStartAsync(consumer);

@@ -58,7 +58,7 @@ namespace AMQP.Client.RabbitMQ
             await _writer.SendProtocol(_cts.Token);
 
 
-            _channelHandler = new ChannelHandler(_writer, new RabbitMQProtocolReader(_ctx));
+            _channelHandler = new ChannelHandler(_writer);
             _connectionCloseSrc = new TaskCompletionSource<CloseInfo>();
             _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(new RabbitMQProtocolReader(_ctx));

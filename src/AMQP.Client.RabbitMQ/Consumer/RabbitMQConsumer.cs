@@ -1,12 +1,9 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -40,9 +37,12 @@ namespace AMQP.Client.RabbitMQ.Consumer
     public class RabbitMQConsumer : IConsumable
     {
 
-        private IChunkedBodyFrameReader _reader;
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
+        private byte[] _activeDeliverBody;
+        private int _deliverPosition;
+        private ContentHeader _activeContent;
+        private long _activeDeliveryTag;
         public ConsumeConf Consume;
         public RabbitMQChannel Channel;
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
@@ -58,36 +58,32 @@ namespace AMQP.Client.RabbitMQ.Consumer
             Channel = channel;
         }
 
-        public async ValueTask OnDeliveryAsync(Deliver deliver, RabbitMQProtocolReader protocol)
+        public ValueTask OnDeliveryAsync(ref Deliver deliver)
         {
-            //if (IsCanceled)
-            //{
-            //    throw new Exception("Consumer already canceled");
-            //}
-            var content = await protocol.ReadContentHeaderWithFrameHeaderAsync(Channel.ChannelId).ConfigureAwait(false);
-            protocol.Advance();
-            var _deliverPosition = 0;
-            var _activeDeliver = ArrayPool<byte>.Shared.Rent((int)content.BodySize);
-            _reader.Reset(content.BodySize);
-
-            while (!_reader.IsComplete)
-            {
-                var result = await protocol.ReadWithoutAdvanceAsync(_reader).ConfigureAwait(false);
-                Copy(result, ref _activeDeliver, ref _deliverPosition);
-                protocol.Advance();
-            }
-
-            var arg = new DeliverArgs(deliver.DeliverTag, ref content, _activeDeliver);
-            _scheduler.Schedule(Invoke, arg);
-
+            _activeDeliveryTag = deliver.DeliverTag;
+            return default;
+        }
+        public ValueTask OnContentAsync(ref ContentHeader header)
+        {
+            _activeContent = header;
+            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)header.BodySize);
+            return default;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Copy(ReadOnlySequence<byte> message, ref byte[] activeDeliver, ref int deliverPosition)
+        public ValueTask OnBodyAsync(ReadOnlySequence<byte> body)
         {
-            var span = new Span<byte>(activeDeliver, deliverPosition, (int)message.Length);
-            message.CopyTo(span);
-            deliverPosition += (int)message.Length;
+            var span = new Span<byte>(_activeDeliverBody, _deliverPosition, (int)body.Length);
+            body.CopyTo(span);
+            _deliverPosition += (int)body.Length;
+            if (_deliverPosition == _activeContent.BodySize)
+            {
+
+                var arg = new DeliverArgs(_activeDeliveryTag, ref _activeContent, _activeDeliverBody);
+                _scheduler.Schedule(Invoke, arg);
+                _activeContent = default;
+                _activeDeliveryTag = -1;
+            }
+            return default;
         }
         private void Invoke(object obj)
         {

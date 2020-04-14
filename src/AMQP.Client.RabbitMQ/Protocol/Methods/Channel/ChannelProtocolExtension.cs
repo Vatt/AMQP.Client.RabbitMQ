@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
 {
-    public static class ChannelProtocolExtention
+    public static class ChannelProtocolExtension
     {
         private static readonly ChannelOpenWriter _channelOpenWriter = new ChannelOpenWriter();
         private static readonly ChannelOpenOkReader channelOpenOkReader = new ChannelOpenOkReader();

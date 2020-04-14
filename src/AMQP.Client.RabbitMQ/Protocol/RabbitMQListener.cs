@@ -26,18 +26,41 @@ namespace AMQP.Client.RabbitMQ.Protocol
             while (true)
             {
                 var frame = await reader.ReadAsync(frameReader, token).ConfigureAwait(false);
-                if (frame.Header.FrameType == Constants.FrameHeartbeat)
+                switch (frame.Header.FrameType)
                 {
-                    await _connectionHandler.OnHeartbeatAsync().ConfigureAwait(false);
-                    continue;
+                    case Constants.FrameBody:
+                        {
+                            await ProcessBody(reader, ref frame);
+                            reader.Advance();
+                            break;
+                        }
+                    case Constants.FrameHeader:
+                        {
+                            await ProcessHeader(reader, ref frame);
+                            break;
+                        }
+                    case Constants.FrameMethod:
+                        {
+                            await ProcessMethod(reader, ref frame).ConfigureAwait(false);
+                            break;
+                        }
+                    case Constants.FrameHeartbeat:
+                        {
+                            await _connectionHandler.OnHeartbeatAsync().ConfigureAwait(false);
+                            break;
+                        }
                 }
-                //if (frame.Header.Channel == 0)
-                //{
-                //    await ProcessConnection(reader, ref frame);
-                //}
-                await ProcessMethod(reader, ref frame).ConfigureAwait(false);
-                reader.Advance();
             }
+        }
+        internal ValueTask ProcessBody(RabbitMQProtocolReader protocol, ref Frame frame)
+        {
+            return _channelHandler.OnBodyAsync(frame.Header.Channel, frame.Payload);
+        }
+        internal ValueTask ProcessHeader(RabbitMQProtocolReader protocol, ref Frame frame)
+        {
+            var header = protocol.Read(new ContentHeaderReader(), frame.Payload);
+            protocol.Advance();
+            return _channelHandler.OnContentHeaderAsync(frame.Header.Channel, header);
         }
         internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)
         {
@@ -165,7 +188,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         return _channelHandler.OnExchangeDeleteOkAsync(header.Channel);
                     }
                 default:
-                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessExchange)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessExchange)} :cannot read frame (class-id, method-id):({method.ClassId},{method.MethodId})");
             }
         }
         internal ValueTask ProcessQueue(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, in ReadOnlySequence<byte> payload)
@@ -175,6 +198,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 case 11: //declare-ok
                     {
                         var declareOk = protocol.ReadQueueDeclareOk(payload);
+                        protocol.Advance();
                         return _channelHandler.OnQueueDeclareOkAsync(header.Channel, declareOk);
                     }
                 case 21://bind-ok

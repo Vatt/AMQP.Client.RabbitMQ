@@ -2,12 +2,14 @@
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -21,7 +23,7 @@ namespace AMQP.Client.RabbitMQ
         public TaskCompletionSource<int> CommonTcs;
         public TaskCompletionSource<QueueDeclareOk> QueueTcs;
         public TaskCompletionSource<string> ConsumeTcs;
-
+        public IConsumable ActiveConsumer;
         public readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1);
         public Dictionary<string, QueueDeclare> Queues = new Dictionary<string, QueueDeclare>();
         public Dictionary<string, ExchangeDeclare> Exchanges = new Dictionary<string, ExchangeDeclare>();
@@ -37,17 +39,15 @@ namespace AMQP.Client.RabbitMQ
         private static int _channelId = 0;
         private readonly ConcurrentDictionary<ushort, ChannelData> _channels;
         private RabbitMQProtocolWriter _writer;
-        private RabbitMQProtocolReader _reader;
         internal ConcurrentDictionary<ushort, ChannelData> Channels => _channels;
         internal RabbitMQProtocolWriter Writer => _writer;
 
         private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         //private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-        public ChannelHandler(RabbitMQProtocolWriter wrier, RabbitMQProtocolReader reader)
+        public ChannelHandler(RabbitMQProtocolWriter writer)
         {
-            _writer = wrier;
-            _reader = reader;
+            _writer = writer;
             _channels = new ConcurrentDictionary<ushort, ChannelData>();
             //_writerSemaphore = new SemaphoreSlim(1);
         }
@@ -97,16 +97,28 @@ namespace AMQP.Client.RabbitMQ
             throw new NotImplementedException();
         }
 
-        public async ValueTask OnDeliverAsync(ushort channelId, Deliver deliver)
+        public ValueTask OnDeliverAsync(ushort channelId, Deliver deliver)
         {
             var data = GetChannelData(channelId);
             if (!data.Consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
             {
                 throw new Exception("Consumer not found");
             }
-            await consumer.OnDeliveryAsync(deliver, _reader);
+            data.ActiveConsumer = consumer;
+            return consumer.OnDeliveryAsync(ref deliver);
         }
-
+        public ValueTask OnContentHeaderAsync(ushort channelId, ContentHeader header)
+        {
+            var data = GetChannelData(channelId);
+            data.ActiveConsumer.OnContentAsync(ref header);
+            return default;
+        }
+        public ValueTask OnBodyAsync(ushort channelId, ReadOnlySequence<byte> chunk)
+        {
+            var data = GetChannelData(channelId);
+            data.ActiveConsumer.OnBodyAsync(chunk);
+            return default;
+        }
         public ValueTask OnExchangeDeclareOkAsync(ushort channelId)
         {
             var data = GetChannelData(channelId);
@@ -166,7 +178,7 @@ namespace AMQP.Client.RabbitMQ
         {
             if (!_channels.TryGetValue(channelId, out var data))
             {
-                RabbitMQExceptionHelper.ThrowIfChannelNoFound();
+                RabbitMQExceptionHelper.ThrowIfChannelNotFound();
             }
             return data;
         }

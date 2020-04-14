@@ -4,7 +4,7 @@ namespace AMQP.Client.RabbitMQ.Internal
 {
     internal class RabbitMQExceptionHelper
     {
-        internal static void ThrowIfChannelNoFound()
+        internal static void ThrowIfChannelNotFound()
         {
             throw new Exception("Channel not found");
         }
