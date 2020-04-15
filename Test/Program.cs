@@ -39,8 +39,7 @@ namespace Test
         {
 
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var factory = builder.Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.OpenChannel();
@@ -48,7 +47,7 @@ namespace Test
             var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
-            var properties = ContentHeaderProperties.Default();
+            var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
             //var body = new byte[16 * 1024 * 1024 + 1];
             var body = new byte[32];
@@ -66,7 +65,7 @@ namespace Test
         {
 
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Heartbeat(60).Build();
+            var factory = builder.Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             RabbitMQChannel channel = await connection.OpenChannel();
@@ -91,8 +90,7 @@ namespace Test
         {
 
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var factory = builder.Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel1 = await connection.OpenChannel();
@@ -117,7 +115,7 @@ namespace Test
             consumer1.Received += async (sender, result) =>
             {
                 //await channel1.Ack(deliver.DeliveryTag, true);
-                var propertiesConsume = ContentHeaderProperties.Default();
+                var propertiesConsume = new ContentHeaderProperties();
                 propertiesConsume.AppId = "testapp2";
                 await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
 
@@ -127,7 +125,7 @@ namespace Test
             consumer2.Received += async (sender, result) =>
             {
                 //await channel2.Ack(deliver.DeliveryTag, true);
-                var propertiesConsume = ContentHeaderProperties.Default();
+                var propertiesConsume = new ContentHeaderProperties();
                 propertiesConsume.AppId = "testapp1";
                 await channel1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
             };
@@ -136,7 +134,7 @@ namespace Test
 
             var firtsTask = Task.Run(async () =>
             {
-                var properties = ContentHeaderProperties.Default();
+                var properties = new ContentHeaderProperties();
                 properties.AppId = "testapp1";
                 while (true/*!channel1.IsClosed*/)
                 {
@@ -145,7 +143,7 @@ namespace Test
             });
             var secondTask = Task.Run(async () =>
             {
-                var properties = ContentHeaderProperties.Default();
+                var properties = new ContentHeaderProperties();
                 properties.AppId = "testapp2";
                 while (true/*!channel2.IsClosed*/)
                 {
@@ -159,7 +157,7 @@ namespace Test
         public static async Task RunDefault()
         {
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Heartbeat(60).Build();
+            var factory = builder.Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             RabbitMQChannel channel = await connection.OpenChannel();

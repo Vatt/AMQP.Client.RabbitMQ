@@ -22,6 +22,7 @@ namespace AMQP.Client.RabbitMQ
         private CancellationTokenSource _cts;
         private TaskCompletionSource<CloseInfo> _connectionCloseSrc;
         private TaskCompletionSource<bool> _closeSrc;
+        private Timer _heartbeat;
 
         public readonly ConnectionOptions Options;
         public ServerConf ServerOptions;
@@ -93,6 +94,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 _cts.Cancel();
                 _ctx.Abort();
+                _heartbeat.Dispose();
             }
         }
         public ValueTask OnCloseAsync(CloseInfo info)
@@ -117,6 +119,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnOpenOkAsync()
         {
+            _heartbeat = new Timer(Heartbeat, null, 0, Options.TuneOptions.Heartbeat);
             return default;
         }
 
@@ -138,6 +141,22 @@ namespace AMQP.Client.RabbitMQ
             }
             await _writer.SendTuneOkAsync(Options.TuneOptions).ConfigureAwait(false);
             await _writer.SendOpenAsync(Options.ConnOptions.VHost).ConfigureAwait(false);
+        }
+        private void Heartbeat(object state)
+        {
+            _ = HeartbeatAsync();
+        }
+
+        private async ValueTask HeartbeatAsync()
+        {
+            try
+            {
+                await _writer.SendHeartbeat().ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                //TODO logger
+            }
         }
     }
 }

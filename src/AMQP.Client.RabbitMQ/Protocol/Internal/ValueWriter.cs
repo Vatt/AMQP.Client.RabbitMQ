@@ -12,15 +12,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
     internal ref struct ValueWriter
     {
-        private byte _bitAccumulator;
-        private int _bitMask;
-        private bool _needBitFlush;
+        private byte[] _buffer;
 
         private IBufferWriter<byte> _output;
         private Span<byte> _span;
+
+        private int _bitMask;       
         private int _buffered;
         public int Written { get; private set; }
 
+        private byte _bitAccumulator;
+        private bool _needBitFlush;
         internal readonly ref struct Reserved
         {
             private readonly Span<byte> _reserved1;
@@ -69,6 +71,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             _span = _output.GetSpan();
             _buffered = 0;
             Written = 0;
+            _buffer = new byte[8]; 
         }
 
         public Reserved Reserve(int length)
@@ -198,7 +201,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(short))
             {
-                Span<byte> bytes = new byte[sizeof(short)];
+                //Span<byte> bytes = new byte[sizeof(short)];
+                //BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
+                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(short));
                 BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -216,7 +221,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
             if (_span.Length < sizeof(ushort))
             {
-                Span<byte> bytes = new byte[sizeof(ushort)];
+                //Span<byte> bytes = new byte[sizeof(ushort)];
+                //BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
+                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(ushort));
                 BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -242,7 +249,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(int))
             {
-                Span<byte> bytes = new byte[sizeof(int)];
+                //Span<byte> bytes = new byte[sizeof(int)];
+                //BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);      
+                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(int));
                 BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);
                 WriteBytes(bytes);
             }
@@ -267,7 +276,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             BitFlush();
             if (_span.Length < sizeof(long))
             {
-                Span<byte> bytes = new byte[sizeof(long)];
+                //Span<byte> bytes = new byte[sizeof(long)];
+                //BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
+                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(long));
                 BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
                 WriteBytes(bytes);
             }

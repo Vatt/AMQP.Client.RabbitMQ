@@ -10,19 +10,19 @@ namespace AMQP.Client.RabbitMQ.Consumer
 {
     public class DeliverArgs : EventArgs, IDisposable
     {
-        public ContentHeaderProperties Properties { get; }
+        public ref ContentHeaderProperties Properties => ref _header.Properties;
         public long DeliveryTag { get; }
         private byte[] _body;
         private int _bodySize;
-
+        private ContentHeader _header;
         public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _bodySize);
 
-        internal DeliverArgs(long deliveryTag, ref ContentHeader header, byte[] body)
-        {
-            Properties = header.Properties;
+        internal DeliverArgs(long deliveryTag, ContentHeader header, byte[] body)
+        {            
             DeliveryTag = deliveryTag;
             _body = body;
             _bodySize = (int)header.BodySize;
+            _header = header;
         }
 
         public void Dispose()
@@ -64,7 +64,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _activeDeliveryTag = deliver.DeliverTag;
             return default;
         }
-        public ValueTask OnContentAsync(ref ContentHeader header)
+        public ValueTask OnContentAsync(ContentHeader header)
         {
             _activeContent = header;
             _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)header.BodySize);
@@ -79,7 +79,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             if (_deliverPosition == _activeContent.BodySize)
             {
 
-                var arg = new DeliverArgs(_activeDeliveryTag, ref _activeContent, _activeDeliverBody);
+                var arg = new DeliverArgs(_activeDeliveryTag, _activeContent, _activeDeliverBody);
                 _scheduler.Schedule(Invoke, arg);
                 _activeContent = default;
                 _activeDeliveryTag = default;

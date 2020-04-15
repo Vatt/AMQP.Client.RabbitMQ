@@ -9,7 +9,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
     {
         ref ConsumeConf Conf { get;  }
         ValueTask OnDeliveryAsync(ref Deliver deliver);
-        ValueTask OnContentAsync(ref ContentHeader header);
+        ValueTask OnContentAsync(ContentHeader header);
         ValueTask OnBodyAsync(ReadOnlySequence<byte> body);
     }
 }
