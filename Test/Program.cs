@@ -34,77 +34,7 @@ namespace Test
             await Task.WhenAll(StartConsumer(), StartPublisher());
         }
 
-        public static async Task ChannelTest()
-        {
-            /*
-            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
-            var connection = factory.CreateConnection();
-            await connection.StartAsync();
-            var channel1 = await connection.CreateChannel();
-            var channel2 = await connection.CreateChannel();
-            await channel1.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            var queueOk1 = await channel1.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel1.QueueBindAsync("TestQueue", "TestExchange");
-
-
-            await channel2.ExchangeDeclareAsync("TestExchange2", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            var queueOk2 = await channel2.QueueDeclareAsync("TestQueue2", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel2.QueueBindAsync("TestQueue2", "TestExchange2");
-
-            await channel1.QoS(0, 10, false);
-            await channel2.QoS(0, 10, false);
-
-            var body1 = new byte[32];
-
-
-            //var publisher1 = channel1.CreatePublisher();
-            //var publisher2 = channel2.CreatePublisher();
-
-
-            var consumer1 = channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
-            consumer1.Received += async (sender, result) =>
-            {
-                //await channel1.Ack(deliver.DeliveryTag, true);
-                var propertiesConsume = ContentHeaderProperties.Default();
-                propertiesConsume.AppId = "testapp2";
-                await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
-
-            };
-
-            var consumer2 = channel2.CreateConsumer("TestQueue2", "TestConsumer2", noAck: true);
-            consumer2.Received += async (sender, result) =>
-            {
-                //await channel2.Ack(deliver.DeliveryTag, true);
-                var propertiesConsume = ContentHeaderProperties.Default();
-                propertiesConsume.AppId = "testapp1";
-                await channel1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
-            };
-            await consumer1.ConsumerStartAsync();
-            await consumer2.ConsumerStartAsync();
-            var firtsTask = Task.Run(async () =>
-            {
-                var properties = ContentHeaderProperties.Default();
-                properties.AppId = "testapp1";
-                while (!channel1.IsClosed)
-                {
-                    await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
-                }
-            });
-            var secondTask = Task.Run(async () =>
-            {
-                var properties = ContentHeaderProperties.Default();
-                properties.AppId = "testapp2";
-                while (!channel2.IsClosed)
-                {
-                    await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body1);
-                }
-            });
-
-            await Task.Delay(TimeSpan.FromHours(1));
-            */
-        }
+        
         private static async Task StartPublisher()
         {
 
@@ -157,6 +87,75 @@ namespace Test
 
         }
 
+        public static async Task ChannelTest()
+        {
+
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            var factory = builder.ConnectionInfo("guest", "guest", "/")
+                                 .Build();
+            var connection = factory.CreateConnection();
+            await connection.StartAsync();
+            var channel1 = await connection.OpenChannel();
+            var channel2 = await connection.OpenChannel();
+            await channel1.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            await channel1.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
+            var declareOk = await channel1.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            await channel1.QueueDeclareNoWaitAsync(QueueDeclare.Create("TestQueue2"));
+            var purgeOk = await channel1.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
+            await channel1.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
+            await channel1.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel1.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2"));
+
+            var body1 = new byte[32];
+
+
+            //var publisher1 = channel1.CreatePublisher();
+            //var publisher2 = channel2.CreatePublisher();
+
+
+            var consumer1 = new RabbitMQConsumer(channel1, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            consumer1.Received += async (sender, result) =>
+            {
+                //await channel1.Ack(deliver.DeliveryTag, true);
+                var propertiesConsume = ContentHeaderProperties.Default();
+                propertiesConsume.AppId = "testapp2";
+                await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
+
+            };
+
+            var consumer2 = new RabbitMQConsumer(channel2, ConsumeConf.Create("TestQueue2", "TestConsumer2", true));
+            consumer2.Received += async (sender, result) =>
+            {
+                //await channel2.Ack(deliver.DeliveryTag, true);
+                var propertiesConsume = ContentHeaderProperties.Default();
+                propertiesConsume.AppId = "testapp1";
+                await channel1.Publish("TestExchange", string.Empty, false, false, propertiesConsume, body1);
+            };
+            await channel1.ConsumerStartAsync(consumer1);
+            await channel2.ConsumerStartAsync(consumer2);
+
+            var firtsTask = Task.Run(async () =>
+            {
+                var properties = ContentHeaderProperties.Default();
+                properties.AppId = "testapp1";
+                while (true/*!channel1.IsClosed*/)
+                {
+                    await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
+                }
+            });
+            var secondTask = Task.Run(async () =>
+            {
+                var properties = ContentHeaderProperties.Default();
+                properties.AppId = "testapp2";
+                while (true/*!channel2.IsClosed*/)
+                {
+                    await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body1);
+                }
+            });
+
+            await Task.Delay(TimeSpan.FromHours(1));
+
+        }
         public static async Task RunDefault()
         {
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
@@ -172,18 +171,18 @@ namespace Test
             var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
             await channel.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
-            await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
+            await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2"));
 
             var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
             consumer.Received += (sender, result) =>
             {
                 //await channel.Ack(deliver.DeliveryTag, false);
-                Console.WriteLine(Encoding.UTF8.GetString(result.Body));
+                //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
             };
             await channel.ConsumerStartAsync(consumer);
 
             await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
+            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
             var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
             await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));

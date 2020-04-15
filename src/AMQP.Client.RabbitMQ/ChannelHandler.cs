@@ -56,6 +56,7 @@ namespace AMQP.Client.RabbitMQ
         public async Task<RabbitMQChannel> OpenChannel()
         {
             var id = Interlocked.Increment(ref _channelId);
+            _openSrc = new TaskCompletionSource<bool>();
             await _writer.SendChannelOpenAsync((ushort)id).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
             _channels.GetOrAdd((ushort)id, key => new ChannelData());
