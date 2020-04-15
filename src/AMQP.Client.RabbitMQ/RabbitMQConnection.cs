@@ -39,7 +39,7 @@ namespace AMQP.Client.RabbitMQ
         {
             try
             {
-                await _listener.StartAsync(reader, this, _channelHandler, _cts.Token);
+                await _listener.StartAsync(reader, this, _channelHandler, _cts.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -55,7 +55,7 @@ namespace AMQP.Client.RabbitMQ
             _cts = new CancellationTokenSource();
             _ctx = await _client.ConnectAsync(Options.Endpoint, _cts.Token).ConfigureAwait(false);
             _writer = new RabbitMQProtocolWriter(_ctx);
-            await _writer.SendProtocol(_cts.Token);
+            await _writer.SendProtocol(_cts.Token).ConfigureAwait(false);
 
 
             _channelHandler = new ChannelHandler(_writer, Options);

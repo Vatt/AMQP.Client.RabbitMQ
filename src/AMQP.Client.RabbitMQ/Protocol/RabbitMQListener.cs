@@ -30,13 +30,13 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 {
                     case Constants.FrameBody:
                         {
-                            await ProcessBody(reader, ref frame);
+                            await ProcessBody(reader, ref frame).ConfigureAwait(false);
                             reader.Advance();
                             break;
                         }
                     case Constants.FrameHeader:
                         {
-                            await ProcessHeader(reader, ref frame);
+                            await ProcessHeader(reader, ref frame).ConfigureAwait(false);
                             break;
                         }
                     case Constants.FrameMethod:

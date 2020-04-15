@@ -19,7 +19,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal async ValueTask<T> ReadWithoutAdvanceAsync<T>(IMessageReader<T> reader, CancellationToken token = default)
         {
-            var result = await Reader.ReadAsync(reader, token);
+            var result = await Reader.ReadAsync(reader, token).ConfigureAwait(false);
             if (result.IsCanceled || result.IsCanceled)
             {
                 //TODO: do something
@@ -34,7 +34,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal async ValueTask<T> ReadAsync<T>(IMessageReader<T> reader, CancellationToken token = default)
         {
-            var result = await Reader.ReadAsync(reader, token);
+            var result = await Reader.ReadAsync(reader, token).ConfigureAwait(false);
             Reader.Advance();
             if (result.IsCanceled || result.IsCanceled)
             {
