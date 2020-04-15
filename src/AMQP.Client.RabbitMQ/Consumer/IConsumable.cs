@@ -7,6 +7,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
 {
     public interface IConsumable
     {
+        ref ConsumeConf Conf { get;  }
         ValueTask OnDeliveryAsync(ref Deliver deliver);
         ValueTask OnContentAsync(ref ContentHeader header);
         ValueTask OnBodyAsync(ReadOnlySequence<byte> body);

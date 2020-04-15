@@ -20,7 +20,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
             {
                 return false;
             }
-            if (input.Length < header.PayloadSize)
+            if (input.Length < header.PayloadSize + 8)
             {
                 return false;
             }

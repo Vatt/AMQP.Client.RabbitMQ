@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ;
 using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
@@ -29,44 +30,10 @@ namespace Test
             //await RunDefault();
             //await ChannelTest();
 
-            await RunDefault();
-            //await Task.WhenAll(StartConsumer(), StartPublisher());
+            //await RunDefault();
+            await Task.WhenAll(StartConsumer(), StartPublisher());
         }
-        public static async Task RunDefault()
-        {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Heartbeat(60).Build();
-            var connection = factory.CreateConnection();
-            await connection.StartAsync();
-            RabbitMQChannel channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
-            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueDeclareNoWaitAsync(QueueDeclare.Create("TestQueue2"));
-            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
-            await channel.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
-            await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
-
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
-            consumer.Received += (sender, result) =>
-            {
-                //await channel.Ack(deliver.DeliveryTag, false);
-                Console.WriteLine(Encoding.UTF8.GetString(result.Body));
-            };
-            await channel.ConsumerStartAsync(consumer);
-
-            /*await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
-            var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
-            await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
-            await connection.CloseAsync();
-            */
-            await Task.Delay(TimeSpan.FromHours(2));
-        }
         public static async Task ChannelTest()
         {
             /*
@@ -140,16 +107,16 @@ namespace Test
         }
         private static async Task StartPublisher()
         {
-            /*
-            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
+
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
-            var channel = await connection.CreateChannel();
-            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel.QueueBindAsync("TestQueue", "TestExchange");
+            var channel = await connection.OpenChannel();
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var properties = ContentHeaderProperties.Default();
             properties.AppId = "testapp";
@@ -157,57 +124,73 @@ namespace Test
             var body = new byte[32];
             //var body = new byte[16*1024];
             //var body = new byte[1024];
-            while (!channel.IsClosed)
+            while (true/*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
             }
-            await Task.Delay(TimeSpan.FromHours(1));
-            */
+            //await Task.Delay(TimeSpan.FromHours(1));
+
         }
         private static async Task StartConsumer()
         {
-            /*
-            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            var factory = builder.Heartbeat(60).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
-            var channel = await connection.CreateChannel();
+            RabbitMQChannel channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync("TestExchange", ExchangeType.Direct, arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            var queueOk1 = await channel.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
-            await channel.QueueBindAsync("TestQueue", "TestExchange");
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
+            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
-            var consumer = channel.CreateConsumer("TestQueue", "TestConsumer", noAck: true);
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
             consumer.Received += (sender, result) =>
             {
                 //await channel.Ack(deliver.DeliveryTag, false);
+                //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
             };
-            await consumer.ConsumerStartAsync();
-            //await channel.CloseChannelAsync("kek");
+            await channel.ConsumerStartAsync(consumer);
             await Task.Delay(TimeSpan.FromHours(1));
-            */
+
         }
 
-        private static async Task RunNothing()
+        public static async Task RunDefault()
         {
-            /*
-            var builder = new RabbitMQConnectionFactoryBuilder1(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
+            var factory = builder.Heartbeat(60).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
-            var channel = await connection.CreateChannel();
-            //Action waiter = async () => {
-            //    var info = await channel.WaitClosing();
-            //    Console.WriteLine($"Channel closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
-            //};
-            await channel.CloseAsync("kek");
-            //waiter();
-            //await connection.CloseConnection();
-            await Task.Delay(TimeSpan.FromHours(1));
-            */
+            RabbitMQChannel channel = await connection.OpenChannel();
+
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
+            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            await channel.QueueDeclareNoWaitAsync(QueueDeclare.Create("TestQueue2"));
+            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
+            await channel.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
+            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
+
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            consumer.Received += (sender, result) =>
+            {
+                //await channel.Ack(deliver.DeliveryTag, false);
+                Console.WriteLine(Encoding.UTF8.GetString(result.Body));
+            };
+            await channel.ConsumerStartAsync(consumer);
+
+            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
+            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2", new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
+            var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
+            await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
+            await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
+            await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
+            await connection.CloseAsync();
+
+            await Task.Delay(TimeSpan.FromHours(2));
         }
     }
 

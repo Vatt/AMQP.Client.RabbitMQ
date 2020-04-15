@@ -6,6 +6,7 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
@@ -24,7 +25,6 @@ namespace AMQP.Client.RabbitMQ
         public TaskCompletionSource<QueueDeclareOk> QueueTcs;
         public TaskCompletionSource<string> ConsumeTcs;
         public IConsumable ActiveConsumer;
-        public readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1);
         public Dictionary<string, QueueDeclare> Queues = new Dictionary<string, QueueDeclare>();
         public Dictionary<string, ExchangeDeclare> Exchanges = new Dictionary<string, ExchangeDeclare>();
         public Dictionary<string, QueueBind> Binds = new Dictionary<string, QueueBind>();
@@ -41,13 +41,15 @@ namespace AMQP.Client.RabbitMQ
         private RabbitMQProtocolWriter _writer;
         internal ConcurrentDictionary<ushort, ChannelData> Channels => _channels;
         internal RabbitMQProtocolWriter Writer => _writer;
-
+        private ConnectionOptions _options;
+        public ref TuneConf Tune => ref _options.TuneOptions;
         private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         //private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-        public ChannelHandler(RabbitMQProtocolWriter writer)
+        public ChannelHandler(RabbitMQProtocolWriter writer, ConnectionOptions options)
         {
             _writer = writer;
+            _options = options;
             _channels = new ConcurrentDictionary<ushort, ChannelData>();
             //_writerSemaphore = new SemaphoreSlim(1);
         }

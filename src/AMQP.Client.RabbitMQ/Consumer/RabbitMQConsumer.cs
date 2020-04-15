@@ -43,17 +43,18 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private int _deliverPosition;
         private ContentHeader _activeContent;
         private long _activeDeliveryTag;
-        public ConsumeConf Consume;
+        private ConsumeConf _consume;
+        public ref ConsumeConf Conf => ref _consume;
         public RabbitMQChannel Channel;
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
         {
-            Consume = conf;
+            _consume = conf;
             _scheduler = scheduler;
             Channel = channel;
         }
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf)
         {
-            Consume = conf;
+            _consume = conf;
             _scheduler = PipeScheduler.Inline;
             Channel = channel;
         }
@@ -81,7 +82,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 var arg = new DeliverArgs(_activeDeliveryTag, ref _activeContent, _activeDeliverBody);
                 _scheduler.Schedule(Invoke, arg);
                 _activeContent = default;
-                _activeDeliveryTag = -1;
+                _activeDeliveryTag = default;
+                _deliverPosition = default;
             }
             return default;
         }
