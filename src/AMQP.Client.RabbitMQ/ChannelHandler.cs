@@ -137,7 +137,9 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQosOkAsync(ushort channelId)
         {
-            throw new NotImplementedException();
+            var data = GetChannelData(channelId);
+            data.CommonTcs.SetResult(-1);
+            return default;
         }
 
         public ValueTask OnQueueBindOkAsync(ushort channelId)

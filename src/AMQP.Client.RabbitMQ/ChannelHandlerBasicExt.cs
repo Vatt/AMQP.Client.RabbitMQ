@@ -19,5 +19,12 @@ namespace AMQP.Client.RabbitMQ
             }
             data.Consumers.Add(tag, consumer);
         }
+        internal static async Task QoS(this ChannelHandler handler, RabbitMQChannel channel, QoSInfo qos)
+        {
+            var data = handler.GetChannelData(channel.ChannelId);
+            data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await handler.Writer.SendBasicQoSAsync(channel.ChannelId, ref qos).ConfigureAwait(false);
+            await data.CommonTcs.Task.ConfigureAwait(false);
+        }
     }
 }

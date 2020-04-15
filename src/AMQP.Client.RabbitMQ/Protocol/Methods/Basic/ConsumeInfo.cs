@@ -25,7 +25,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return new ConsumeConf(queueName, consumerTag, noLocal, noAck, exclusive, false, arguments);
         }
-        public static ConsumeConf Create(string queueName, string consumerTag, bool noAck = false)
+        public static ConsumeConf Create(string queueName, string consumerTag, bool noAck)
         {
             return new ConsumeConf(queueName, consumerTag, false, noAck, false, false, null);
         }

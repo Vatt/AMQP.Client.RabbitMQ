@@ -4,10 +4,11 @@
     {
         public readonly long DeliveryTag;
         public readonly bool Requeue;
-        public RejectInfo(long tag, bool requeue)
+        internal RejectInfo(long tag, bool requeue)
         {
             DeliveryTag = tag;
             Requeue = requeue;
         }
+        public static RejectInfo Create(long deliveryTag, bool requeue) => new RejectInfo(deliveryTag, requeue);
     }
 }

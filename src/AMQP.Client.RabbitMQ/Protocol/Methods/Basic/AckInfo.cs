@@ -4,10 +4,11 @@
     {
         public readonly long DeliveryTag;
         public readonly bool Multiple;
-        public AckInfo(long deliveryTag, bool multiple)
+        internal AckInfo(long deliveryTag, bool multiple)
         {
             DeliveryTag = deliveryTag;
             Multiple = multiple;
         }
+        public static AckInfo Create(long deliveryTag, bool multiple = false) => new AckInfo(deliveryTag, multiple);
     }
 }

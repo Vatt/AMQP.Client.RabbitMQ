@@ -133,6 +133,22 @@ namespace AMQP.Client.RabbitMQ
 
             _writerSemaphore.Release();
         }
+        public ValueTask Ack(AckInfo ack)
+        {
+            return _handler.Writer.SendAckAsync(ChannelId, ref ack);
+        }
+        public ValueTask Reject(RejectInfo reject)
+        {
+            //if (IsClosed)
+            //{
+            //    throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Reject)}: channel is canceled");
+            //}
+            return _handler.Writer.SendRejectAsync(ChannelId, ref reject);
+        }
+        public Task QoS(QoSInfo qos)
+        {
+            return _handler.QoS(this, qos);
+        }
         public void Dispose()
         {
             _writerSemaphore.Dispose();

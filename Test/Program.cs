@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 namespace Test
 {
     //Закрытие канала от сервера проверить можно кривым указанием очереди в консумере
+    //на 16 мегах чтото непонятное творится
     class Program
     {
         private const string Host = "centos0.mshome.net";
@@ -41,16 +42,19 @@ namespace Test
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
+            
             await connection.StartAsync();
+            
             var channel = await connection.OpenChannel();
+            
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
-            //var body = new byte[16 * 1024 * 1024 + 1];
-            var body = new byte[32];
+            var body = new byte[16 * 1024 * 1024 + 1];
+            //var body = new byte[32];
             //var body = new byte[16*1024];
             //var body = new byte[1024];
             while (true/*!channel.IsClosed*/)
@@ -67,19 +71,19 @@ namespace Test
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
+            
             await connection.StartAsync();
+
             RabbitMQChannel channel = await connection.OpenChannel();
 
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
+            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
-            consumer.Received += (sender, result) =>
+            consumer.Received += async (sender, result) =>
             {
-                //await channel.Ack(deliver.DeliveryTag, false);
-                //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
+                //await channel.Ack(AckInfo.Create(result.DeliveryTag));
             };
             await channel.ConsumerStartAsync(consumer);
             await Task.Delay(TimeSpan.FromHours(1));
