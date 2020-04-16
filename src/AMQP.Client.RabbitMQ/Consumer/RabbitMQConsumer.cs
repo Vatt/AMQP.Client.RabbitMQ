@@ -76,6 +76,10 @@ namespace AMQP.Client.RabbitMQ.Consumer
             var span = new Span<byte>(_activeDeliverBody, _deliverPosition, (int)body.Length);
             body.CopyTo(span);
             _deliverPosition += (int)body.Length;
+            if (_deliverPosition > _activeContent.BodySize)
+            {
+                throw new ArgumentOutOfRangeException(nameof(_deliverPosition));
+            }
             if (_deliverPosition == _activeContent.BodySize)
             {
 

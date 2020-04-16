@@ -56,6 +56,7 @@ namespace Test
             var body = new byte[16 * 1024 * 1024 + 1];
             //var body = new byte[32];
             //var body = new byte[16*1024];
+            //var body = new byte[1 * 1024 * 1024];
             //var body = new byte[1024];
             while (true/*!channel.IsClosed*/)
             {

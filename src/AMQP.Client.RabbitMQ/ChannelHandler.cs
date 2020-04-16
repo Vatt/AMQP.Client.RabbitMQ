@@ -112,14 +112,13 @@ namespace AMQP.Client.RabbitMQ
         }
         public ValueTask OnContentHeaderAsync(ushort channelId, ContentHeader header)
         {
-            var data = GetChannelData(channelId);            
-            return data.ActiveConsumer.OnContentAsync(header); ;
+            var data = GetChannelData(channelId);
+            return data.ActiveConsumer.OnContentAsync(header); 
         }
         public ValueTask OnBodyAsync(ushort channelId, ReadOnlySequence<byte> chunk)
         {
             var data = GetChannelData(channelId);
-            data.ActiveConsumer.OnBodyAsync(chunk);
-            return default;
+            return data.ActiveConsumer.OnBodyAsync(chunk);
         }
         public ValueTask OnExchangeDeclareOkAsync(ushort channelId)
         {
