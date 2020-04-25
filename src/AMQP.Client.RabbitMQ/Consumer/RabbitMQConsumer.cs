@@ -13,8 +13,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public ref ContentHeaderProperties Properties => ref _header.Properties;
         public long DeliveryTag { get; }
         private byte[] _body;
-        private int _bodySize;
         private ContentHeader _header;
+        private int _bodySize;
+        
         public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _bodySize);
 
         internal DeliverArgs(long deliveryTag, ContentHeader header, byte[] body)
@@ -42,10 +43,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private byte[] _activeDeliverBody;
         private int _deliverPosition;
         private ContentHeader _activeContent;
+        public RabbitMQChannel Channel;
         private long _activeDeliveryTag;
         private ConsumeConf _consume;
         public ref ConsumeConf Conf => ref _consume;
-        public RabbitMQChannel Channel;
+        
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
         {
             _consume = conf;

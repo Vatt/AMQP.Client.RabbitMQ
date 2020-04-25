@@ -27,7 +27,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
                                         { "exchange_exchange_bindings", true},
                                         { "basic.nack", true},
                                         { "consumer_cancel_notify", true},
-                                        { "connection.blocked", true},
+                                       // { "connection.blocked", true}, //TODO: FIX IT
+                                        { "connection.blocked", false},
                                         { "authentication_failure_close", true},
 
                                     }

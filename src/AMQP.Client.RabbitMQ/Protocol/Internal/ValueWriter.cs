@@ -12,9 +12,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
     internal ref struct ValueWriter
     {
-        private byte[] _buffer;
+        private readonly byte[] _buffer;
 
-        private IBufferWriter<byte> _output;
+        private readonly IBufferWriter<byte> _output;
         private Span<byte> _span;
 
         private int _bitMask;       

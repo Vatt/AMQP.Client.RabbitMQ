@@ -7,8 +7,10 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
@@ -17,6 +19,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         private IConnectionHandler _connectionHandler;
         private IChannelHandler _channelHandler;
         CancellationToken _token;
+        
         public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, CancellationToken token = default)
         {
             _connectionHandler = connection;
@@ -25,7 +28,8 @@ namespace AMQP.Client.RabbitMQ.Protocol
             var frameReader = new FrameReader();
             while (true)
             {
-                var frame = await reader.ReadAsync(frameReader, token).ConfigureAwait(false);
+                var result = await reader.ReadAsync(_token).ConfigureAwait(false);
+                var frame = reader.Read(frameReader, result);
                 switch (frame.Header.FrameType)
                 {
                     case Constants.FrameBody:
@@ -36,7 +40,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         }
                     case Constants.FrameHeader:
                         {
-                            await ProcessHeader(reader, ref frame).ConfigureAwait(false);
+                            await ProcessContentHeader(reader, ref frame).ConfigureAwait(false);
                             break;
                         }
                     case Constants.FrameMethod:
@@ -52,15 +56,18 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 }
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ValueTask ProcessBody(RabbitMQProtocolReader protocol, ref Frame frame)
         {
             return _channelHandler.OnBodyAsync(frame.Header.Channel, frame.Payload);
+            //return default;
         }
-        internal ValueTask ProcessHeader(RabbitMQProtocolReader protocol, ref Frame frame)
+        internal ValueTask ProcessContentHeader(RabbitMQProtocolReader protocol, ref Frame frame)
         {
             var header = protocol.Read(new ContentHeaderReader(), frame.Payload);
             protocol.Advance();
             return _channelHandler.OnContentHeaderAsync(frame.Header.Channel, header);
+            //return default;
         }
         internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)
         {

@@ -27,6 +27,10 @@ namespace AMQP.Client.RabbitMQ
         public readonly ConnectionOptions Options;
         public ServerConf ServerOptions;
 
+        public EventHandler ConnectionBlocked;
+        public EventHandler ConnectionUnblocked;
+        public EventHandler ConnenctionClosed;
+
         internal RabbitMQConnection(RabbitMQConnectionFactoryBuilder builder)
         {
             Options = builder.Options;
@@ -47,7 +51,7 @@ namespace AMQP.Client.RabbitMQ
                 _connectionCloseSrc.SetException(e);
             }
         }
-        public async Task StartAsync(/* RabbitMQProtocolReader reader, RabbitMQProtocolWriter writer*/ )
+        public async Task StartAsync( )
         {
 
             var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
@@ -62,7 +66,7 @@ namespace AMQP.Client.RabbitMQ
             _channelHandler = new ChannelHandler(_writer, Options);
             _connectionCloseSrc = new TaskCompletionSource<CloseInfo>();
             _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            StartReadingAsync(new RabbitMQProtocolReader(_ctx));
+            StartReadingAsync(new RabbitMQProtocolReader(_ctx, ref Options.TuneOptions));
             _watchTask = WatchAsync();
 
         }
@@ -94,7 +98,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 _cts.Cancel();
                 _ctx.Abort();
-                _heartbeat.Dispose();
+                _heartbeat?.Dispose();
             }
         }
         public ValueTask OnCloseAsync(CloseInfo info)

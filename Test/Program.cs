@@ -53,15 +53,19 @@ namespace Test
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
-            var body = new byte[16 * 1024 * 1024 + 1];
+            //var body = new byte[16 * 1024 * 1024 + 1];
             //var body = new byte[32];
             //var body = new byte[16*1024];
-            //var body = new byte[1 * 1024 * 1024];
+            //var body = new byte[128*1024];
+            //var body = new byte[384 * 1024];
+            var body = new byte[1 * 1024 * 1024];
             //var body = new byte[1024];
+            int i = 0;
             while (true/*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
+                i++;
             }
             //await Task.Delay(TimeSpan.FromHours(1));
 
@@ -183,14 +187,14 @@ namespace Test
                 //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
             };
             await channel.ConsumerStartAsync(consumer);
-
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
-            var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
-            await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
-            await connection.CloseAsync();
+            await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(), new byte[16*1024*1024+1]);
+            //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
+            //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
+            //var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
+            //await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
+            //await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
+            //await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
+            //await connection.CloseAsync();
 
             await Task.Delay(TimeSpan.FromHours(2));
         }

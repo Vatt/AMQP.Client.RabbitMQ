@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {
-    public interface IConsumable
+    internal interface IConsumable
     {
         ref ConsumeConf Conf { get;  }
         ValueTask OnDeliveryAsync(ref Deliver deliver);

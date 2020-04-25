@@ -39,6 +39,7 @@ namespace AMQP.Client.RabbitMQ
         private static int _channelId = 0;
         private readonly ConcurrentDictionary<ushort, ChannelData> _channels;
         private RabbitMQProtocolWriter _writer;
+        private ChannelData _activeChannelForConsume;
         internal ConcurrentDictionary<ushort, ChannelData> Channels => _channels;
         internal RabbitMQProtocolWriter Writer => _writer;
         private ConnectionOptions _options;
@@ -46,20 +47,23 @@ namespace AMQP.Client.RabbitMQ
         private TaskCompletionSource<bool> _openSrc = new TaskCompletionSource<bool>();
         private TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         //private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private SemaphoreSlim _semaphore;
         public ChannelHandler(RabbitMQProtocolWriter writer, ConnectionOptions options)
         {
             _writer = writer;
             _options = options;
             _channels = new ConcurrentDictionary<ushort, ChannelData>();
-            //_writerSemaphore = new SemaphoreSlim(1);
+            _semaphore = new SemaphoreSlim(1);
         }
         public async Task<RabbitMQChannel> OpenChannel()
         {
+            await _semaphore.WaitAsync().ConfigureAwait(false);
             var id = Interlocked.Increment(ref _channelId);
             _openSrc = new TaskCompletionSource<bool>();
             await _writer.SendChannelOpenAsync((ushort)id).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
             _channels.GetOrAdd((ushort)id, key => new ChannelData());
+            _semaphore.Release();
             return new RabbitMQChannel((ushort)id, this);
         }
         public async Task CloseChannel(RabbitMQChannel channel, string reason = null)
@@ -107,18 +111,20 @@ namespace AMQP.Client.RabbitMQ
             {
                 throw new Exception("Consumer not found");
             }
+            _activeChannelForConsume = data;
             data.ActiveConsumer = consumer;
             return consumer.OnDeliveryAsync(ref deliver);
         }
         public ValueTask OnContentHeaderAsync(ushort channelId, ContentHeader header)
         {
-            var data = GetChannelData(channelId);
-            return data.ActiveConsumer.OnContentAsync(header); 
+            //var data = GetChannelData(channelId);
+            
+            return _activeChannelForConsume.ActiveConsumer.OnContentAsync(header); 
         }
         public ValueTask OnBodyAsync(ushort channelId, ReadOnlySequence<byte> chunk)
         {
-            var data = GetChannelData(channelId);
-            return data.ActiveConsumer.OnBodyAsync(chunk);
+            //var data = GetChannelData(channelId);
+            return _activeChannelForConsume.ActiveConsumer.OnBodyAsync(chunk);
         }
         public ValueTask OnExchangeDeclareOkAsync(ushort channelId)
         {

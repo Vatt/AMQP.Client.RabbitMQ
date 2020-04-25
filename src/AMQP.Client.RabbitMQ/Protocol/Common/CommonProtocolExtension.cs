@@ -24,10 +24,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             return protocol.WriteAsync(new ByteWriter(), _protocolMsg, token);
         }
+        /*
         public static ValueTask<FrameHeader> ReadFrameHeader(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_frameHeaderReader, token);
         }
+        */
         public static MethodHeader ReadMethodHeader(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_methodHeaderReader, input);

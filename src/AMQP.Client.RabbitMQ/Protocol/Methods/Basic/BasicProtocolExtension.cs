@@ -23,10 +23,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.ReadShortStrPayload(input);
         }
+        /*
         public static ValueTask<Deliver> ReadBasicDeliverAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_basicDeliverReader, token);
         }
+        */
         public static Deliver ReadBasicDeliver(this RabbitMQProtocolReader protocol, ReadOnlySequence<byte> input)
         {
             return protocol.Read(_basicDeliverReader, input);
@@ -47,11 +49,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.WriteAsync(new BasicAckWriter(channelId), info, token);
         }
+        /*
         public static ValueTask<ContentHeader> ReadContentHeaderWithFrameHeaderAsync(this RabbitMQProtocolReader protocol, ushort channelId, CancellationToken token = default)
         {
             var reader = new ContentHeaderFullReader(channelId);
             return protocol.ReadAsync(reader, token);
         }
+        */
         public static ValueTask PublishAllAsync(this RabbitMQProtocolWriter protocol, ushort channelId, PublishAllInfo info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new PublishFullWriter(channelId), info, token);
