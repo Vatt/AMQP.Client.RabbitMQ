@@ -1,29 +1,35 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
+﻿using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQChannel : IDisposable
     {
-        private readonly ChannelHandler _handler;
-        private readonly SemaphoreSlim _writerSemaphore;
         private static readonly int _publishBatchSize = 4;
+        private readonly ChannelHandler _handler;
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
+        private readonly SemaphoreSlim _writerSemaphore;
         public readonly ushort ChannelId;
+
         internal RabbitMQChannel(ushort id, ChannelHandler handler)
         {
             ChannelId = id;
             _handler = handler;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
             _writerSemaphore = new SemaphoreSlim(1);
+        }
+
+        public void Dispose()
+        {
+            _writerSemaphore.Dispose();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,7 +102,8 @@ namespace AMQP.Client.RabbitMQ
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
+        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate,
+            ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             //if (IsClosed)
             //{
@@ -114,29 +121,32 @@ namespace AMQP.Client.RabbitMQ
 
 
             await _writerSemaphore.WaitAsync().ConfigureAwait(false);
-            int written = 0;
+            var written = 0;
             var partialInfo = new PublishPartialInfo(ref info, ref content);
             await _handler.Writer.PublishPartialAsync(ChannelId, partialInfo).ConfigureAwait(false);
             while (written < content.BodySize)
             {
-                int batchCnt = 0;
+                var batchCnt = 0;
                 while (batchCnt < _publishBatchSize && written < content.BodySize)
                 {
-                    int writable = Math.Min(_handler.Tune.FrameMax, (int)content.BodySize - written);
+                    var writable = Math.Min(_handler.Tune.FrameMax, (int) content.BodySize - written);
                     _publishBatch[batchCnt] = message.Slice(written, writable);
                     batchCnt++;
                     written += writable;
                 }
+
                 await _handler.Writer.PublishBodyAsync(ChannelId, _publishBatch).ConfigureAwait(false);
                 _publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
 
             _writerSemaphore.Release();
         }
+
         public ValueTask Ack(AckInfo ack)
         {
             return _handler.Writer.SendAckAsync(ChannelId, ref ack);
         }
+
         public ValueTask Reject(RejectInfo reject)
         {
             //if (IsClosed)
@@ -145,14 +155,10 @@ namespace AMQP.Client.RabbitMQ
             //}
             return _handler.Writer.SendRejectAsync(ChannelId, ref reject);
         }
+
         public Task QoS(QoSInfo qos)
         {
             return _handler.QoS(this, qos);
         }
-        public void Dispose()
-        {
-            _writerSemaphore.Dispose();
-        }
     }
-
 }

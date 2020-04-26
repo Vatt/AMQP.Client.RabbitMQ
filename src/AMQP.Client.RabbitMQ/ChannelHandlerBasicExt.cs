@@ -1,7 +1,7 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
+﻿using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -14,11 +14,10 @@ namespace AMQP.Client.RabbitMQ
             await handler.Writer.SendBasicConsumeAsync(consumer.Channel.ChannelId, consumer.Conf).ConfigureAwait(false);
             var tag = await data.ConsumeTcs.Task.ConfigureAwait(false);
             if (!tag.Equals(consumer.Conf.ConsumerTag))
-            {
                 RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
-            }
             data.Consumers.Add(tag, consumer);
         }
+
         internal static async Task QoS(this ChannelHandler handler, RabbitMQChannel channel, QoSInfo qos)
         {
             var data = handler.GetChannelData(channel.ChannelId);

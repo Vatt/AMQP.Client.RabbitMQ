@@ -2,8 +2,6 @@
 
 namespace AMQP.Client.RabbitMQ.Protocol.Framing
 {
-
-
     public struct ContentHeaderProperties
     {
         public string ContentType;
@@ -19,6 +17,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
         public string AppId;
         public string ClusterId;
         public byte DeliveryMode;
+
         public byte Priority;
         //public ContentHeaderProperties()
         //{
@@ -37,19 +36,21 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
         //    AppId = default;
         //    ClusterId = default;
         //}
-
     }
+
     public class ContentHeader
     {
+        public readonly long BodySize;
         public readonly ushort ClassId;
         public readonly ushort Weight;
-        public readonly long BodySize;
         public ContentHeaderProperties Properties;
+
         public ContentHeader(ushort classId, ushort weight, long bodySize) : this(classId, bodySize)
         {
             Weight = weight;
             Properties = new ContentHeaderProperties();
         }
+
         public ContentHeader(ushort classId, long bodySize)
         {
             ClassId = classId;

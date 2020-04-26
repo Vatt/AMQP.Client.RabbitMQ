@@ -1,9 +1,9 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+﻿using System.Buffers;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System.Buffers;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
@@ -29,6 +29,5 @@ namespace AMQP.Client.RabbitMQ.Protocol
         ValueTask OnConsumeOkAsync(ushort channelId, string tag);
         ValueTask OnQosOkAsync(ushort channelId);
         ValueTask OnConsumerCancelOkAsync(ushort channelId, string tag);
-
     }
 }

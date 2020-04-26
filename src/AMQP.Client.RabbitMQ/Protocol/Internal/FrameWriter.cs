@@ -11,6 +11,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             output.WriteShortInt(channel);
             output.WriteLong(payloadSize);
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteMethodFrame(short classId, short methodId, ref ValueWriter output)
         {

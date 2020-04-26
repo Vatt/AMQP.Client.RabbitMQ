@@ -1,15 +1,16 @@
-﻿using Bedrock.Framework.Protocols;
-using Microsoft.AspNetCore.Connections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Bedrock.Framework.Protocols;
+using Microsoft.AspNetCore.Connections;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
     public class RabbitMQProtocolWriter
     {
         private readonly ProtocolWriter Writer;
+
         public RabbitMQProtocolWriter(ConnectionContext ctx)
         {
             Writer = ctx.CreateWriter();
@@ -21,12 +22,12 @@ namespace AMQP.Client.RabbitMQ.Protocol
         {
             return Writer.WriteAsync(writer, message, token);
         }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ValueTask WriteManyAsync<T>(IMessageWriter<T> writer, IEnumerable<T> messages, CancellationToken token = default)
+        internal ValueTask WriteManyAsync<T>(IMessageWriter<T> writer, IEnumerable<T> messages,
+            CancellationToken token = default)
         {
             return Writer.WriteManyAsync(writer, messages, token);
         }
-
-
     }
 }

@@ -1,14 +1,15 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using System.Net;
+﻿using System.Net;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 
 namespace AMQP.Client.RabbitMQ
 {
     public class ConnectionOptions
     {
-        public ConnectionConf ConnOptions;
-        public ClientConf ClientOptions;
-        public TuneConf TuneOptions;
         public readonly EndPoint Endpoint;
+        public ClientConf ClientOptions;
+        public ConnectionConf ConnOptions;
+        public TuneConf TuneOptions;
+
         public ConnectionOptions(EndPoint endpoint)
         {
             ConnOptions = ConnectionConf.DefaultConnectionInfo();

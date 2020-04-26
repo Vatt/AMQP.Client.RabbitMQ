@@ -1,24 +1,23 @@
-﻿using AMQP.Client.RabbitMQ;
+﻿using System;
+using System.Net;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ;
 using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+
 namespace Test
 {
     //Закрытие канала от сервера проверить можно кривым указанием очереди в консумере
     //на 16 мегах чтото непонятное творится
-    class Program
+    internal class Program
     {
         private const string Host = "centos0.mshome.net";
 
         //private static string Host = 
-        static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
@@ -32,21 +31,21 @@ namespace Test
             //await ChannelTest();
 
             //await RunDefault();
-            await Task.WhenAll(StartConsumer(), StartPublisher());
+            await Task.WhenAll(StartConsumer(),
+                StartPublisher());
         }
 
-        
+
         private static async Task StartPublisher()
         {
-
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
-            
+
             await connection.StartAsync();
-            
+
             var channel = await connection.OpenChannel();
-            
+
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
             await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
@@ -54,50 +53,48 @@ namespace Test
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
             //var body = new byte[16 * 1024 * 1024 + 1];
+            //var body = new byte[16 * 1024 * 1024];
             //var body = new byte[32];
             //var body = new byte[16*1024];
-            //var body = new byte[128*1024];
-            //var body = new byte[384 * 1024];
+            //var body = new byte[512*1024];
+            //var body = new byte[512 * 1024];
             var body = new byte[1 * 1024 * 1024];
             //var body = new byte[1024];
-            int i = 0;
-            while (true/*!channel.IsClosed*/)
+
+            while (true /*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
-                i++;
             }
-            //await Task.Delay(TimeSpan.FromHours(1));
 
+            //await Task.Delay(TimeSpan.FromHours(1));
         }
+
         private static async Task StartConsumer()
         {
-
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
-            
+
             await connection.StartAsync();
 
-            RabbitMQChannel channel = await connection.OpenChannel();
+            var channel = await connection.OpenChannel();
 
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
             await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
-            consumer.Received += async (sender, result) =>
+            consumer.Received += /*async*/ (sender, result) =>
             {
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));
             };
             await channel.ConsumerStartAsync(consumer);
             await Task.Delay(TimeSpan.FromHours(1));
-
         }
 
         public static async Task ChannelTest()
         {
-
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
@@ -113,7 +110,7 @@ namespace Test
             await channel1.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
             await channel1.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2"));
 
-            var body1 = new byte[32];
+            var body1 = new byte[1024];
 
 
             //var publisher1 = channel1.CreatePublisher();
@@ -127,7 +124,6 @@ namespace Test
                 var propertiesConsume = new ContentHeaderProperties();
                 propertiesConsume.AppId = "testapp2";
                 await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
-
             };
 
             var consumer2 = new RabbitMQConsumer(channel2, ConsumeConf.Create("TestQueue2", "TestConsumer2", true));
@@ -145,31 +141,27 @@ namespace Test
             {
                 var properties = new ContentHeaderProperties();
                 properties.AppId = "testapp1";
-                while (true/*!channel1.IsClosed*/)
-                {
-                    await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
-                }
+                while (true /*!channel1.IsClosed*/
+                ) await channel1.Publish("TestExchange", string.Empty, false, false, properties, body1);
             });
             var secondTask = Task.Run(async () =>
             {
                 var properties = new ContentHeaderProperties();
                 properties.AppId = "testapp2";
-                while (true/*!channel2.IsClosed*/)
-                {
-                    await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body1);
-                }
+                while (true /*!channel2.IsClosed*/
+                ) await channel2.Publish("TestExchange2", string.Empty, false, false, properties, body1);
             });
 
             await Task.Delay(TimeSpan.FromHours(1));
-
         }
+
         public static async Task RunDefault()
         {
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
-            RabbitMQChannel channel = await connection.OpenChannel();
+            var channel = await connection.OpenChannel();
 
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
             await channel.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
@@ -187,7 +179,8 @@ namespace Test
                 //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
             };
             await channel.ConsumerStartAsync(consumer);
-            await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(), new byte[16*1024*1024+1]);
+            await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(),
+                new byte[16 * 1024 * 1024 + 1]);
             //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
             //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
             //var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
@@ -199,5 +192,4 @@ namespace Test
             await Task.Delay(TimeSpan.FromHours(2));
         }
     }
-
 }
