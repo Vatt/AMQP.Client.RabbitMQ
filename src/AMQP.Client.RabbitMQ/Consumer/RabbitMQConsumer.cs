@@ -15,11 +15,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private byte[] _body;
         private ContentHeader _header;
         private int _bodySize;
-        
+
         public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _bodySize);
 
         internal DeliverArgs(long deliveryTag, ContentHeader header, byte[] body)
-        {            
+        {
             DeliveryTag = deliveryTag;
             _body = body;
             _bodySize = (int)header.BodySize;
@@ -47,7 +47,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private long _activeDeliveryTag;
         private ConsumeConf _consume;
         public ref ConsumeConf Conf => ref _consume;
-        
+
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
         {
             _consume = conf;

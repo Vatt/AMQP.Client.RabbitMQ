@@ -17,7 +17,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         private readonly IBufferWriter<byte> _output;
         private Span<byte> _span;
 
-        private int _bitMask;       
+        private int _bitMask;
         private int _buffered;
         public int Written { get; private set; }
 
@@ -71,7 +71,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             _span = _output.GetSpan();
             _buffered = 0;
             Written = 0;
-            _buffer = new byte[8]; 
+            _buffer = new byte[8];
         }
 
         public Reserved Reserve(int length)

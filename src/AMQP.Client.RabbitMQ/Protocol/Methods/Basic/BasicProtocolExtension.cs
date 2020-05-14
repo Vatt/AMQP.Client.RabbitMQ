@@ -1,5 +1,4 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
 using System;
 using System.Buffers;
 using System.Collections.Generic;

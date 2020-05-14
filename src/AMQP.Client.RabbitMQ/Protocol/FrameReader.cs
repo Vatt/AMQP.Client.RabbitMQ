@@ -1,10 +1,10 @@
-﻿using System;
-using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Common;
+﻿using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Bedrock.Framework.Protocols;
+using System;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
@@ -39,7 +39,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
 
             var readable = Math.Min(FrameSize - _consumed, input.Length);
             message = input.Slice(0, readable);
-            _consumed += (int) readable;
+            _consumed += (int)readable;
             reader.Advance(readable - reader.Consumed);
             if (_consumed == FrameSize)
             {

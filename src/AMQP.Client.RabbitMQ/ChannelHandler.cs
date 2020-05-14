@@ -1,11 +1,4 @@
-﻿using System;
-using System.Buffers;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
+﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
@@ -16,6 +9,13 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using System;
+using System.Buffers;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -45,7 +45,11 @@ namespace AMQP.Client.RabbitMQ
 
         //private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly SemaphoreSlim _semaphore;
+        internal ConcurrentDictionary<ushort, ChannelData> Channels { get; }
 
+        internal RabbitMQProtocolWriter Writer { get; }
+
+        public ref TuneConf Tune => ref _options.TuneOptions;
         public ChannelHandler(RabbitMQProtocolWriter writer, ConnectionOptions options)
         {
             Writer = writer;
@@ -54,11 +58,7 @@ namespace AMQP.Client.RabbitMQ
             _semaphore = new SemaphoreSlim(1);
         }
 
-        internal ConcurrentDictionary<ushort, ChannelData> Channels { get; }
 
-        internal RabbitMQProtocolWriter Writer { get; }
-
-        public ref TuneConf Tune => ref _options.TuneOptions;
 
         public ValueTask OnChannelCloseAsync(ushort channelId, CloseInfo info)
         {
@@ -173,11 +173,11 @@ namespace AMQP.Client.RabbitMQ
             await _semaphore.WaitAsync().ConfigureAwait(false);
             var id = Interlocked.Increment(ref _channelId);
             _openSrc = new TaskCompletionSource<bool>();
-            await Writer.SendChannelOpenAsync((ushort) id).ConfigureAwait(false);
+            await Writer.SendChannelOpenAsync((ushort)id).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
-            Channels.GetOrAdd((ushort) id, key => new ChannelData());
+            Channels.GetOrAdd((ushort)id, key => new ChannelData());
             _semaphore.Release();
-            return new RabbitMQChannel((ushort) id, this);
+            return new RabbitMQChannel((ushort)id, this);
         }
 
         public async Task CloseChannel(RabbitMQChannel channel, string reason = null)

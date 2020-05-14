@@ -1,13 +1,13 @@
-﻿using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
+﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -129,7 +129,7 @@ namespace AMQP.Client.RabbitMQ
                 var batchCnt = 0;
                 while (batchCnt < _publishBatchSize && written < content.BodySize)
                 {
-                    var writable = Math.Min(_handler.Tune.FrameMax, (int) content.BodySize - written);
+                    var writable = Math.Min(_handler.Tune.FrameMax, (int)content.BodySize - written);
                     _publishBatch[batchCnt] = message.Slice(written, writable);
                     batchCnt++;
                     written += writable;
