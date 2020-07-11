@@ -43,7 +43,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
-        private ContentHeader _activeContent;
         private BodyFrameChunkedReader _bodyReader;
         public RabbitMQChannel Channel;
         private byte[] _activeDeliverBody;
@@ -95,10 +94,10 @@ namespace AMQP.Client.RabbitMQ.Consumer
         }
         public async ValueTask OnBeginDeliveryAsync(Deliver deliver, RabbitMQProtocolReader protocol)
         {
-            _activeContent = await protocol.ReadAsync(new ContentHeaderFullReader(Channel.ChannelId)).ConfigureAwait(false);
-            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)_activeContent.BodySize);
+            var activeContent = await protocol.ReadAsync(new ContentHeaderFullReader(Channel.ChannelId)).ConfigureAwait(false);
+            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)activeContent.BodySize);
             _deliverPosition = 0;
-            _bodyReader.Reset(_activeContent.BodySize);
+            _bodyReader.Reset(activeContent.BodySize);
 
             while (!_bodyReader.IsComplete)
             {
@@ -107,7 +106,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 protocol.Advance();
             }
 
-            var arg = new DeliverArgs(deliver.DeliverTag, _activeContent, _activeDeliverBody);
+            var arg = new DeliverArgs(deliver.DeliverTag, activeContent, _activeDeliverBody);
             _scheduler.Schedule(Invoke, arg);
 
         }

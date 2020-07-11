@@ -13,10 +13,10 @@ namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQChannel : IDisposable
     {
-        private static readonly int _publishBatchSize = 4;
         private readonly ChannelHandler _handler;
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
         private readonly SemaphoreSlim _writerSemaphore;
+        private static readonly int _publishBatchSize = 4;
         public readonly ushort ChannelId;
 
         internal RabbitMQChannel(ushort id, ChannelHandler handler)

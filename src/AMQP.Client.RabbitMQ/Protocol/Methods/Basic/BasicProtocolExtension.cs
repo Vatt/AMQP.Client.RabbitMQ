@@ -76,6 +76,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             var writer = new PublishInfoAndContentWriter(channelId);
             return protocol.WriteAsync(writer, info, token);
         }
+
         public static ValueTask PublishBodyAsync(this RabbitMQProtocolWriter protocol, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
         {
             return protocol.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
