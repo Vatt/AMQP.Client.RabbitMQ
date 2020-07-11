@@ -12,9 +12,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
         {
             return protocol.WriteAsync(_channelOpenWriter, channelId, token);
         }
-        public static bool ReadChannelOpenOkAsync(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        public static bool ReadChannelOpenOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(channelOpenOkReader, input);
+        }
+        public static ValueTask<bool> ReadChannelOpenOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(channelOpenOkReader, token);
         }
 
     }

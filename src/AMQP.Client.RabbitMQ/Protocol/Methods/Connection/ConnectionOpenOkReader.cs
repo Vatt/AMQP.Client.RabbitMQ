@@ -1,4 +1,6 @@
-﻿using Bedrock.Framework.Protocols;
+﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+using Bedrock.Framework.Protocols;
 using System;
 using System.Buffers;
 
@@ -15,6 +17,15 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
                 return false;
             }
             reader.Advance(2);
+            //reader.Advance(1);
+            //if (!reader.TryRead(out var endMarker))
+            //{
+            //    return false;
+            //}
+            //if (endMarker != Constants.FrameEnd)
+            //{
+            //    ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
+            //}
             message = true;
             consumed = reader.Position;
             examined = consumed;

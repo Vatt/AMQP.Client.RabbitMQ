@@ -37,7 +37,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         {
             var result = await _protocol.ReadAsync(reader, token).ConfigureAwait(false);
             _protocol.Advance();
-            if (result.IsCanceled || result.IsCanceled)
+            if (result.IsCanceled || result.IsCompleted)
             {
                 //TODO: do something
             }
@@ -63,48 +63,48 @@ namespace AMQP.Client.RabbitMQ.Protocol
             return result.Message;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken token = default)
-        {
-            while (!_frameReader.IsComplete)
-            {
-                var result = await _protocol.ReadAsync(_frameReader, token).ConfigureAwait(false);
-                CopyResultToBuffer(result.Message);
-                _protocol.Advance();
-                /*
-                if (result.IsCanceled || result.IsCanceled)
-                {
-                    //TODO: do something
-                }
-                if (frameReader.IsComplete && frameReader.IsSingle)
-                {
-                    _bufferPosition = 0;
-                    _needAdvance = true;
-                    return result.Message;
-                }
-                else
-                {
-                    CopyResultToBuffer(result.Message);
-                    Reader.Advance();
-                }
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //internal async ValueTask<ReadOnlySequence<byte>> ReadAsync(CancellationToken token = default)
+        //{
+        //    while (!_frameReader.IsComplete)
+        //    {
+        //        var result = await _protocol.ReadAsync(_frameReader, token).ConfigureAwait(false);
+        //        CopyResultToBuffer(result.Message);
+        //        _protocol.Advance();
+        //        /*
+        //        if (result.IsCanceled || result.IsCanceled)
+        //        {
+        //            //TODO: do something
+        //        }
+        //        if (frameReader.IsComplete && frameReader.IsSingle)
+        //        {
+        //            _bufferPosition = 0;
+        //            _needAdvance = true;
+        //            return result.Message;
+        //        }
+        //        else
+        //        {
+        //            CopyResultToBuffer(result.Message);
+        //            Reader.Advance();
+        //        }
                 
-                CopyResultToBuffer(result.Message);
-                Reader.Advance();
-                */
-            }
+        //        CopyResultToBuffer(result.Message);
+        //        Reader.Advance();
+        //        */
+        //    }
 
-            var message = new ReadOnlySequence<byte>(_buffer, 0, _frameReader.FrameSize);
-            _frameReader.Reset();
-            _bufferPosition = 0;
+        //    var message = new ReadOnlySequence<byte>(_buffer, 0, _frameReader.FrameSize);
+        //    _frameReader.Reset();
+        //    _bufferPosition = 0;
 
-            return message;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void CopyResultToBuffer(ReadOnlySequence<byte> source)
-        {
-            var span = new Span<byte>(_buffer, (int)_bufferPosition, (int)source.Length);
-            source.CopyTo(span);
-            _bufferPosition += source.Length;
-        }
+        //    return message;
+        //}
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //private void CopyResultToBuffer(ReadOnlySequence<byte> source)
+        //{
+        //    var span = new Span<byte>(_buffer, (int)_bufferPosition, (int)source.Length);
+        //    source.CopyTo(span);
+        //    _bufferPosition += source.Length;
+        //}
     }
 }

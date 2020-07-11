@@ -18,16 +18,24 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.ReadShortStrPayload(input);
         }
+        public static ValueTask<string> ReadBasicConsumeOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadShortStrPayloadAsync(token);
+        }
         public static string ReadBasicConsumeCancelOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.ReadShortStrPayload(input);
         }
-        /*
+        public static ValueTask<string> ReadBasicConsumeCancelOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadShortStrPayloadAsync(token);
+        }
+
         public static ValueTask<Deliver> ReadBasicDeliverAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_basicDeliverReader, token);
         }
-        */
+        
         public static Deliver ReadBasicDeliver(this RabbitMQProtocolReader protocol, ReadOnlySequence<byte> input)
         {
             return protocol.Read(_basicDeliverReader, input);
@@ -39,6 +47,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         public static bool ReadBasicQoSOkAsync(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.ReadNoPayload(input);
+        }
+        public static ValueTask<bool> ReadBasicQoSOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadNoPayloadAsync(token);
         }
         public static ValueTask SendRejectAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ref RejectInfo info, CancellationToken token = default)
         {

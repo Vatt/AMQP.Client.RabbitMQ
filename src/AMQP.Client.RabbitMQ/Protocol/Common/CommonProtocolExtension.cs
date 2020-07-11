@@ -38,14 +38,25 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             return ReadNoPayload(protocol, input);
         }
-
+        public static ValueTask<bool> ReadCloseOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return ReadNoPayloadAsync(protocol, token);
+        }
         public static CloseInfo ReadClose(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_closeReader, input);
         }
+        public static ValueTask<CloseInfo> ReadCloseAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_closeReader, token);
+        }
         public static bool ReadNoPayload(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_noPayloadReader, input);
+        }
+        public static ValueTask<bool> ReadNoPayloadAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_noPayloadReader, token);
         }
         public static ValueTask SendClose(this RabbitMQProtocolWriter protocol, ushort channelId, short classId, short methodId, CloseInfo info, CancellationToken token = default)
         {
@@ -59,6 +70,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         internal static string ReadShortStrPayload(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_shortStrPayloadReader, input);
+        }
+        internal static ValueTask<string> ReadShortStrPayloadAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_shortStrPayloadReader, token);
         }
 
     }

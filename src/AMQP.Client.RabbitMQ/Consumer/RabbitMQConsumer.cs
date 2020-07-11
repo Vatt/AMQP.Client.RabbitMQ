@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -43,12 +44,12 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
-        private byte[] _activeDeliverBody;
-        private int _deliverPosition;
         private ContentHeader _activeContent;
+        private BodyFrameChunkedReader _bodyReader;
         public RabbitMQChannel Channel;
-        private long _activeDeliveryTag;
+        private byte[] _activeDeliverBody;        
         private ConsumeConf _consume;
+        private int _deliverPosition;
         public ref ConsumeConf Conf => ref _consume;
 
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
@@ -56,45 +57,14 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _consume = conf;
             _scheduler = scheduler;
             Channel = channel;
+            _bodyReader = new BodyFrameChunkedReader(Channel.ChannelId);
         }
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf)
         {
             _consume = conf;
             _scheduler = PipeScheduler.Inline;
             Channel = channel;
-        }
-
-        public ValueTask OnDeliveryAsync(ref Deliver deliver)
-        {
-            _activeDeliveryTag = deliver.DeliverTag;
-            return default;
-        }
-        public ValueTask OnContentAsync(ContentHeader header)
-        {
-            _activeContent = header;
-            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)header.BodySize);
-            return default;
-        }
-
-        public ValueTask OnBodyAsync(ReadOnlySequence<byte> body)
-        {
-            var span = new Span<byte>(_activeDeliverBody, _deliverPosition, (int)body.Length);
-            body.CopyTo(span);
-            _deliverPosition += (int)body.Length;
-            if (_deliverPosition > _activeContent.BodySize)
-            {
-                throw new ArgumentOutOfRangeException(nameof(_deliverPosition));
-            }
-            if (_deliverPosition == _activeContent.BodySize)
-            {
-
-                var arg = new DeliverArgs(_activeDeliveryTag, _activeContent, _activeDeliverBody);
-                _scheduler.Schedule(Invoke, arg);
-                _activeContent = default;
-                _activeDeliveryTag = default;
-                _deliverPosition = default;
-            }
-            return default;
+            _bodyReader = new BodyFrameChunkedReader(Channel.ChannelId);
         }
         private void Invoke(object obj)
         {
@@ -129,12 +99,11 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _activeContent = await protocol.ReadAsync(new ContentHeaderFullReader(Channel.ChannelId)).ConfigureAwait(false);
             _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)_activeContent.BodySize);
             _deliverPosition = 0;
-            var _reader = protocol.CreateResetableChunkedBodyReader(Channel.ChannelId);
-            _reader.Reset(_activeContent.BodySize);
+            _bodyReader.Reset(_activeContent.BodySize);
 
-            while (!_reader.IsComplete)
+            while (!_bodyReader.IsComplete)
             {
-                var result = await protocol.ReadWithoutAdvanceAsync(_reader).ConfigureAwait(false);
+                var result = await protocol.ReadWithoutAdvanceAsync(_bodyReader).ConfigureAwait(false);
                 Copy(result);
                 protocol.Advance();
             }

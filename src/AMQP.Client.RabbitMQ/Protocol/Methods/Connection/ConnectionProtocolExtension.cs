@@ -34,13 +34,25 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         {
             return protocol.Read(_connectionStartReader, input);
         }
+        public static ValueTask<ServerConf> ReadStartAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_connectionStartReader, token);
+        }
         public static TuneConf ReadTuneMethod(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_connectionTuneReader, input);
         }
+        public static ValueTask<TuneConf> ReadTuneMethodAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_connectionTuneReader, token);
+        }
         public static bool ReadConnectionOpenOk(this RabbitMQProtocolReader protocol, ReadOnlySequence<byte> input)
         {
             return protocol.Read(_connectionOpenOkReader, input);
+        }
+        public static ValueTask<bool> ReadConnectionOpenOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        { 
+            return protocol.ReadAsync(_connectionOpenOkReader, token);
         }
 
     }

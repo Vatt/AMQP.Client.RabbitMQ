@@ -17,6 +17,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         {
             return protocol.Read(_queueDeclareOkReader, input);
         }
+        public static ValueTask<QueueDeclareOk> ReadQueueDeclareOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_queueDeclareOkReader, token);
+        }
         public static ValueTask SendQueueBindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueBind info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueBindWriter(channelId), info, token);
@@ -38,17 +42,33 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         {
             return protocol.Read(_queuePurgeOkDeleteOkReader, input);
         }
+        public static ValueTask<int> ReadQueuePurgeOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_queuePurgeOkDeleteOkReader, token);
+        }
         public static int ReadQueueDeleteOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.Read(_queuePurgeOkDeleteOkReader, input);
+        }
+        public static ValueTask<int> ReadQueueDeleteOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_queuePurgeOkDeleteOkReader, token);
         }
         public static bool ReadQueueBindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.ReadNoPayload(input);
         }
+        public static ValueTask<bool> ReadQueueBindOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadNoPayloadAsync(token);
+        }
         public static bool ReadQueueUnbindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
             return protocol.ReadNoPayload(input);
+        }
+        public static ValueTask<bool> ReadQueueUnbindOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadNoPayloadAsync(token);
         }
     }
 }
