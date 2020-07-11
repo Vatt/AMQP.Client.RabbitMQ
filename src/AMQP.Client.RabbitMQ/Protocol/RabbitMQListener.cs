@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
+
     public class RabbitMQListener
     {
         private IChannelHandler _channelHandler;
@@ -103,14 +104,12 @@ namespace AMQP.Client.RabbitMQ.Protocol
 
                 default:
                     {
-                        throw new Exception(
-                            $"{nameof(RabbitMQListener)}.{nameof(ProcessMethod)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                        throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessMethod)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
                     }
             }
         }
-
-        internal ValueTask ProcessConnection(RabbitMQProtocolReader protocol, ref FrameHeader header,
-            ref MethodHeader method, in ReadOnlySequence<byte> payload)
+        
+        internal ValueTask ProcessConnection(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, in ReadOnlySequence<byte> payload)
         {
             if (header.Channel != 0) ReaderThrowHelper.ThrowIfFrameTypeMissmatch();
             switch (method.MethodId)
@@ -153,8 +152,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
             }
         }
 
-        internal ValueTask ProcessChannel(RabbitMQProtocolReader protocol, ref FrameHeader header,
-            ref MethodHeader method, in ReadOnlySequence<byte> payload)
+        internal ValueTask ProcessChannel(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, in ReadOnlySequence<byte> payload)
         {
             switch (method.MethodId)
             {
@@ -180,8 +178,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
             }
         }
 
-        internal ValueTask ProcessExchange(RabbitMQProtocolReader protocol, ref FrameHeader header,
-            ref MethodHeader method, in ReadOnlySequence<byte> payload)
+        internal ValueTask ProcessExchange(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, in ReadOnlySequence<byte> payload)
         {
             switch (method.MethodId)
             {
@@ -198,13 +195,11 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         return _channelHandler.OnExchangeDeleteOkAsync(header.Channel);
                     }
                 default:
-                    throw new Exception(
-                        $"{nameof(RabbitMQListener)}.{nameof(ProcessExchange)} :cannot read frame (class-id, method-id):({method.ClassId},{method.MethodId})");
+                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessExchange)} :cannot read frame (class-id, method-id):({method.ClassId},{method.MethodId})");
             }
         }
 
-        internal ValueTask ProcessQueue(RabbitMQProtocolReader protocol, ref FrameHeader header,
-            ref MethodHeader method, in ReadOnlySequence<byte> payload)
+        internal ValueTask ProcessQueue(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, in ReadOnlySequence<byte> payload)
         {
             switch (method.MethodId)
             {
@@ -239,13 +234,11 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         return _channelHandler.OnQueueDeleteOkAsync(header.Channel, deleted);
                     }
                 default:
-                    throw new Exception(
-                        $"{nameof(RabbitMQListener)}.{nameof(ProcessQueue)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessQueue)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
             }
         }
 
-        internal ValueTask ProcessBasic(RabbitMQProtocolReader protocol, ref FrameHeader header,
-            ref MethodHeader method, in ReadOnlySequence<byte> payload)
+        internal ValueTask ProcessBasic(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, in ReadOnlySequence<byte> payload)
         {
             switch (method.MethodId)
             {
@@ -253,7 +246,8 @@ namespace AMQP.Client.RabbitMQ.Protocol
                     {
                         var deliver = protocol.ReadBasicDeliver(payload);
                         protocol.Advance();
-                        return _channelHandler.OnDeliverAsync(header.Channel, deliver);
+                        //return _channelHandler.OnDeliverAsync(header.Channel, deliver);
+                        return _channelHandler.OnBeginDeliveryAsync(header.Channel, deliver, protocol);
                     }
                 case 21: // consume-ok 
                     {
@@ -273,8 +267,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         return _channelHandler.OnConsumerCancelOkAsync(header.Channel, tag);
                     }
                 default:
-                    throw new Exception(
-                        $"{nameof(RabbitMQListener)}.{nameof(ProcessBasic)}: cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessBasic)}: cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
             }
         }
     }

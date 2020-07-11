@@ -1,9 +1,12 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -113,6 +116,32 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 }
 
             }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Copy(ReadOnlySequence<byte> message)
+        {
+            var span = new Span<byte>(_activeDeliverBody, _deliverPosition, (int)message.Length);
+            message.CopyTo(span);
+            _deliverPosition += (int)message.Length;
+        }
+        public async ValueTask OnBeginDeliveryAsync(Deliver deliver, RabbitMQProtocolReader protocol)
+        {
+            _activeContent = await protocol.ReadAsync(new ContentHeaderFullReader(Channel.ChannelId)).ConfigureAwait(false);
+            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)_activeContent.BodySize);
+            _deliverPosition = 0;
+            var _reader = protocol.CreateResetableChunkedBodyReader(Channel.ChannelId);
+            _reader.Reset(_activeContent.BodySize);
+
+            while (!_reader.IsComplete)
+            {
+                var result = await protocol.ReadWithoutAdvanceAsync(_reader).ConfigureAwait(false);
+                Copy(result);
+                protocol.Advance();
+            }
+
+            var arg = new DeliverArgs(deliver.DeliverTag, _activeContent, _activeDeliverBody);
+            _scheduler.Schedule(Invoke, arg);
+
         }
     }
 }

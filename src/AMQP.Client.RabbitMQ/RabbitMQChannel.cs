@@ -102,8 +102,7 @@ namespace AMQP.Client.RabbitMQ
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate,
-            ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
+        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             //if (IsClosed)
             //{

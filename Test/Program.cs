@@ -12,8 +12,10 @@ namespace Test
 {
     //Закрытие канала от сервера проверить можно кривым указанием очереди в консумере
     //на 16 мегах чтото непонятное творится
+
     internal class Program
     {
+
         private const string Host = "centos0.mshome.net";
 
         //private static string Host = 
@@ -26,15 +28,13 @@ namespace Test
             //Utf8JsonReader
             //JsonSerializer 
 
-            //await RunNothing();
             //await RunDefault();
             //await ChannelTest();
 
-            //await RunDefault();
-            await Task.WhenAll(StartConsumer(),
-                StartPublisher());
+           // await RunDefault();
+            await Task.WhenAll(StartConsumer(), StartPublisher());
+           
         }
-
 
         private static async Task StartPublisher()
         {
@@ -54,11 +54,12 @@ namespace Test
             properties.AppId = "testapp";
             //var body = new byte[16 * 1024 * 1024 + 1];
             //var body = new byte[16 * 1024 * 1024];
-            //var body = new byte[32];
+            var body = new byte[32];
             //var body = new byte[16*1024];
             //var body = new byte[512*1024];
             //var body = new byte[512 * 1024];
-            var body = new byte[1 * 1024 * 1024];
+            //var body = new byte[1 * 1024 * 1024];
+            //var body = new byte[8 * 1024 * 1024];
             //var body = new byte[1024];
 
             while (true /*!channel.IsClosed*/)
@@ -173,21 +174,22 @@ namespace Test
             await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2"));
 
             var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+
             consumer.Received += (sender, result) =>
             {
                 //await channel.Ack(deliver.DeliveryTag, false);
                 //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
             };
             await channel.ConsumerStartAsync(consumer);
-            await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(),
-                new byte[16 * 1024 * 1024 + 1]);
+            await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(), new byte[16 * 1024 * 1024 + 1]);
+
             //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
             //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
             //var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
             //await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
             //await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
             //await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
-            //await connection.CloseAsync();
+            await connection.CloseAsync();
 
             await Task.Delay(TimeSpan.FromHours(2));
         }

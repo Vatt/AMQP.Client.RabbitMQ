@@ -66,10 +66,14 @@ namespace AMQP.Client.RabbitMQ
 
         public async ValueTask OnTuneAsync(TuneConf conf)
         {
-            if (Options.TuneOptions.ChannelMax > conf.ChannelMax ||
-                Options.TuneOptions.ChannelMax == 0 && conf.ChannelMax != 0)
-                Options.TuneOptions.ChannelMax = conf.ChannelMax;
-            if (Options.TuneOptions.FrameMax > conf.FrameMax) Options.TuneOptions.FrameMax = conf.FrameMax;
+            if (Options.TuneOptions.ChannelMax > conf.ChannelMax || Options.TuneOptions.ChannelMax == 0 && conf.ChannelMax != 0)
+            { 
+                Options.TuneOptions.ChannelMax = conf.ChannelMax; 
+            }
+            if (Options.TuneOptions.FrameMax > conf.FrameMax)
+            {
+                Options.TuneOptions.FrameMax = conf.FrameMax;
+            }
             await _writer.SendTuneOkAsync(Options.TuneOptions).ConfigureAwait(false);
             await _writer.SendOpenAsync(Options.ConnOptions.VHost).ConfigureAwait(false);
         }
@@ -106,7 +110,7 @@ namespace AMQP.Client.RabbitMQ
             _channelHandler = new ChannelHandler(_writer, Options);
             _connectionCloseSrc = new TaskCompletionSource<CloseInfo>();
             _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            StartReadingAsync(new RabbitMQProtocolReader(_ctx, ref Options.TuneOptions));
+            StartReadingAsync(new RabbitMQProtocolReader(_ctx));
             _watchTask = WatchAsync();
         }
 
