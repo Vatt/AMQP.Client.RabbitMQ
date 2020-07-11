@@ -51,7 +51,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
             return protocol.Read(_connectionOpenOkReader, input);
         }
         public static ValueTask<bool> ReadConnectionOpenOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
-        { 
+        {
             return protocol.ReadAsync(_connectionOpenOkReader, token);
         }
 

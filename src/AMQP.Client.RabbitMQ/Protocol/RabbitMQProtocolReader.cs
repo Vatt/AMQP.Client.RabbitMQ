@@ -18,7 +18,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         public RabbitMQProtocolReader(ConnectionContext ctx)
         {
             _protocol = ctx.CreateReader();
-            _buffer = new byte[128*1024];
+            _buffer = new byte[128 * 1024];
         }
 
         public ValueTask DisposeAsync()
@@ -87,7 +87,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         //            CopyResultToBuffer(result.Message);
         //            Reader.Advance();
         //        }
-                
+
         //        CopyResultToBuffer(result.Message);
         //        Reader.Advance();
         //        */

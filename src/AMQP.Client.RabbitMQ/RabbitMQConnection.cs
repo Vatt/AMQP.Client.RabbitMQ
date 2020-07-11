@@ -67,8 +67,8 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask OnTuneAsync(TuneConf conf)
         {
             if (Options.TuneOptions.ChannelMax > conf.ChannelMax || Options.TuneOptions.ChannelMax == 0 && conf.ChannelMax != 0)
-            { 
-                Options.TuneOptions.ChannelMax = conf.ChannelMax; 
+            {
+                Options.TuneOptions.ChannelMax = conf.ChannelMax;
             }
             if (Options.TuneOptions.FrameMax > conf.FrameMax)
             {

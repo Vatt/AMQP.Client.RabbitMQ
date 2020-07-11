@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
@@ -47,7 +46,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private ContentHeader _activeContent;
         private BodyFrameChunkedReader _bodyReader;
         public RabbitMQChannel Channel;
-        private byte[] _activeDeliverBody;        
+        private byte[] _activeDeliverBody;
         private ConsumeConf _consume;
         private int _deliverPosition;
         public ref ConsumeConf Conf => ref _consume;

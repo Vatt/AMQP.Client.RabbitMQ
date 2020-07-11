@@ -35,7 +35,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.ReadAsync(_basicDeliverReader, token);
         }
-        
+
         public static Deliver ReadBasicDeliver(this RabbitMQProtocolReader protocol, ReadOnlySequence<byte> input)
         {
             return protocol.Read(_basicDeliverReader, input);

@@ -3,7 +3,7 @@
     public struct Deliver
     {
         public readonly string ConsumerTag;
-        public readonly long DeliverTag;        
+        public readonly long DeliverTag;
         public readonly string ExchangeName;
         public readonly string RoutingKey;
         public readonly bool Redelivered;
