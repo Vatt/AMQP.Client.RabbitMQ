@@ -33,17 +33,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 var frame = reader.Read(frameReader, result);
                 switch (frame.Header.FrameType)
                 {
-                    case Constants.FrameBody:
-                        {
-                            await ProcessBody(reader, ref frame).ConfigureAwait(false);
-                            reader.Advance();
-                            break;
-                        }
-                    case Constants.FrameHeader:
-                        {
-                            await ProcessContentHeader(reader, ref frame).ConfigureAwait(false);
-                            break;
-                        }
                     case Constants.FrameMethod:
                         {
                             await ProcessMethod(reader, ref frame).ConfigureAwait(false);
@@ -56,21 +45,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         }
                 }
             }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ValueTask ProcessBody(RabbitMQProtocolReader protocol, ref Frame frame)
-        {
-            return _channelHandler.OnBodyAsync(frame.Header.Channel, frame.Payload);
-            //return default;
-        }
-
-        internal ValueTask ProcessContentHeader(RabbitMQProtocolReader protocol, ref Frame frame)
-        {
-            var header = protocol.Read(new ContentHeaderReader(), frame.Payload);
-            protocol.Advance();
-            return _channelHandler.OnContentHeaderAsync(frame.Header.Channel, header);
-            //return default;
         }
 
         internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)

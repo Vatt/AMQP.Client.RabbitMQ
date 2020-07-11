@@ -21,7 +21,6 @@ namespace AMQP.Client.RabbitMQ
 {
     internal class ChannelData
     {
-        public IConsumable ActiveConsumer;
         public Dictionary<string, QueueBind> Binds = new Dictionary<string, QueueBind>();
         public TaskCompletionSource<int> CommonTcs;
         public Dictionary<string, IConsumable> Consumers = new Dictionary<string, IConsumable>();
@@ -89,18 +88,7 @@ namespace AMQP.Client.RabbitMQ
             throw new NotImplementedException();
         }
 
-        public ValueTask OnDeliverAsync(ushort channelId, Deliver deliver)
-        {
-            var data = GetChannelData(channelId);
-            if (!data.Consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
-            {
-                throw new Exception("Consumer not found");
-            }
-                
-            _activeChannelForConsume = data;
-            data.ActiveConsumer = consumer;
-            return consumer.OnDeliveryAsync(ref deliver);
-        }
+
         public ValueTask OnBeginDeliveryAsync(ushort channelId, Deliver deliver, RabbitMQProtocolReader protocol)
         {
             var data = GetChannelData(channelId);
@@ -109,18 +97,6 @@ namespace AMQP.Client.RabbitMQ
                 throw new Exception("Consumer not found");
             }
             return consumer.OnBeginDeliveryAsync(deliver, protocol);
-        }
-        public ValueTask OnContentHeaderAsync(ushort channelId, ContentHeader header)
-        {
-            //var data = GetChannelData(channelId);
-
-            return _activeChannelForConsume.ActiveConsumer.OnContentAsync(header);
-        }
-
-        public ValueTask OnBodyAsync(ushort channelId, ReadOnlySequence<byte> chunk)
-        {
-            //var data = GetChannelData(channelId);
-            return _activeChannelForConsume.ActiveConsumer.OnBodyAsync(chunk);
         }
 
         public ValueTask OnExchangeDeclareOkAsync(ushort channelId)
