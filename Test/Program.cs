@@ -10,10 +10,11 @@ namespace Test
 {
     class Program
     {
-        private const string Host = "centos0.mshome.net";
+        private static string Host = "centos0.mshome.net";
+        private static int Size = 32;
 
         //private static string Host = 
-        static async Task Main(string[] args)
+        static async Task Main(string host, int size)
         {
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
@@ -26,6 +27,18 @@ namespace Test
             //await RunDefault();
             //await ChannelTest();
 
+
+            //await RunDefault();
+
+            if (!string.IsNullOrEmpty(host))
+            {
+                Host = host;
+            }
+
+            if (size > 0)
+            {
+                Size = size;
+            }
 
             await Task.WhenAll(StartConsumer(), StartPublisher());
         }
@@ -50,7 +63,7 @@ namespace Test
             await channel1.QoS(0, 10, false);
             await channel2.QoS(0, 10, false);
 
-            var body1 = new byte[32];
+            var body1 = new byte[Size];
 
 
             //var publisher1 = channel1.CreatePublisher();
