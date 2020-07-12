@@ -154,8 +154,7 @@ namespace Test
 
             var properties = ContentHeaderProperties.Default();
             properties.AppId = "testapp";
-            //var body = new byte[16 * 1024 * 1024 + 1];
-            var body = new byte[32];
+            var body = new byte[Size];
             while (!channel.IsClosed)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
