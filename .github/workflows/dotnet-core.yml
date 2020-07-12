@@ -1,0 +1,36 @@
+name: .NET Core
+
+on:
+  push:
+    branches:
+      - master
+      - try-rework
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      project_path: ./Test/
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.101
+    - name: Install dependencies
+      run: dotnet restore $project_path
+    - name: Build
+      run: dotnet build --configuration Release --no-restore $project_path
+    - name: Publish win
+      run: dotnet publish --output ./output/ --configuration Release --runtime win-x64 --self-contained true -p:PublishTrimmed=true -p:PublishSingleFile=true -p:DebugType=None  $project_path
+    - name: Publish linux
+      run: dotnet publish --output ./output/ --configuration Release --runtime linux-x64 --self-contained true -p:PublishTrimmed=true -p:PublishSingleFile=true -p:DebugType=None  $project_path
+    - name: Upload atrifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: test
+        path: ./output/
