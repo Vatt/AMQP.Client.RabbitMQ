@@ -15,11 +15,11 @@ namespace Test
 
     internal class Program
     {
-
-        private const string Host = "centos0.mshome.net";
+        private static string Host = "centos0.mshome.net";
+        private static int Size = 32;
 
         //private static string Host = 
-        private static async Task Main(string[] args)
+        private static async Task Main(string host, int size)
         {
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
@@ -32,6 +32,17 @@ namespace Test
             //await ChannelTest();
 
             //await RunDefault();
+
+            if (!string.IsNullOrEmpty(host))
+            {
+                Host = host;
+            }
+
+            if (size > 0)
+            {
+                Size = size;
+            }
+
             await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
@@ -52,17 +63,9 @@ namespace Test
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
-            //var body = new byte[16 * 1024 * 1024 + 1];
-            //var body = new byte[16 * 1024 * 1024];
-            //var body = new byte[32];
-            //var body = new byte[16*1024];
-            //var body = new byte[512*1024];
-            //var body = new byte[512 * 1024];
-            var body = new byte[1 * 1024 * 1024];
-            //var body = new byte[8 * 1024 * 1024];
-            //var body = new byte[1024];
-
-            while (true /*!channel.IsClosed*/)
+            var body = new byte[Size];
+            int i = 0;
+            while (true/*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
@@ -76,7 +79,6 @@ namespace Test
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
-
             await connection.StartAsync();
 
             var channel = await connection.OpenChannel();
