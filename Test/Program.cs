@@ -15,11 +15,11 @@ namespace Test
 
     internal class Program
     {
-
-        private const string Host = "centos0.mshome.net";
+        private static string Host = "centos0.mshome.net";
+        private static int Size = 32;
 
         //private static string Host = 
-        private static async Task Main(string[] args)
+        private static async Task Main(string host, int size)
         {
             //using Microsoft.Extensions.ObjectPool;
             //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
@@ -32,6 +32,17 @@ namespace Test
             //await ChannelTest();
 
             //await RunDefault();
+
+            if (!string.IsNullOrEmpty(host))
+            {
+                Host = host;
+            }
+
+            if (size > 0)
+            {
+                Size = size;
+            }
+
             await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
@@ -52,17 +63,9 @@ namespace Test
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
-            //var body = new byte[16 * 1024 * 1024 + 1];
-            //var body = new byte[16 * 1024 * 1024];
-            var body = new byte[32];
-            //var body = new byte[16*1024];
-            //var body = new byte[512*1024];
-            //var body = new byte[512 * 1024];
-            //var body = new byte[1 * 1024 * 1024];
-            //var body = new byte[8 * 1024 * 1024];
-            //var body = new byte[1024];
-
-            while (true /*!channel.IsClosed*/)
+            var body = new byte[Size];
+            int i = 0;
+            while (true/*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
@@ -76,7 +79,6 @@ namespace Test
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.Build();
             var connection = factory.CreateConnection();
-
             await connection.StartAsync();
 
             var channel = await connection.OpenChannel();
@@ -85,7 +87,7 @@ namespace Test
             await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue3", "TestConsumer", true));
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
             consumer.Received += /*async*/ (sender, result) =>
             {
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));
@@ -175,20 +177,20 @@ namespace Test
 
             var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
 
-            //consumer.Received += (sender, result) =>
-            //{
-            //    //await channel.Ack(deliver.DeliveryTag, false);
-            //    //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
-            //};
-            //await channel.ConsumerStartAsync(consumer);
-            //await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(), new byte[16 * 1024 * 1024 + 1]);
+            consumer.Received += (sender, result) =>
+            {
+                //await channel.Ack(deliver.DeliveryTag, false);
+                //Console.WriteLine(Encoding.UTF8.GetString(result.Body));
+            };
+            await channel.ConsumerStartAsync(consumer);
+            await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(), new byte[16 * 1024 * 1024 + 1]);
 
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
-            await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
-            var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
-            await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
+            //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
+            //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
+            //var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
+            //await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
+            //await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
+            //await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
             await connection.CloseAsync();
 
             await Task.Delay(TimeSpan.FromHours(2));
