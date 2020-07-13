@@ -28,6 +28,7 @@ namespace AMQP.Client.RabbitMQ
         public TaskCompletionSource<QueueDeclareOk> QueueTcs;
         public TaskCompletionSource<int> CommonTcs;
         public SemaphoreSlim WriterSemaphore = new SemaphoreSlim(1);
+        public TaskCompletionSource<bool> waitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
     }
 
@@ -159,6 +160,8 @@ namespace AMQP.Client.RabbitMQ
             await Writer.SendChannelOpenAsync((ushort)id).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
             Channels.GetOrAdd((ushort)id, key => new ChannelData());
+            var newChannel = GetChannelData((ushort)id); //TODO: fix this shit
+            newChannel.waitTcs.SetResult(false);
             _semaphore.Release();
             return new RabbitMQChannel((ushort)id, this);
         }

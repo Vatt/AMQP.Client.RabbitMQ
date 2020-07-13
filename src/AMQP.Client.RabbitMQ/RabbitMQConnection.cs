@@ -163,9 +163,11 @@ namespace AMQP.Client.RabbitMQ
                 //_cts.Cancel();
                 _ctx.Abort();
                 _heartbeat?.Dispose();
-                
+//                ChannelHandlerUnlockSemaphore();
+
             }
-            await ChannelHandlerLock();
+            ChannelHandlerLock();
+            //await ChannelHandlerLockSemaphore().ConfigureAwait(false);
             try
             {
                 await RestartAsync();
@@ -173,22 +175,42 @@ namespace AMQP.Client.RabbitMQ
             finally
             {
                 ChannelHandlerUnlock();
+                //ChannelHandlerUnlockSemaphore();
             }
-            
-            
+            ChannelHandlerUnlock();
+            //ChannelHandlerUnlockSemaphore();
+
+
         }
-        private async ValueTask ChannelHandlerLock()
+        private async ValueTask ChannelHandlerLockSemaphore()
+        {
+            foreach (var data in _channelHandler.Channels.Values)
+            {
+                await data.WriterSemaphore.WaitAsync().ConfigureAwait(false);                
+            }
+        }
+        private void ChannelHandlerUnlockSemaphore()
+        {
+            foreach (var data in _channelHandler.Channels.Values)
+            {
+                data.WriterSemaphore.Release();
+               
+            }
+        }
+        private void ChannelHandlerLock()
         {
             foreach(var data in _channelHandler.Channels.Values)
             {
-                await data.WriterSemaphore.WaitAsync();
+                //await data.WriterSemaphore.WaitAsync();
+                data.waitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
         }
         private void ChannelHandlerUnlock()
         {
             foreach (var data in _channelHandler.Channels.Values)
             {
-                data.WriterSemaphore.Release();
+                //data.WriterSemaphore.Release();
+                data.waitTcs.SetResult(false);
             }
         }
         public Task<RabbitMQChannel> OpenChannel()

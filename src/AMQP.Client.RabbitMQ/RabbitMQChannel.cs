@@ -18,7 +18,7 @@ namespace AMQP.Client.RabbitMQ
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
         private static readonly int _publishBatchSize = 4;
         public readonly ushort ChannelId;
-
+        private ChannelData _data;
         internal RabbitMQChannel(ushort id, ChannelHandler handler)
         {
             ChannelId = id;
@@ -26,6 +26,7 @@ namespace AMQP.Client.RabbitMQ
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
             var data = handler.GetChannelData(id);
             _writerSemaphore = data.WriterSemaphore;
+            _data = data;
         }
 
         public void Dispose()
@@ -109,18 +110,21 @@ namespace AMQP.Client.RabbitMQ
             //{
             //    throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Publish)}: channel is canceled");
             //}    
-
+            //await _handler.GetChannelData(ChannelId).waitTcs.Task;
+            await _data.waitTcs.Task.ConfigureAwait(false);
+            //await _writerSemaphore.WaitAsync();
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
             if (message.Length <= _handler.Tune.FrameMax)
             {
                 var allinfo = new PublishAllInfo(message, ref info, ref content);
                 await _handler.Writer.PublishAllAsync(ChannelId, allinfo).ConfigureAwait(false);
+                //_writerSemaphore.Release();
                 return true;
             }
 
 
-           
+            await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             var written = 0;
             var partialInfo = new PublishPartialInfo(ref info, ref content);
             await _handler.Writer.PublishPartialAsync(ChannelId, partialInfo).ConfigureAwait(false);
