@@ -6,6 +6,8 @@ using Bedrock.Framework;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.IO;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -152,12 +154,20 @@ namespace AMQP.Client.RabbitMQ
                 //_cts.Cancel();
                 //_ctx.Abort();
             }
-            catch (Exception e)
+            //catch (SocketException e)
+            catch (IOException e)
+            //catch (Exception e)
             {
                 Console.WriteLine($"Connection closed with exceptions: {e.Message}");
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
             }
+            //catch (ConnectionAbortedException e)
+            //{
+            //    Console.WriteLine($"Connection closed with exceptions: {e.Message}");
+            //    Console.WriteLine(e.Message);
+            //    Console.WriteLine(e.StackTrace);
+            //}
             finally
             {
                 //_cts.Cancel();
