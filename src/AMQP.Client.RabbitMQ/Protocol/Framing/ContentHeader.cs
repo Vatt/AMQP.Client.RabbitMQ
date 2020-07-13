@@ -41,10 +41,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
     public class ContentHeader
     {
         public readonly long BodySize;
+        public ContentHeaderProperties Properties;
         public readonly ushort ClassId;
         public readonly ushort Weight;
-        public ContentHeaderProperties Properties;
-
         public ContentHeader(ushort classId, ushort weight, long bodySize) : this(classId, bodySize)
         {
             Weight = weight;

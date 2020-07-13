@@ -14,7 +14,10 @@ namespace AMQP.Client.RabbitMQ
             await handler.Writer.SendBasicConsumeAsync(consumer.Channel.ChannelId, consumer.Conf).ConfigureAwait(false);
             var tag = await data.ConsumeTcs.Task.ConfigureAwait(false);
             if (!tag.Equals(consumer.Conf.ConsumerTag))
+            {
                 RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
+            }
+                
             data.Consumers.Add(tag, consumer);
         }
 

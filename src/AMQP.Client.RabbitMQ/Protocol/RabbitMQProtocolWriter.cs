@@ -10,7 +10,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
     public class RabbitMQProtocolWriter
     {
         private readonly ProtocolWriter Writer;
-
         public RabbitMQProtocolWriter(ConnectionContext ctx)
         {
             Writer = ctx.CreateWriter();
@@ -24,10 +23,10 @@ namespace AMQP.Client.RabbitMQ.Protocol
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ValueTask WriteManyAsync<T>(IMessageWriter<T> writer, IEnumerable<T> messages,
-            CancellationToken token = default)
+        internal ValueTask WriteManyAsync<T>(IMessageWriter<T> writer, IEnumerable<T> messages, CancellationToken token = default)
         {
             return Writer.WriteManyAsync(writer, messages, token);
         }
+        
     }
 }

@@ -12,7 +12,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
 
     internal ref struct ValueWriter
     {
-        private readonly byte[] _buffer;
+        private readonly Span<byte> _buffer;
 
         private readonly IBufferWriter<byte> _output;
         private Span<byte> _span;
@@ -203,7 +203,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 //Span<byte> bytes = new byte[sizeof(short)];
                 //BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
-                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(short));
+                //Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(short));
+                Span<byte> bytes = _buffer.Slice(0, sizeof(short));
                 BinaryPrimitives.WriteInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -223,7 +224,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 //Span<byte> bytes = new byte[sizeof(ushort)];
                 //BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
-                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(ushort));
+                //Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(ushort));
+                Span<byte> bytes = _buffer.Slice(0, sizeof(ushort));
                 BinaryPrimitives.WriteUInt16BigEndian(bytes, shortint);
                 WriteBytes(bytes);
             }
@@ -251,7 +253,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 //Span<byte> bytes = new byte[sizeof(int)];
                 //BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);      
-                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(int));
+                //Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(int));
+                Span<byte> bytes = _buffer.Slice(0, sizeof(int));
                 BinaryPrimitives.WriteInt32BigEndian(bytes, longInt);
                 WriteBytes(bytes);
             }
@@ -278,7 +281,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
             {
                 //Span<byte> bytes = new byte[sizeof(long)];
                 //BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
-                Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(long));
+                //Span<byte> bytes = new Span<byte>(_buffer, 0, sizeof(long));
+                Span<byte> bytes = _buffer.Slice(0, sizeof(long));
                 BinaryPrimitives.WriteInt64BigEndian(bytes, longlong);
                 WriteBytes(bytes);
             }

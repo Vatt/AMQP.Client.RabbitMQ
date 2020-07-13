@@ -14,8 +14,8 @@ namespace AMQP.Client.RabbitMQ
     public class RabbitMQChannel : IDisposable
     {
         private readonly ChannelHandler _handler;
-        private readonly ReadOnlyMemory<byte>[] _publishBatch;
         private readonly SemaphoreSlim _writerSemaphore;
+        private readonly ReadOnlyMemory<byte>[] _publishBatch;
         private static readonly int _publishBatchSize = 4;
         public readonly ushort ChannelId;
 
@@ -24,12 +24,13 @@ namespace AMQP.Client.RabbitMQ
             ChannelId = id;
             _handler = handler;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
-            _writerSemaphore = new SemaphoreSlim(1);
+            var data = handler.GetChannelData(id);
+            _writerSemaphore = data.WriterSemaphore;
         }
 
         public void Dispose()
         {
-            _writerSemaphore.Dispose();
+            //_writerSemaphore.Dispose();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -102,24 +103,24 @@ namespace AMQP.Client.RabbitMQ
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async ValueTask Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
+        public async ValueTask<bool> Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             //if (IsClosed)
             //{
             //    throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Publish)}: channel is canceled");
-            //}
+            //}    
+
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
-
             if (message.Length <= _handler.Tune.FrameMax)
             {
                 var allinfo = new PublishAllInfo(message, ref info, ref content);
                 await _handler.Writer.PublishAllAsync(ChannelId, allinfo).ConfigureAwait(false);
-                return;
+                return true;
             }
 
 
-            await _writerSemaphore.WaitAsync().ConfigureAwait(false);
+           
             var written = 0;
             var partialInfo = new PublishPartialInfo(ref info, ref content);
             await _handler.Writer.PublishPartialAsync(ChannelId, partialInfo).ConfigureAwait(false);
@@ -139,6 +140,7 @@ namespace AMQP.Client.RabbitMQ
             }
 
             _writerSemaphore.Release();
+            return true;
         }
 
         public ValueTask Ack(AckInfo ack)

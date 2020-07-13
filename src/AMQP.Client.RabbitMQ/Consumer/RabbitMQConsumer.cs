@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace AMQP.Client.RabbitMQ.Consumer
 {
     public class DeliverArgs : EventArgs, IDisposable
-    {
+    {       
         public ref ContentHeaderProperties Properties => ref _header.Properties;
         public long DeliveryTag { get; }
         private byte[] _body;
@@ -44,6 +44,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
         private BodyFrameChunkedReader _bodyReader;
+        private ContentHeaderFullReader _contentFullReader;
         public RabbitMQChannel Channel;
         private byte[] _activeDeliverBody;
         private ConsumeConf _consume;
@@ -56,6 +57,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _scheduler = scheduler;
             Channel = channel;
             _bodyReader = new BodyFrameChunkedReader(Channel.ChannelId);
+            _contentFullReader = new ContentHeaderFullReader(Channel.ChannelId);
         }
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf)
         {
@@ -63,6 +65,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
             _scheduler = PipeScheduler.Inline;
             Channel = channel;
             _bodyReader = new BodyFrameChunkedReader(Channel.ChannelId);
+            _contentFullReader = new ContentHeaderFullReader(Channel.ChannelId);
         }
         private void Invoke(object obj)
         {
@@ -92,9 +95,9 @@ namespace AMQP.Client.RabbitMQ.Consumer
             message.CopyTo(span);
             _deliverPosition += (int)message.Length;
         }
-        public async ValueTask OnBeginDeliveryAsync(Deliver deliver, RabbitMQProtocolReader protocol)
+        public async ValueTask OnBeginDeliveryAsync(RabbitMQDeliver deliver, RabbitMQProtocolReader protocol)
         {
-            var activeContent = await protocol.ReadAsync(new ContentHeaderFullReader(Channel.ChannelId)).ConfigureAwait(false);
+            var activeContent = await protocol.ReadAsync(_contentFullReader).ConfigureAwait(false);
             _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)activeContent.BodySize);
             _deliverPosition = 0;
             _bodyReader.Reset(activeContent.BodySize);

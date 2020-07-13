@@ -7,6 +7,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
     internal interface IConsumable
     {
         ref ConsumeConf Conf { get; }
-        ValueTask OnBeginDeliveryAsync(Deliver deliver, RabbitMQProtocolReader protocol);
+        ValueTask OnBeginDeliveryAsync(RabbitMQDeliver deliver, RabbitMQProtocolReader protocol);
     }
 }

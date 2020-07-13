@@ -31,12 +31,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             return protocol.ReadShortStrPayloadAsync(token);
         }
 
-        public static ValueTask<Deliver> ReadBasicDeliverAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        public static ValueTask<RabbitMQDeliver> ReadBasicDeliverAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_basicDeliverReader, token);
         }
 
-        public static Deliver ReadBasicDeliver(this RabbitMQProtocolReader protocol, ReadOnlySequence<byte> input)
+        public static RabbitMQDeliver ReadBasicDeliver(this RabbitMQProtocolReader protocol, ReadOnlySequence<byte> input)
         {
             return protocol.Read(_basicDeliverReader, input);
         }
