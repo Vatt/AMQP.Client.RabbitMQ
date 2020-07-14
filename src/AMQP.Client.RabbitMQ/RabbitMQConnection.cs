@@ -151,8 +151,6 @@ namespace AMQP.Client.RabbitMQ
             {
                 var info = await _connectionCloseSrc.Task.ConfigureAwait(false);
                 Console.WriteLine($"Connection closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
-                //_cts.Cancel();
-                //_ctx.Abort();
             }
             //catch (SocketException e)
             catch (IOException e)
@@ -162,22 +160,12 @@ namespace AMQP.Client.RabbitMQ
                 Console.WriteLine(e.Message);
                 Console.WriteLine(e.StackTrace);
             }
-            //catch (ConnectionAbortedException e)
-            //{
-            //    Console.WriteLine($"Connection closed with exceptions: {e.Message}");
-            //    Console.WriteLine(e.Message);
-            //    Console.WriteLine(e.StackTrace);
-            //}
             finally
             {
-                //_cts.Cancel();
                 _ctx.Abort();
                 _heartbeat?.Dispose();
-//                ChannelHandlerUnlockSemaphore();
-
             }
             ChannelHandlerLock();
-            //await ChannelHandlerLockSemaphore().ConfigureAwait(false);
             try
             {
                 await RestartAsync();
@@ -185,33 +173,15 @@ namespace AMQP.Client.RabbitMQ
             finally
             {
                 ChannelHandlerUnlock();
-                //ChannelHandlerUnlockSemaphore();
             }
             ChannelHandlerUnlock();
-            //ChannelHandlerUnlockSemaphore();
 
 
-        }
-        private async ValueTask ChannelHandlerLockSemaphore()
-        {
-            foreach (var data in _channelHandler.Channels.Values)
-            {
-                await data.WriterSemaphore.WaitAsync().ConfigureAwait(false);                
-            }
-        }
-        private void ChannelHandlerUnlockSemaphore()
-        {
-            foreach (var data in _channelHandler.Channels.Values)
-            {
-                data.WriterSemaphore.Release();
-               
-            }
         }
         private void ChannelHandlerLock()
         {
             foreach(var data in _channelHandler.Channels.Values)
             {
-                //await data.WriterSemaphore.WaitAsync();
                 data.waitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
         }
@@ -219,7 +189,6 @@ namespace AMQP.Client.RabbitMQ
         {
             foreach (var data in _channelHandler.Channels.Values)
             {
-                //data.WriterSemaphore.Release();
                 data.waitTcs.SetResult(false);
             }
         }

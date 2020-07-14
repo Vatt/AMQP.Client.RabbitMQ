@@ -16,6 +16,7 @@ namespace Test
     internal class Program
     {
         private static string Host = "centos0.mshome.net";
+        //private static int Size = 1024 * 1024; //32;
         private static int Size = 32;
 
         //private static string Host = 
