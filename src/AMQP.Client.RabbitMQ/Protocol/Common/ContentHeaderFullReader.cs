@@ -7,6 +7,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
+    //TODO: вот это подзамену с механикой вычитки пайлоада сразу
     internal class ContentHeaderFullReader : IMessageReader<ContentHeader>
     {
         private readonly ushort _channel;
@@ -19,7 +20,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             message = default;
             _bitCount = 0;
-            ValueReader reader = new ValueReader(input);
+            ValueReader reader = new ValueReader(input, consumed);
 
             if (!reader.ReadOctet(out var type)) { return false; }
             if (!reader.ReadShortInt(out short channel)) { return false; }

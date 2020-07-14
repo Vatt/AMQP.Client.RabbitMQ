@@ -6,14 +6,14 @@ using System.Buffers.Binary;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
-    internal class QueueDeleteWriter : IMessageWriter<QueueDeleteInfo>
+    internal class QueueDeleteWriter : IMessageWriter<QueueDelete>
     {
         private readonly ushort _channelId;
         public QueueDeleteWriter(ushort channelId)
         {
             _channelId = channelId;
         }
-        public void WriteMessage(QueueDeleteInfo message, IBufferWriter<byte> output)
+        public void WriteMessage(QueueDelete message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(Constants.FrameMethod);
@@ -22,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(50, 40, ref writer);
             writer.WriteShortInt(0); //reserved-1
-            writer.WriteShortStr(message.QueueName);
+            writer.WriteShortStr(message.Name);
             writer.WriteBit(message.IfUnused);
             writer.WriteBit(message.IfEmpty);
             writer.WriteBit(message.NoWait);

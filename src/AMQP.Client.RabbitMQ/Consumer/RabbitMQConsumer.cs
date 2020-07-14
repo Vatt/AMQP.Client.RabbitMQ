@@ -1,5 +1,4 @@
-﻿using AMQP.Client.RabbitMQ.Channel;
-using AMQP.Client.RabbitMQ.Protocol;
+﻿using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
@@ -12,39 +11,62 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer
 {
-    public class RabbitMQConsumer : ConsumerBase
+    public class DeliverArgs : EventArgs, IDisposable
+    {       
+        public ref ContentHeaderProperties Properties => ref _header.Properties;
+        public long DeliveryTag { get; }
+        private byte[] _body;
+        private ContentHeader _header;
+        private int _bodySize;
+
+        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _bodySize);
+
+        internal DeliverArgs(long deliveryTag, ContentHeader header, byte[] body)
+        {
+            DeliveryTag = deliveryTag;
+            _body = body;
+            _bodySize = (int)header.BodySize;
+            _header = header;
+        }
+
+        public void Dispose()
+        {
+            if (_body != null)
+            {
+                ArrayPool<byte>.Shared.Return(_body);
+                _body = null;
+            }
+        }
+    }
+    public class RabbitMQConsumer : IConsumable
     {
-        private readonly IChunkedBodyFrameReader _reader;
-        private byte[] _activeDeliver;
-        private int _deliverPosition;
+
         public event EventHandler<DeliverArgs> Received;
         private readonly PipeScheduler _scheduler;
+        private BodyFrameChunkedReader _bodyReader;
+        private ContentHeaderFullReader _contentFullReader;
+        public RabbitMQChannel Channel;
+        private byte[] _activeDeliverBody;
+        private ConsumeConf _consume;
+        private int _deliverPosition;
+        public ref ConsumeConf Conf => ref _consume;
 
-        internal RabbitMQConsumer(ConsumerInfo info, RabbitMQProtocol protocol, PipeScheduler scheduler, RabbitMQChannel channel)
-            : base(info, protocol, channel)
+        public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
         {
-            _reader = protocol.CreateResetableChunkedBodyReader(channel.ChannelId);
+            _consume = conf;
             _scheduler = scheduler;
-            _deliverPosition = 0;
+            Channel = channel;
+            _bodyReader = new BodyFrameChunkedReader(Channel.ChannelId);
+            _contentFullReader = new ContentHeaderFullReader(Channel.ChannelId);
         }
-
-        internal override async ValueTask ProcessBodyMessage(RabbitMQDeliver deliver)
+        public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf)
         {
-            _deliverPosition = 0;
-            _activeDeliver = ArrayPool<byte>.Shared.Rent((int)deliver.Header.BodySize);
-            _reader.Reset(deliver.Header.BodySize);
-
-            while (!_reader.IsComplete)
-            {
-                var result = await _protocol.ReadWithoutAdvanceAsync(_reader).ConfigureAwait(false);
-                Copy(result);
-                _protocol.ReaderAdvance();
-            }
-
-            var arg = new DeliverArgs(ref deliver, _activeDeliver);
-            _scheduler.Schedule(Invoke, arg);
+            _consume = conf;
+            _scheduler = PipeScheduler.Inline;
+            Channel = channel;
+            _bodyReader = new BodyFrameChunkedReader(Channel.ChannelId);
+            _contentFullReader = new ContentHeaderFullReader(Channel.ChannelId);
         }
-
         private void Invoke(object obj)
         {
             if (obj is DeliverArgs arg)
@@ -63,42 +85,33 @@ namespace AMQP.Client.RabbitMQ.Consumer
                 {
                     arg.Dispose();
                 }
+
             }
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Copy(ReadOnlySequence<byte> message)
         {
-            var span = new Span<byte>(_activeDeliver, _deliverPosition, (int)message.Length);
+            var span = new Span<byte>(_activeDeliverBody, _deliverPosition, (int)message.Length);
             message.CopyTo(span);
             _deliverPosition += (int)message.Length;
         }
-    }
-
-    public class DeliverArgs : EventArgs, IDisposable
-    {
-        public ContentHeaderProperties Properties { get; }
-        public long DeliveryTag { get; }
-        private byte[] _body;
-        private int _bodySize;
-
-        public ReadOnlySpan<byte> Body => new ReadOnlySpan<byte>(_body, 0, _bodySize);
-
-        internal DeliverArgs(ref RabbitMQDeliver deliverInfo, byte[] body)
+        public async ValueTask OnBeginDeliveryAsync(RabbitMQDeliver deliver, RabbitMQProtocolReader protocol)
         {
-            Properties = deliverInfo.Header.Properties;
-            DeliveryTag = deliverInfo.DeliveryTag;
-            _body = body;
-            _bodySize = (int)deliverInfo.Header.BodySize;
-        }
+            var activeContent = await protocol.ReadAsync(_contentFullReader).ConfigureAwait(false);
+            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)activeContent.BodySize);
+            _deliverPosition = 0;
+            _bodyReader.Reset(activeContent.BodySize);
 
-        public void Dispose()
-        {
-            if (_body != null)
+            while (!_bodyReader.IsComplete)
             {
-                ArrayPool<byte>.Shared.Return(_body);
-                _body = null;
+                var result = await protocol.ReadWithoutAdvanceAsync(_bodyReader).ConfigureAwait(false);
+                Copy(result);
+                protocol.Advance();
             }
+
+            var arg = new DeliverArgs(deliver.DeliverTag, activeContent, _activeDeliverBody);
+            _scheduler.Schedule(Invoke, arg);
+
         }
     }
 }

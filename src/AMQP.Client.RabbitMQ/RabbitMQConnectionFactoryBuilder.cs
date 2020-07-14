@@ -6,64 +6,69 @@ namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnectionFactoryBuilder
     {
-        public RabbitMQConnectionInfo ConnInfo;
-        public RabbitMQClientInfo ClientInfo;
-        public RabbitMQMainInfo MainInfo;
-        public EndPoint Endpoint;
+        public ConnectionOptions Options;
         public PipeScheduler PipeScheduler;
+
         public RabbitMQConnectionFactoryBuilder(EndPoint endpoint)
         {
-            ConnInfo = RabbitMQConnectionInfo.DefaultConnectionInfo();
-            ClientInfo = RabbitMQClientInfo.DefaultClientInfo();
-            MainInfo = RabbitMQMainInfo.DefaultConnectionInfo();
-            Endpoint = endpoint;
+            Options = new ConnectionOptions(endpoint);
             PipeScheduler = PipeScheduler.ThreadPool;
         }
+
         public RabbitMQConnectionFactoryBuilder ConnectionInfo(string user, string password, string host)
         {
-            ConnInfo = new RabbitMQConnectionInfo(user, password, host);
+            Options.ConnOptions = new ConnectionConf(user, password, host);
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder ChanellMax(ushort chanellMax)
         {
-            MainInfo.ChannelMax = chanellMax;
+            Options.TuneOptions.ChannelMax = chanellMax;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder FrameMax(int frameMax)
         {
-            MainInfo.FrameMax = frameMax;
+            Options.TuneOptions.FrameMax = frameMax;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder Heartbeat(short heartbeat)
         {
-            MainInfo.Heartbeat = heartbeat;
+            Options.TuneOptions.Heartbeat = heartbeat;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder ConnectionName(string name)
         {
-            ClientInfo.Properties["connection_name"] = name;
+            Options.ClientOptions.Properties["connection_name"] = name;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder ProductName(string name)
         {
-            ClientInfo.Properties["product"] = name;
+            Options.ClientOptions.Properties["product"] = name;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder ProductVersion(string version)
         {
-            ClientInfo.Properties["version"] = version;
+            Options.ClientOptions.Properties["version"] = version;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder ClientInformation(string name)
         {
-            ClientInfo.Properties["information"] = name;
+            Options.ClientOptions.Properties["information"] = name;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder ClientCopyright(string copyright)
         {
-            ClientInfo.Properties["copyright"] = copyright;
+            Options.ClientOptions.Properties["copyright"] = copyright;
             return this;
         }
+
         public RabbitMQConnectionFactoryBuilder Scheduler(PipeScheduler scheduler)
         {
             PipeScheduler = scheduler;

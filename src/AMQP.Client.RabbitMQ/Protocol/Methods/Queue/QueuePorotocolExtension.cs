@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,42 +9,66 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
     {
         private static readonly QueueDeclareOkReader _queueDeclareOkReader = new QueueDeclareOkReader();
         private static readonly QueuePurgeOkDeleteOkReader _queuePurgeOkDeleteOkReader = new QueuePurgeOkDeleteOkReader();
-        public static ValueTask SendQueueDeclareAsync(this RabbitMQProtocol protocol, ushort channelId, QueueInfo info)
+        public static ValueTask SendQueueDeclareAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueDeclare info)
         {
             return protocol.WriteAsync(new QueueDeclareWriter(channelId), info);
         }
-        public static ValueTask<QueueDeclareOk> ReadQueueDeclareOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static QueueDeclareOk ReadQueueDeclareOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        {
+            return protocol.Read(_queueDeclareOkReader, input);
+        }
+        public static ValueTask<QueueDeclareOk> ReadQueueDeclareOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_queueDeclareOkReader, token);
         }
-        public static ValueTask SendQueueBindAsync(this RabbitMQProtocol protocol, ushort channelId, QueueBindInfo info, CancellationToken token = default)
+        public static ValueTask SendQueueBindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueBind info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueBindWriter(channelId), info, token);
         }
 
-        public static ValueTask SendQueueUnbindAsync(this RabbitMQProtocol protocol, ushort channelId, QueueUnbindInfo info, CancellationToken token = default)
+        public static ValueTask SendQueueUnbindAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueUnbind info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueUnbindWriter(channelId), info, token);
         }
-        public static ValueTask SendQueuePurgeAsync(this RabbitMQProtocol protocol, ushort channelId, QueuePurgeInfo info, CancellationToken token = default)
+        public static ValueTask SendQueuePurgeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueuePurge info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueuePurgeWriter(channelId), info, token);
         }
-        public static ValueTask SendQueueDeleteAsync(this RabbitMQProtocol protocol, ushort channelId, QueueDeleteInfo info, CancellationToken token = default)
+        public static ValueTask SendQueueDeleteAsync(this RabbitMQProtocolWriter protocol, ushort channelId, QueueDelete info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new QueueDeleteWriter(channelId), info, token);
         }
-        public static ValueTask<int> ReadQueuePurgeOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static int ReadQueuePurgeOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        {
+            return protocol.Read(_queuePurgeOkDeleteOkReader, input);
+        }
+        public static ValueTask<int> ReadQueuePurgeOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_queuePurgeOkDeleteOkReader, token);
         }
-        public static ValueTask<int> ReadQueueDeleteOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static int ReadQueueDeleteOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        {
+            return protocol.Read(_queuePurgeOkDeleteOkReader, input);
+        }
+        public static ValueTask<int> ReadQueueDeleteOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_queuePurgeOkDeleteOkReader, token);
         }
-        public static ValueTask<bool> ReadBindOkUnbindOkAsync(this RabbitMQProtocol protocol, CancellationToken token = default)
+        public static bool ReadQueueBindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
-            return protocol.ReadNoPayload(token);
+            return protocol.ReadNoPayload(input);
+        }
+        public static ValueTask<bool> ReadQueueBindOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadNoPayloadAsync(token);
+        }
+        public static bool ReadQueueUnbindOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
+        {
+            return protocol.ReadNoPayload(input);
+        }
+        public static ValueTask<bool> ReadQueueUnbindOkAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadNoPayloadAsync(token);
         }
     }
 }

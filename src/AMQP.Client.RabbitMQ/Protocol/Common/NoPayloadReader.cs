@@ -6,7 +6,7 @@ using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
-    public class NoPayloadReader : IMessageReader<bool>
+    public class NoPayloadReader : IMessageReader<bool>, IMessageReaderAdapter<bool>
     {
         public bool TryParseMessage(in ReadOnlySequence<byte> input, ref SequencePosition consumed, ref SequencePosition examined, out bool message)
         {
@@ -25,6 +25,12 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             message = true;
             return true;
 
+        }
+
+        public bool TryParseMessage(in ReadOnlySequence<byte> input, out bool message)
+        {
+            message = input.Length == 0;
+            return message;
         }
     }
 }

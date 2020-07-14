@@ -1,19 +1,20 @@
 ﻿namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
-    public struct RabbitMQMainInfo
+    public struct TuneConf
     {
         public ushort ChannelMax;
         public int FrameMax;
         public short Heartbeat;
-        public RabbitMQMainInfo(ushort chanellMax, int frameMax, short heartbeat)
+        public TuneConf(ushort chanellMax, int frameMax, short heartbeat)
         {
             ChannelMax = chanellMax;
             FrameMax = frameMax;
             Heartbeat = heartbeat;
         }
-        public static RabbitMQMainInfo DefaultConnectionInfo()
+        public static TuneConf DefaultConnectionInfo()
         {
-            return new RabbitMQMainInfo(2047, 131072, 60);
+            return new TuneConf(2047, 131072, 60);
+            //return new TuneConf(2047, 131072 / 4, 60);
         }
 
     }

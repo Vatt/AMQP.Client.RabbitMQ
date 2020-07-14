@@ -2,11 +2,13 @@
 {
     public class RabbitMQConnectionFactory
     {
-        private RabbitMQConnectionFactoryBuilder _builder;
+        private readonly RabbitMQConnectionFactoryBuilder _builder;
+
         internal RabbitMQConnectionFactory(RabbitMQConnectionFactoryBuilder builder)
         {
             _builder = builder;
         }
+
         public RabbitMQConnection CreateConnection()
         {
             return new RabbitMQConnection(_builder);

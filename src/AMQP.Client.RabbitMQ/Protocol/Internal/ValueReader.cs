@@ -37,6 +37,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Internal
         public SequencePosition Position => _reader.Position;
         public long Consumed => _reader.Consumed;
         public long Remaining => _reader.Remaining;
+        public ValueReader(ReadOnlySequence<byte> data, SequencePosition position)
+        {
+            _reader = new SequenceReader<byte>(data.Slice(position));
+
+        }
         public ValueReader(ReadOnlySequence<byte> data)
         {
             _reader = new SequenceReader<byte>(data);

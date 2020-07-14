@@ -16,5 +16,13 @@ namespace AMQP.Client.RabbitMQ.Protocol.ThrowHelpers
         {
             throw new Exception("AMQP version missmatch");
         }
+        public static void ThrowIfFrameTypeMissmatch()
+        {
+            throw new Exception("Frame type missmatch");
+        }
+        public static void ThrowIfCantProtocolRead()
+        {
+            throw new Exception("Cant read message");
+        }
     }
 }

@@ -16,8 +16,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     {
         public long _localConsumed = 0;
         public long _contentConsumed = 0;
-        private int _payloadSize;
         private long _contentBodySize;
+        private int _payloadSize;
         private readonly ushort _channelId;
         private bool needHead;
         public bool IsComplete => _contentConsumed == _contentBodySize;
@@ -29,7 +29,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             message = default;
             if (input.Length == 0) { return false; }
-            ValueReader reader = new ValueReader(input);
+            ValueReader reader = new ValueReader(input, consumed);
 
             if (needHead)
             {
