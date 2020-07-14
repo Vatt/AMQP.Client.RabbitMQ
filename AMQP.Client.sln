@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsumerTest", "ConsumerTes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProducerTest", "ProducerTest\ProducerTest.csproj", "{75EA9814-3820-4003-9658-FC623EA708DE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AMQP.Client.RabbitMQ.Tests", "Tests\AMQP.Client.RabbitMQ.Tests\AMQP.Client.RabbitMQ.Tests.csproj", "{6348195D-1A67-4F82-9361-5BE1049FBE0D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,18 @@ Global
 		{75EA9814-3820-4003-9658-FC623EA708DE}.Release|x64.Build.0 = Release|Any CPU
 		{75EA9814-3820-4003-9658-FC623EA708DE}.Release|x86.ActiveCfg = Release|Any CPU
 		{75EA9814-3820-4003-9658-FC623EA708DE}.Release|x86.Build.0 = Release|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Debug|x64.Build.0 = Debug|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Debug|x86.Build.0 = Debug|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Release|x64.ActiveCfg = Release|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Release|x64.Build.0 = Release|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Release|x86.ActiveCfg = Release|Any CPU
+		{6348195D-1A67-4F82-9361-5BE1049FBE0D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

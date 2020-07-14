@@ -5,14 +5,17 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Channel;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Xunit;
 
 namespace AMQP.Client.RabbitMQ.Tests
 {
     public class TestFloodPublishing
     {
+        private static string Host = "centos0.mshome.net";
         [Fact]
         public async Task TestMultithreadFloodPublishing()
         {
@@ -22,16 +25,18 @@ namespace AMQP.Client.RabbitMQ.Tests
             var receivedCount = 0;
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
-            var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
+            //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
+            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.ConnectionInfo("guest", "guest", "/")
                                  .Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
-            var channel1 = await connection.CreateChannel();
+            var channel1 = await connection.OpenChannel();
 
-            var queueOk1 = await channel1.QueueDeclareAsync("TestQueue", false, false, false, new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
+            var queueOk1 = await channel1.QueueDeclareAsync(QueueDeclare.Create("TestQueue",arguments:new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
 
-            var consumer1 = channel1.CreateConsumer("TestQueue", "TestConsumer", PipeScheduler.ThreadPool, noAck: true);
+            var consumer1 = new RabbitMQConsumer(channel1, ConsumeConf.Create("TestQueue", "TestConsumer", noAck: true), PipeScheduler.ThreadPool);
+
             var tcs = new TaskCompletionSource<bool>();
             consumer1.Received += async (sender, result) =>
             {
@@ -45,7 +50,7 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             };
 
-            await consumer1.ConsumerStartAsync();
+            await channel1.ConsumerStartAsync(consumer1);
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
 
@@ -61,8 +66,7 @@ namespace AMQP.Client.RabbitMQ.Tests
                 await Task.WhenAll(tasks);
                 await tcs.Task;
             }
-            await consumer1.CancelAsync();
-
+            //await consumer1.CancelAsync(); //TODOL fix this
 
 
             Assert.Equal(threadCount * publishCount, receivedCount);
@@ -71,9 +75,9 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             async Task StartFloodAsync(RabbitMQChannel channel, string queue, byte[] body, int count)
             {
+                var propertiesConsume = new ContentHeaderProperties();
                 for (int i = 0; i < count; i++)
-                {
-                    var propertiesConsume = ContentHeaderProperties.Default();
+                {                    
                     await channel1.Publish(string.Empty, queue, false, false, propertiesConsume, body);
                 }
             }
