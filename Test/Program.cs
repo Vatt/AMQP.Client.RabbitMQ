@@ -55,7 +55,7 @@ namespace Test
             var connection = factory.CreateConnection();
 
             await connection.StartAsync();
-
+  
             var channel = await connection.OpenChannel();
 
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));

@@ -8,5 +8,6 @@ namespace AMQP.Client.RabbitMQ.Consumer
     {
         ref ConsumeConf Conf { get; }
         ValueTask OnBeginDeliveryAsync(RabbitMQDeliver deliver, RabbitMQProtocolReader protocol);
+        ValueTask OnConsumerCancelAsync();
     }
 }

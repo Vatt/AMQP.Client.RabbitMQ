@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
@@ -19,34 +20,32 @@ namespace AMQP.Client.RabbitMQ.Protocol
         private IChannelHandler _channelHandler;
         private IConnectionHandler _connectionHandler;
         private MethodHeaderReader _methodHeaderReader = new MethodHeaderReader();
-        private CancellationToken _token;
 
         public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, CancellationToken token = default)
         {
             _connectionHandler = connection;
             _channelHandler = channel;
-            _token = token;
             var headerReader = new FrameHeaderReader();
             while (true)
             {
-                var result = await reader.ReadAsync(headerReader, _token).ConfigureAwait(false);
+                var result = await reader.ReadAsync(headerReader, token).ConfigureAwait(false);
                 switch (result.FrameType)
                 {
                     case Constants.FrameMethod:
                         {
-                            var method = await reader.ReadAsync(_methodHeaderReader, _token).ConfigureAwait(false);
-                            await ProcessMethod(reader, ref result, ref method, _token).ConfigureAwait(false);
+                            var method = await reader.ReadAsync(_methodHeaderReader, token).ConfigureAwait(false);
+                            await ProcessMethod(reader, ref result, ref method, token).ConfigureAwait(false);
                             break;
                         }
                     case Constants.FrameHeartbeat:
                         {
-                            await reader.ReadNoPayloadAsync(_token).ConfigureAwait(false);
+                            await reader.ReadNoPayloadAsync(token).ConfigureAwait(false);
                             await _connectionHandler.OnHeartbeatAsync().ConfigureAwait(false);
                             break;
                         }
                     default:
                         {
-                            throw new Exception($"{nameof(RabbitMQListener)}.{nameof(StartAsync)} :cannot read frame, frame-type : {result.FrameType}");
+                            throw new RabbitMQFrameExeption(result.FrameType);
                         }
                 }
             }
@@ -82,7 +81,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
 
                 default:
                     {
-                        throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessMethod)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                        throw new RabbitMQMethodException(nameof(ProcessMethod), method.ClassId, method.MethodId);
                     }
             }
         }
@@ -125,7 +124,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                     }
 
                 default:
-                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessConnection)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new RabbitMQMethodException(nameof(ProcessConnection), method.ClassId, method.MethodId);
             }
         }
 
@@ -152,7 +151,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         break;
                     }
                 default:
-                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessChannel)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new RabbitMQMethodException(nameof(ProcessChannel), method.ClassId, method.MethodId);
             }
         }
 
@@ -173,7 +172,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         break;
                     }
                 default:
-                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessExchange)} :cannot read frame (class-id, method-id):({method.ClassId},{method.MethodId})");
+                    throw new RabbitMQMethodException(nameof(ProcessExchange), method.ClassId, method.MethodId);
             }
         }
 
@@ -212,7 +211,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         break;
                     }
                 default:
-                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessQueue)} :cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new RabbitMQMethodException(nameof(ProcessQueue), method.ClassId, method.MethodId);
             }
         }
 
@@ -241,11 +240,17 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 case 31: //consumer cancel-ok
                     {
                         var tag = await protocol.ReadBasicConsumeCancelOkAsync(token).ConfigureAwait(false);
-                        await _channelHandler.OnConsumerCancelOkAsync(header.Channel, tag).ConfigureAwait(false);
+                        await _channelHandler.OnConsumeCancelOkAsync(header.Channel, tag).ConfigureAwait(false);
+                        break;
+                    }
+                case 30:
+                    {
+                        var cancelInfo = await protocol.ReadBasicConsumeCancelAsync(token).ConfigureAwait(false);
+                        await _channelHandler.OnConsumeCancelAsync(header.Channel, cancelInfo);
                         break;
                     }
                 default:
-                    throw new Exception($"{nameof(RabbitMQListener)}.{nameof(ProcessBasic)}: cannot read frame (class-id,method-id):({method.ClassId},{method.MethodId})");
+                    throw new RabbitMQMethodException(nameof(ProcessBasic), method.ClassId, method.MethodId);
             }
         }
     }

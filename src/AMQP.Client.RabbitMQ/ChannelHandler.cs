@@ -11,6 +11,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -79,11 +80,24 @@ namespace AMQP.Client.RabbitMQ
             return default;
         }
 
-        public ValueTask OnConsumerCancelOkAsync(ushort channelId, string tag)
+        public ValueTask OnConsumeCancelAsync(ushort channelId, ConsumeCancelInfo  cancelInfo)
+        {
+            var data = GetChannelData(channelId);
+            if(!data.Consumers.TryGetValue(cancelInfo.ConsumerTag, out IConsumable consumer) )
+            {
+                throw new Exception("Consumer not found");
+            }
+            if(cancelInfo.NoWait == false)
+            {
+                //TODO: отправить сигнал мб
+                Debugger.Break();
+            }
+            return consumer.OnConsumerCancelAsync();
+        }
+        public ValueTask OnConsumeCancelOkAsync(ushort channelId, string tag)
         {
             throw new NotImplementedException();
         }
-
 
         public ValueTask OnBeginDeliveryAsync(ushort channelId, RabbitMQDeliver deliver, RabbitMQProtocolReader protocol)
         {
@@ -263,5 +277,6 @@ namespace AMQP.Client.RabbitMQ
                 channel.WriterSemaphore.Release();
             }
         }
+
     }
 }

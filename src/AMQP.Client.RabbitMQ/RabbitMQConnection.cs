@@ -36,37 +36,37 @@ namespace AMQP.Client.RabbitMQ
             Options = builder.Options;
         }
 
-        public ValueTask OnCloseAsync(CloseInfo info)
+        ValueTask IConnectionHandler.OnCloseAsync(CloseInfo info)
         {
             _connectionCloseSrc.SetResult(info);
             return default;
         }
 
-        public ValueTask OnCloseOkAsync()
+        ValueTask IConnectionHandler.OnCloseOkAsync()
         {
             _closeSrc.SetResult(true);
             return default;
         }
 
-        public ValueTask OnHeartbeatAsync()
+        ValueTask IConnectionHandler.OnHeartbeatAsync()
         {
             return default;
         }
 
-        public ValueTask OnOpenOkAsync()
+        ValueTask IConnectionHandler.OnOpenOkAsync()
         {
             _heartbeat = new Timer(Heartbeat, null, 0, Options.TuneOptions.Heartbeat);
             _openOk.SetResult(true);
             return default;
         }
 
-        public async ValueTask OnStartAsync(ServerConf conf)
+        async ValueTask IConnectionHandler.OnStartAsync(ServerConf conf)
         {
             ServerOptions = conf;
             await _writer.SendStartOkAsync(Options.ClientOptions, Options.ConnOptions).ConfigureAwait(false);
         }
 
-        public async ValueTask OnTuneAsync(TuneConf conf)
+        async ValueTask IConnectionHandler.OnTuneAsync(TuneConf conf)
         {
             if (Options.TuneOptions.ChannelMax > conf.ChannelMax || Options.TuneOptions.ChannelMax == 0 && conf.ChannelMax != 0)
             {
@@ -117,7 +117,7 @@ namespace AMQP.Client.RabbitMQ
             _watchTask = WatchAsync();
             await _openOk.Task.ConfigureAwait(false);
         }
-        private async Task RestartAsync()
+        private async Task ReconnectAsync()
         {
             var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
                             .UseSockets()
@@ -168,7 +168,7 @@ namespace AMQP.Client.RabbitMQ
             ChannelHandlerLock();
             try
             {
-                await RestartAsync();
+                await ReconnectAsync();
             }
             catch (Exception e)
             {

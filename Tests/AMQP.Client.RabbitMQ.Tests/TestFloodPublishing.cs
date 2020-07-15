@@ -18,7 +18,8 @@ namespace AMQP.Client.RabbitMQ.Tests
     {
         private static readonly string message = "test message";
         private static readonly int threadCount = 16;
-        private static readonly int publishCount = 200;
+        private static readonly int publishCount = 200000;
+        private static readonly int seconds = 150;
         private static readonly string Host = "centos0.mshome.net";
 
         private static readonly ExchangeDeclare _exchangeDeclare = ExchangeDeclare.Create("TestExchange", ExchangeType.Direct);
@@ -46,10 +47,6 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             var channel = await connection.OpenChannel();
 
-            await channel.QueueUnbindAsync(_queueUnbind);
-            var deleted = await channel.QueueDeleteAsync(_queueDelete);
-            await channel.ExchangeDeleteAsync(_exchangeDelete);
-
             await channel.ExchangeDeclareAsync(_exchangeDeclare);
             var queueOk = await channel.QueueDeclareAsync(_queueDeclare);
             await channel.QueueBindAsync(_queueBind);
@@ -71,7 +68,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
@@ -88,6 +85,9 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             Assert.Equal(threadCount * publishCount, receivedCount);
 
+            await channel.QueueUnbindAsync(_queueUnbind);
+            var deleted = await channel.QueueDeleteAsync(_queueDelete);
+            await channel.ExchangeDeleteAsync(_exchangeDelete);
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingNoAck");
         }
         [Fact]
@@ -107,9 +107,6 @@ namespace AMQP.Client.RabbitMQ.Tests
             var channel = await connection.OpenChannel();
 
 
-            await channel.QueueUnbindAsync(_queueUnbind);
-            var deleted = await channel.QueueDeleteAsync(_queueDelete);
-            await channel.ExchangeDeleteAsync(_exchangeDelete);
 
             await channel.ExchangeDeclareAsync(_exchangeDeclare);
             var queueOk = await channel.QueueDeclareAsync(_queueDeclare);
@@ -120,21 +117,19 @@ namespace AMQP.Client.RabbitMQ.Tests
             var tcs = new TaskCompletionSource<bool>();
             consumer.Received += async (sender, result) =>
             {
+                
                 Assert.Equal(message, Encoding.UTF8.GetString(result.Body));
                 var inc = Interlocked.Increment(ref receivedCount);
                 if (inc == threadCount * publishCount)
                 {
-                    await channel.Ack(AckInfo.Create(result.DeliveryTag));
-                    tcs.SetResult(true);
-                    return;
+                    tcs.SetResult(true);                    
                 }
                 await channel.Ack(AckInfo.Create(result.DeliveryTag));
+
             };
 
             await channel.ConsumerStartAsync(consumer);
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-
-
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
@@ -148,8 +143,12 @@ namespace AMQP.Client.RabbitMQ.Tests
                 await tcs.Task;
 
             }
-            //await consumer1.CancelAsync(); //TODOL fix this
+            //await consumer1.CancelAsync(); //TODO: fix this
             Assert.Equal(threadCount * publishCount, receivedCount);
+
+            await channel.QueueUnbindAsync(_queueUnbind);
+            var deleted = await channel.QueueDeleteAsync(_queueDelete);
+            await channel.ExchangeDeleteAsync(_exchangeDelete);
 
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingWithAck");
         }

@@ -42,6 +42,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
     {
 
         public event EventHandler<DeliverArgs> Received;
+        public event EventHandler<EventArgs> Canceled;
         private readonly PipeScheduler _scheduler;
         private BodyFrameChunkedReader _bodyReader;
         private ContentHeaderFullReader _contentFullReader;
@@ -112,6 +113,12 @@ namespace AMQP.Client.RabbitMQ.Consumer
             var arg = new DeliverArgs(deliver.DeliverTag, activeContent, _activeDeliverBody);
             _scheduler.Schedule(Invoke, arg);
 
+        }
+
+        public ValueTask OnConsumerCancelAsync()
+        {
+            Canceled?.Invoke(this, default);
+            return default;
         }
     }
 }

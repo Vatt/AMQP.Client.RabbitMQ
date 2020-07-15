@@ -10,6 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
     public static class BasicProtocolExtension
     {
         private static readonly BasicDeliverReader _basicDeliverReader = new BasicDeliverReader();
+        private static readonly BasicConsumeCancelReader _consumeCancelReader = new BasicConsumeCancelReader();
         public static ValueTask SendBasicConsumeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ConsumeConf info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new BasicConsumeWriter(channelId), info, token);
@@ -30,7 +31,10 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.ReadShortStrPayloadAsync(token);
         }
-
+        public static ValueTask<ConsumeCancelInfo> ReadBasicConsumeCancelAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
+        {
+            return protocol.ReadAsync(_consumeCancelReader, token);
+        }
         public static ValueTask<RabbitMQDeliver> ReadBasicDeliverAsync(this RabbitMQProtocolReader protocol, CancellationToken token = default)
         {
             return protocol.ReadAsync(_basicDeliverReader, token);

@@ -23,8 +23,9 @@ namespace AMQP.Client.RabbitMQ.Protocol
 
         ValueTask OnBeginDeliveryAsync(ushort channelId, RabbitMQDeliver deliver, RabbitMQProtocolReader protocol);
         ValueTask OnConsumeOkAsync(ushort channelId, string tag);
+        ValueTask OnConsumeCancelAsync(ushort channelId, ConsumeCancelInfo cancelInfo);
         ValueTask OnQosOkAsync(ushort channelId);
-        ValueTask OnConsumerCancelOkAsync(ushort channelId, string tag);
+        ValueTask OnConsumeCancelOkAsync(ushort channelId, string tag);
 
         ValueTask Recovery(RabbitMQProtocolWriter writer);
     }
