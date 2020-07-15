@@ -13,14 +13,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
     internal class ChannelData
     {
-        public Dictionary<string, QueueBind> Binds = new Dictionary<string, QueueBind>();        
+        public Dictionary<string, QueueBind> Binds = new Dictionary<string, QueueBind>();
         public Dictionary<string, IConsumable> Consumers = new Dictionary<string, IConsumable>();
         public Dictionary<string, ExchangeDeclare> Exchanges = new Dictionary<string, ExchangeDeclare>();
         public Dictionary<string, QueueDeclare> Queues = new Dictionary<string, QueueDeclare>();
@@ -47,7 +46,7 @@ namespace AMQP.Client.RabbitMQ
         internal RabbitMQProtocolWriter Writer { get; private set; }
         public ref TuneConf Tune => ref _options.TuneOptions;
         public ChannelHandler(RabbitMQProtocolWriter writer, ConnectionOptions options)
-        { 
+        {
             Writer = writer;
             _options = options;
             Channels = new ConcurrentDictionary<ushort, ChannelData>();
@@ -190,7 +189,7 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask Recovery(RabbitMQProtocolWriter writer)
         {
             Writer = writer;
-            foreach(var channelPair in Channels)
+            foreach (var channelPair in Channels)
             {
                 var channel = channelPair.Value;
                 await channel.WriterSemaphore.WaitAsync();
@@ -227,9 +226,9 @@ namespace AMQP.Client.RabbitMQ
                         await writer.SendQueueDeclareAsync(channelPair.Key, queue).ConfigureAwait(false);
                         var declare = await channel.QueueTcs.Task.ConfigureAwait(false);
                     }
-                    
+
                 }
-                foreach(var bind in channelPair.Value.Binds.Values)
+                foreach (var bind in channelPair.Value.Binds.Values)
                 {
                     if (bind.NoWait)
                     {
@@ -243,7 +242,7 @@ namespace AMQP.Client.RabbitMQ
                         await channelPair.Value.CommonTcs.Task.ConfigureAwait(false);
                     }
                 }
-                foreach(var consumer in channelPair.Value.Consumers.Values)
+                foreach (var consumer in channelPair.Value.Consumers.Values)
                 {
                     if (consumer.Conf.NoWait)
                     {

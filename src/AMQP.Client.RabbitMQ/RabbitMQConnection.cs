@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -116,6 +115,7 @@ namespace AMQP.Client.RabbitMQ
             _closeSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(new RabbitMQProtocolReader(_ctx));
             _watchTask = WatchAsync();
+            await _openOk.Task.ConfigureAwait(false);
         }
         private async Task RestartAsync()
         {
@@ -133,7 +133,7 @@ namespace AMQP.Client.RabbitMQ
             StartReadingAsync(new RabbitMQProtocolReader(_ctx));
             _watchTask = WatchAsync();
             await _openOk.Task.ConfigureAwait(false);
-            await _channelHandler.Recovery(_writer);
+            await _channelHandler.Recovery(_writer).ConfigureAwait(false);
         }
         public async Task CloseAsync(string reason = null)
         {
@@ -170,9 +170,9 @@ namespace AMQP.Client.RabbitMQ
             {
                 await RestartAsync();
             }
-            finally
+            catch (Exception e)
             {
-                ChannelHandlerUnlock();
+
             }
             ChannelHandlerUnlock();
 
@@ -180,7 +180,7 @@ namespace AMQP.Client.RabbitMQ
         }
         private void ChannelHandlerLock()
         {
-            foreach(var data in _channelHandler.Channels.Values)
+            foreach (var data in _channelHandler.Channels.Values)
             {
                 data.waitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             }

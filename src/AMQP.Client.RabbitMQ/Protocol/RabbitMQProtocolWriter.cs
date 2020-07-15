@@ -27,6 +27,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
         {
             return Writer.WriteManyAsync(writer, messages, token);
         }
-        
+
     }
 }

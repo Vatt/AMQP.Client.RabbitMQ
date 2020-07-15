@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace AMQP.Client.RabbitMQ.Consumer
 {
     public class DeliverArgs : EventArgs, IDisposable
-    {       
+    {
         public ref ContentHeaderProperties Properties => ref _header.Properties;
         public long DeliveryTag { get; }
         private byte[] _body;

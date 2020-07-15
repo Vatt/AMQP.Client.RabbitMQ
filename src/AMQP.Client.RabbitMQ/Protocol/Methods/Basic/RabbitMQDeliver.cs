@@ -2,7 +2,7 @@
 {
     public struct RabbitMQDeliver
     {
-        public readonly string ConsumerTag;        
+        public readonly string ConsumerTag;
         public readonly string ExchangeName;
         public readonly string RoutingKey;
         public readonly long DeliverTag;
