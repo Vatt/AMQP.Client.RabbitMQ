@@ -15,6 +15,7 @@ namespace AMQP.Client.RabbitMQ
     {
         private readonly ChannelHandler _handler;
         private ChannelData _data;
+        private ChannelDataWaitSrc _src;
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
         private static readonly int _publishBatchSize = 4;
         public readonly ushort ChannelId;
@@ -25,8 +26,9 @@ namespace AMQP.Client.RabbitMQ
             ChannelId = id;
             _handler = handler;
             _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
-            var data = handler.GetChannelData(id);
-            _data = data;
+            _data = handler.GetChannelData(id);
+            _src = handler.GetChannelDataWaitSrc(id);
+             
         }
 
         public void Dispose()
@@ -111,7 +113,7 @@ namespace AMQP.Client.RabbitMQ
                 return false;
             }
 
-            await _data.waitTcs.Task.ConfigureAwait(false);
+            await _src.waitTcs.Task.ConfigureAwait(false);
 
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);

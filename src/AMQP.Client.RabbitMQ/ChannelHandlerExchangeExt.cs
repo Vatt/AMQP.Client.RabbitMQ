@@ -7,32 +7,34 @@ namespace AMQP.Client.RabbitMQ
     {
         public static async ValueTask ExchangeDeclareAsync(this ChannelHandler handler, RabbitMQChannel channel, ExchangeDeclare exchange)
         {
-            handler.Channels.TryGetValue(channel.ChannelId, out var data);
+            handler.ChannelsWaitSrc.TryGetValue(channel.ChannelId, out var src);
+            var data = handler.GetChannelData(channel.ChannelId);
             if (exchange.NoWait)
             {
                 await handler.Writer.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
                 data.Exchanges.Add(exchange.Name, exchange);
                 return;
             }
-            data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             await handler.Writer.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
 
-            await data.CommonTcs.Task.ConfigureAwait(false);
+            await src.CommonTcs.Task.ConfigureAwait(false);
             data.Exchanges.Add(exchange.Name, exchange);
         }
         public static async ValueTask ExchangeDeleteAsync(this ChannelHandler handler, RabbitMQChannel channel, ExchangeDelete exchange)
         {
-            handler.Channels.TryGetValue(channel.ChannelId, out var data);
+            handler.ChannelsWaitSrc.TryGetValue(channel.ChannelId, out var src);
+            var data = handler.GetChannelData(channel.ChannelId);
             if (exchange.NoWait)
             {
                 await handler.Writer.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
                 data.Exchanges.Remove(exchange.Name);
                 return;
             }
-            data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             await handler.Writer.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
 
-            await data.CommonTcs.Task.ConfigureAwait(false);
+            await src.CommonTcs.Task.ConfigureAwait(false);
             data.Exchanges.Remove(exchange.Name);
         }
     }
