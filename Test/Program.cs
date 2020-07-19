@@ -4,6 +4,9 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
+using Microsoft.Extensions.Options;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -50,8 +53,12 @@ namespace Test
 
         private static async Task StartPublisher()
         {
+            var loggerFactory = LoggerFactory.Create(builder => {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug); 
+            });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Build();
+            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
 
             await connection.StartAsync();
@@ -69,7 +76,11 @@ namespace Test
             while (true/*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
+                var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
+                if (!result)
+                {
+                    break;
+                }
             }
 
             //await Task.Delay(TimeSpan.FromHours(1));
@@ -77,8 +88,13 @@ namespace Test
 
         private static async Task StartConsumer()
         {
+            var loggerFactory = LoggerFactory.Create(builder => {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Build();
+            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 

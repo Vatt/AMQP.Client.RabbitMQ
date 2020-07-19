@@ -1,5 +1,6 @@
 ﻿using Bedrock.Framework.Protocols;
 using Microsoft.AspNetCore.Connections;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
-    public class RabbitMQProtocolWriter
+    public class RabbitMQProtocolWriter : IAsyncDisposable
     {
         private readonly ProtocolWriter Writer;
         public RabbitMQProtocolWriter(ConnectionContext ctx)
@@ -15,6 +16,10 @@ namespace AMQP.Client.RabbitMQ.Protocol
             Writer = ctx.CreateWriter();
         }
 
+        public ValueTask DisposeAsync()
+        {
+            return  Writer.DisposeAsync();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ValueTask WriteAsync<T>(IMessageWriter<T> writer, T message, CancellationToken token = default)

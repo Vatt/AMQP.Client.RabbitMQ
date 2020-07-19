@@ -17,7 +17,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
             }
-
+            consumer.IsClosed = false;
             data.Consumers.Add(tag, consumer);
         }
 

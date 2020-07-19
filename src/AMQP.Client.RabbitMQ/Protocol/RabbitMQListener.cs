@@ -8,6 +8,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,13 +21,19 @@ namespace AMQP.Client.RabbitMQ.Protocol
         private IChannelHandler _channelHandler;
         private IConnectionHandler _connectionHandler;
         private MethodHeaderReader _methodHeaderReader = new MethodHeaderReader();
+        private ILogger _logger;
+        private bool _isClosed;
 
-        public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, CancellationToken token = default)
+        public bool IsClosed => _isClosed;
+        public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, ILogger logger, CancellationToken token = default)
         {
             _connectionHandler = connection;
             _channelHandler = channel;
+            _logger = logger;
             var headerReader = new FrameHeaderReader();
-            while (true)
+            _isClosed = false;
+            //while (true)
+            while (!_isClosed)
             {
                 var result = await reader.ReadAsync(headerReader, token).ConfigureAwait(false);
                 switch (result.FrameType)
@@ -50,7 +57,11 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 }
             }
         }
-
+        public void Stop()
+        {
+            _logger.LogDebug($"{nameof(RabbitMQListener)}: Stop");
+            _isClosed = true;
+        }
         //internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)
         internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, CancellationToken token = default)
         {

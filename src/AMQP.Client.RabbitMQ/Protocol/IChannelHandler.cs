@@ -1,6 +1,8 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using System;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
@@ -28,5 +30,8 @@ namespace AMQP.Client.RabbitMQ.Protocol
         ValueTask OnConsumeCancelOkAsync(ushort channelId, string tag);
 
         ValueTask Recovery(RabbitMQProtocolWriter writer);
+
+        void Stop(Exception reason);
+        void Stop();
     }
 }

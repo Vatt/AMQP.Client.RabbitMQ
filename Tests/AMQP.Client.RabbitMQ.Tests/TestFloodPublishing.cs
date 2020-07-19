@@ -3,6 +3,7 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
@@ -19,7 +20,7 @@ namespace AMQP.Client.RabbitMQ.Tests
         private static readonly string message = "test message";
         private static readonly int threadCount = 16;
         private static readonly int publishCount = 200000;
-        private static readonly int seconds = 150;
+        private static readonly int seconds = 200;
         private static readonly string Host = "centos0.mshome.net";
 
         private static readonly ExchangeDeclare _exchangeDeclare = ExchangeDeclare.Create("TestExchange", ExchangeType.Direct);
@@ -39,9 +40,11 @@ namespace AMQP.Client.RabbitMQ.Tests
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
             //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
+            var loggerFactory = LoggerFactory.Create(builder => {
+                builder.AddConsole();
+            });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 
@@ -98,9 +101,11 @@ namespace AMQP.Client.RabbitMQ.Tests
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
             //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
+            var loggerFactory = LoggerFactory.Create(builder => {
+                builder.AddConsole();
+            });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 

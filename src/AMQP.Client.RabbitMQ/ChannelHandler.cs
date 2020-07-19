@@ -2,12 +2,14 @@
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,7 +21,7 @@ using System.Threading.Tasks;
 namespace AMQP.Client.RabbitMQ
 {
     internal class ChannelData
-    {
+    {        
         public Dictionary<string, QueueBind> Binds = new Dictionary<string, QueueBind>();
         public Dictionary<string, IConsumable> Consumers = new Dictionary<string, IConsumable>();
         public Dictionary<string, ExchangeDeclare> Exchanges = new Dictionary<string, ExchangeDeclare>();
@@ -29,11 +31,12 @@ namespace AMQP.Client.RabbitMQ
         public TaskCompletionSource<int> CommonTcs;
         public SemaphoreSlim WriterSemaphore = new SemaphoreSlim(1);
         public TaskCompletionSource<bool> waitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+        public bool IsClosed = false;
     }
 
     internal class ChannelHandler : IChannelHandler
     {
+        private readonly object lockObj = new object();
         private static int _channelId;
         private readonly TaskCompletionSource<bool> _manualCloseSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -43,15 +46,17 @@ namespace AMQP.Client.RabbitMQ
 
         //private TaskCompletionSource<CloseInfo> _channelCloseSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly SemaphoreSlim _semaphore;
+        internal ILogger Logger;
         internal ConcurrentDictionary<ushort, ChannelData> Channels { get; }
         internal RabbitMQProtocolWriter Writer { get; private set; }
         public ref TuneConf Tune => ref _options.TuneOptions;
-        public ChannelHandler(RabbitMQProtocolWriter writer, ConnectionOptions options)
+        public ChannelHandler(RabbitMQProtocolWriter writer, ConnectionOptions options, ILogger logger)
         {
             Writer = writer;
             _options = options;
             Channels = new ConcurrentDictionary<ushort, ChannelData>();
             _semaphore = new SemaphoreSlim(1);
+            Logger = logger;
         }
 
 
@@ -63,18 +68,21 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnChannelCloseOkAsync(ushort channelId)
         {
+            Logger.LogDebug("$ChannelHandler: ChannedId {channelId}  CloseOk received");
             _manualCloseSrc.SetResult(true);
             return default;
         }
 
         public ValueTask OnChannelOpenOkAsync(ushort channelId)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId} OpenOk received"); ;
             _openSrc.SetResult(true);
             return default;
         }
 
         public ValueTask OnConsumeOkAsync(ushort channelId, string tag)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  ConsumeOk received");
             var data = GetChannelData(channelId);
             data.ConsumeTcs.SetResult(tag);
             return default;
@@ -82,6 +90,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnConsumeCancelAsync(ushort channelId, ConsumeCancelInfo  cancelInfo)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  ConsumeCancel received");
             var data = GetChannelData(channelId);
             if(!data.Consumers.TryGetValue(cancelInfo.ConsumerTag, out IConsumable consumer) )
             {
@@ -96,6 +105,7 @@ namespace AMQP.Client.RabbitMQ
         }
         public ValueTask OnConsumeCancelOkAsync(ushort channelId, string tag)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  ConsumeCancelOk received");
             throw new NotImplementedException();
         }
 
@@ -111,6 +121,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnExchangeDeclareOkAsync(ushort channelId)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  ExchangeDeclareOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(-1);
             return default;
@@ -118,6 +129,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnExchangeDeleteOkAsync(ushort channelId)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  ExchangeDeleteOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(-1);
             return default;
@@ -125,6 +137,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQosOkAsync(ushort channelId)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  QosOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(-1);
             return default;
@@ -132,6 +145,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueueBindOkAsync(ushort channelId)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  QueueBindOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(-1);
             return default;
@@ -139,6 +153,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueueDeclareOkAsync(ushort channelId, QueueDeclareOk declare)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  QueueDeclareOk received");
             var data = GetChannelData(channelId);
             data.QueueTcs.SetResult(declare);
             return default;
@@ -146,6 +161,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueueDeleteOkAsync(ushort channelId, int deleted)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  QueueDeleteOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(deleted);
             return default;
@@ -153,6 +169,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueuePurgeOkAsync(ushort channelId, int purged)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  QueuePurgeOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(purged);
             return default;
@@ -160,6 +177,7 @@ namespace AMQP.Client.RabbitMQ
 
         public ValueTask OnQueueUnbindOkAsync(ushort channelId)
         {
+            Logger.LogDebug($"ChannelHandler: ChannedId {channelId}  QueueUnbindOk received");
             var data = GetChannelData(channelId);
             data.CommonTcs.SetResult(-1);
             return default;
@@ -176,6 +194,7 @@ namespace AMQP.Client.RabbitMQ
             var newChannel = GetChannelData((ushort)id); //TODO: fix this shit
             newChannel.waitTcs.SetResult(false);
             _semaphore.Release();
+            Logger.LogDebug($"ChannelHandler: Channel {id} openned");
             return new RabbitMQChannel((ushort)id, this);
         }
 
@@ -187,6 +206,7 @@ namespace AMQP.Client.RabbitMQ
                 .ConfigureAwait(false);
             await _manualCloseSrc.Task.ConfigureAwait(false);
             Channels.TryRemove(channel.ChannelId, out _);
+            Logger.LogDebug($"ChannelHandler: Channel {channel.ChannelId} closed");
             //_writerSemaphore.Release();
         }
 
@@ -199,7 +219,62 @@ namespace AMQP.Client.RabbitMQ
             }
             return data;
         }
-
+        public void Stop(Exception reason)
+        {
+            lock(lockObj)
+            {
+                Logger.LogDebug($"{nameof(ChannelHandler)}: Stop with {reason.Message}");
+                foreach (var data in Channels.Values)
+                {
+                    data.IsClosed = true;
+                    if (data.CommonTcs != null && !data.CommonTcs.Task.IsCompleted)
+                    {
+                        data.CommonTcs.SetException(reason);
+                    }
+                    if (data.ConsumeTcs != null && !data.ConsumeTcs.Task.IsCompleted)
+                    {
+                        data.ConsumeTcs.SetException(reason);
+                    }
+                    if (data.QueueTcs != null && !data.QueueTcs.Task.IsCompleted)
+                    {
+                        data.QueueTcs.SetException(reason);
+                    }
+                    if (data.waitTcs != null && !data.waitTcs.Task.IsCompleted)
+                    {
+                        data.waitTcs.SetException(reason);
+                    }
+                    data.WriterSemaphore.Dispose();
+                }
+            }
+        }
+        public void Stop()
+        {            
+            lock (lockObj)
+            {
+                Logger.LogDebug($"{nameof(ChannelHandler)}: Stop ");
+                foreach (var data in Channels.Values)
+                {
+                    data.IsClosed = true;
+                    if (data.CommonTcs != null && !data.CommonTcs.Task.IsCompleted)
+                    {
+                        data.CommonTcs.SetCanceled();
+                    }
+                    if (data.ConsumeTcs != null && !data.ConsumeTcs.Task.IsCompleted)
+                    {
+                        data.ConsumeTcs.SetCanceled();
+                    }
+                    if (data.QueueTcs != null && !data.QueueTcs.Task.IsCompleted)
+                    {
+                        data.QueueTcs.SetCanceled();
+                    }
+                    if (data.waitTcs!= null && !data.waitTcs.Task.IsCompleted)
+                    {
+                        data.waitTcs.SetCanceled();
+                    }
+                    data.WriterSemaphore.Dispose();
+                }
+            }
+        }
         public async ValueTask Recovery(RabbitMQProtocolWriter writer)
         {
             Writer = writer;
@@ -274,6 +349,7 @@ namespace AMQP.Client.RabbitMQ
                         }
                     }
                 }
+                channel.IsClosed = false;
                 channel.WriterSemaphore.Release();
             }
         }
