@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public class RabbitMQChannel : ChannelData
+    public sealed class RabbitMQChannel : ChannelData
     {
         private readonly ReadOnlyMemory<byte>[] _publishBatch;
         private static readonly int _publishBatchSize = 4;

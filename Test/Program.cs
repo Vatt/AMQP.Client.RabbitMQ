@@ -6,6 +6,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO.Pipelines;
 using System.Net;
 using System.Threading.Tasks;
 
@@ -64,9 +65,9 @@ namespace Test
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            //await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            //await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            //await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
@@ -100,11 +101,11 @@ namespace Test
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            //await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
+            //await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
+            //await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true), PipeScheduler.ThreadPool);
             consumer.Received += /*async*/ (sender, result) =>
             {
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));

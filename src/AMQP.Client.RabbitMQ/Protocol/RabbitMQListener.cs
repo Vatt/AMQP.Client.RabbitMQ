@@ -51,7 +51,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         }
                     default:
                         {
-                            throw new RabbitMQFrameExeption(result.FrameType);
+                            throw new RabbitMQFrameException(result.FrameType);
                         }
                 }
             }

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +31,7 @@ namespace AMQP.Client.RabbitMQ
         private Timer _heartbeat;
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
-        internal TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
+        internal readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
 
         public readonly ILogger Logger;
         public readonly ConnectionOptions Options;
@@ -41,9 +42,9 @@ namespace AMQP.Client.RabbitMQ
 
         public ServerConf ServerOptions;
         public readonly Guid ConnectionId;
-        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels)
+        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels, TaskCompletionSource<CloseInfo> closeSrc)
         {
-            if (channels == null)
+            if (channels == null || closeSrc == null)
             {
                 throw new NullReferenceException(nameof(channels));
             }
@@ -52,6 +53,7 @@ namespace AMQP.Client.RabbitMQ
             Logger = builder.Logger;
             ConnectionId = Guid.NewGuid();
             Channels = channels;
+            ConnectionClosedSrc = closeSrc;
         }
         public async ValueTask DisposeAsync()
         {
@@ -79,14 +81,14 @@ namespace AMQP.Client.RabbitMQ
 
         ValueTask IConnectionHandler.OnCloseAsync(CloseInfo info)
         {
-            Logger.LogDebug($"RabbitMQConnection {ConnectionId}: Close received");
+            Logger.LogDebug($"{nameof(RabbitMQSession)} {ConnectionId}: Close received");
             ConnectionClosedSrc.SetResult(info);
             return default;
         }
 
         ValueTask IConnectionHandler.OnCloseOkAsync()
         {
-            Logger.LogDebug($"RabbitMQConnection {ConnectionId}: CloseOk received");
+            Logger.LogDebug($"{nameof(RabbitMQSession)} {ConnectionId}: CloseOk received");
             _connectionCloseOkSrc.SetResult(true);
             return default;
         }
@@ -98,7 +100,7 @@ namespace AMQP.Client.RabbitMQ
 
         ValueTask IConnectionHandler.OnOpenOkAsync()
         {
-            Logger.LogDebug($"RabbitMQConnection {ConnectionId}: OpenOk received");
+            Logger.LogDebug($"{nameof(RabbitMQSession)} {ConnectionId}: OpenOk received");
             _heartbeat = new Timer(Heartbeat, null, 0, Options.TuneOptions.Heartbeat);
             _connectionOpenOk.SetResult(true);
             return default;
@@ -106,14 +108,14 @@ namespace AMQP.Client.RabbitMQ
 
         async ValueTask IConnectionHandler.OnStartAsync(ServerConf conf)
         {
-            Logger.LogDebug($"RabbitMQConnection {ConnectionId}: Start received");
+            Logger.LogDebug($"{nameof(RabbitMQSession)} {ConnectionId}: Start received");
             ServerOptions = conf;
             await Writer.SendStartOkAsync(Options.ClientOptions, Options.ConnOptions).ConfigureAwait(false);
         }
 
         async ValueTask IConnectionHandler.OnTuneAsync(TuneConf conf)
         {
-            Logger.LogDebug($"RabbitMQConnection {ConnectionId}: Tune received");
+            Logger.LogDebug($"{nameof(RabbitMQSession)} {ConnectionId}: Tune received");
             if (Options.TuneOptions.ChannelMax > conf.ChannelMax || Options.TuneOptions.ChannelMax == 0 && conf.ChannelMax != 0)
             {
                 Options.TuneOptions.ChannelMax = conf.ChannelMax;
@@ -153,8 +155,7 @@ namespace AMQP.Client.RabbitMQ
             Writer = new RabbitMQProtocolWriter(_ctx);
             Reader = new RabbitMQProtocolReader(_ctx);
             await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);
-
-            ConnectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
@@ -178,12 +179,19 @@ namespace AMQP.Client.RabbitMQ
             catch (RabbitMQException e)
             {
                 ConnectionClosedSrc.SetException(e);
-
             }
             catch (IOException e)
             {
                 ConnectionClosedSrc.SetException(e);
+            }
+            catch (SocketException e)
+            {
+                ConnectionClosedSrc.SetException(e);
 
+            }
+            catch (Exception e)
+            {
+                ConnectionClosedSrc.SetException(e);
             }
         }
         public async Task CloseAsync(string reason = null)

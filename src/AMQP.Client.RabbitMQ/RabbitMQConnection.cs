@@ -1,4 +1,5 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Exceptions;
+﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -23,6 +24,7 @@ namespace AMQP.Client.RabbitMQ
         public ref readonly Guid ConnectionId => ref _session.ConnectionId;
         private ILogger _logger;
         private RabbitMQConnectionFactoryBuilder _builder;
+        private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
 
         private Task _watchTask;
         internal RabbitMQConnection(RabbitMQConnectionFactoryBuilder builder)
@@ -30,7 +32,8 @@ namespace AMQP.Client.RabbitMQ
             _builder = builder;
             _logger = _builder.Logger;
             _channels = new ConcurrentDictionary<ushort, RabbitMQChannel>();
-            _session = new RabbitMQSession(_builder, _channels);
+            _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc);
         }
 
         public async Task StartAsync()
@@ -79,13 +82,16 @@ namespace AMQP.Client.RabbitMQ
             try
             {
                 await _session.DisposeAsync().ConfigureAwait(false);
-                _session = new RabbitMQSession(_builder, _channels);
+                _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc);
                 await _session.ConnectWithRecovery().ConfigureAwait(false);
                 _watchTask = Task.Run(WatchAsync).ContinueWith(ReconnectAsync);
             }
             catch (Exception e)
             {
                 Debugger.Break();
+                _connectionClosedSrc.SetException(e);
+                
             }
             ChannelHandlerUnlock();
         }
