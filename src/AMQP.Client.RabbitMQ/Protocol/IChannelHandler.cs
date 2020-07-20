@@ -1,8 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol

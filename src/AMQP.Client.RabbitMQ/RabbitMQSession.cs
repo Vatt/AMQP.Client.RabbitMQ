@@ -1,7 +1,13 @@
-﻿using AMQP.Client.RabbitMQ.Protocol;
+﻿using AMQP.Client.RabbitMQ.Internal;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Exceptions;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Bedrock.Framework;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,46 +15,43 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
-    sealed class RabbitMQSession : IConnectionHandler, IAsyncDisposable
+    sealed partial class RabbitMQSession : IConnectionHandler, IAsyncDisposable
     {
         private RabbitMQListener _listener;
-        private ChannelHandler _channelHandler;
+        //private ChannelHandler _channelHandler;
         private CancellationTokenSource _cts;
         private ConnectionContext _ctx;
 
         private Timer _heartbeat;
-        private Task _readingTask;
-        private Task _watchTask;
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
-        private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
-       
+        internal TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
+
         public readonly ILogger Logger;
         public readonly ConnectionOptions Options;
         public RabbitMQProtocolWriter Writer { get; private set; }
         public RabbitMQProtocolReader Reader { get; private set; }
 
-        internal readonly ConcurrentDictionary<ushort, ChannelData> Channels;
+        internal readonly ConcurrentDictionary<ushort, RabbitMQChannel> Channels;
 
         public ServerConf ServerOptions;
         public readonly Guid ConnectionId;
-        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, ChannelData> channels)
+        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels)
         {
+            if (channels == null)
+            {
+                throw new NullReferenceException(nameof(channels));
+            }
             Channels = channels;
             Options = builder.Options;
             Logger = builder.Logger;
             ConnectionId = Guid.NewGuid();
             Channels = channels;
-        }
-        public Task<RabbitMQChannel> OpenChannel()
-        {
-            return _channelHandler.OpenChannel();
         }
         public async ValueTask DisposeAsync()
         {
@@ -56,15 +59,26 @@ namespace AMQP.Client.RabbitMQ
             await Writer.DisposeAsync();
             await Reader.DisposeAsync();
             await _ctx.DisposeAsync();
-            _connectionCloseOkSrc.SetCanceled();
-            _connectionOpenOk.SetCanceled();
-            _connectionClosedSrc.SetCanceled();
+            _listener.Stop();
+            CancelTcs();
+            if (!_connectionCloseOkSrc.Task.IsCompleted && !_connectionCloseOkSrc.Task.IsCanceled)
+            {
+                _connectionCloseOkSrc.SetCanceled();
+            }
+            if (!_connectionOpenOk.Task.IsCompleted && !_connectionOpenOk.Task.IsCanceled)
+            {
+                _connectionOpenOk.SetCanceled();
+            }
+            if (!ConnectionClosedSrc.Task.IsCompleted && !ConnectionClosedSrc.Task.IsCanceled)
+            {
+                ConnectionClosedSrc.SetCanceled();
+            }
         }
 
         ValueTask IConnectionHandler.OnCloseAsync(CloseInfo info)
         {
             Logger.LogDebug($"RabbitMQConnection {ConnectionId}: Close received");
-            _connectionClosedSrc.SetResult(info);
+            ConnectionClosedSrc.SetResult(info);
             return default;
         }
 
@@ -135,74 +149,128 @@ namespace AMQP.Client.RabbitMQ
             _cts = new CancellationTokenSource();
             _ctx = await _client.ConnectAsync(Options.Endpoint, _cts.Token).ConfigureAwait(false);
             Writer = new RabbitMQProtocolWriter(_ctx);
+            Reader = new RabbitMQProtocolReader(_ctx);
             await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);
 
-            _channelHandler = new ChannelHandler(this);
-            _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ConnectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            StartReadingAsync(new RabbitMQProtocolReader(_ctx));
-            _watchTask = WatchAsync();
+            StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
+        }
+        public async ValueTask ConnectWithRecovery()
+        {
+            await Connect();
+            await Recovery();
         }
         private void StartReadingAsync(RabbitMQProtocolReader reader)
         {
             _listener = new RabbitMQListener();
-            _readingTask = StartReadingInner(reader);
+            _ = StartReadingInner(reader);
         }
         private async Task StartReadingInner(RabbitMQProtocolReader reader)
         {
             try
             {
-                await _listener.StartAsync(reader, this, _channelHandler, Logger, _cts.Token).ConfigureAwait(false);
+                await _listener.StartAsync(reader, this, this, Logger, _cts.Token).ConfigureAwait(false);
             }
             catch (RabbitMQException e)
             {
-                _connectionClosedSrc.SetException(e);
+                ConnectionClosedSrc.SetException(e);
 
             }
             catch (IOException e)
             {
-                _connectionClosedSrc.SetException(e);
+                ConnectionClosedSrc.SetException(e);
 
             }
         }
-        private async Task WatchAsync()
+        public async Task CloseAsync(string reason = null)
         {
-            try
+            var replyText = reason == null ? "Connection closed gracefully" : reason;
+            var info = new CloseInfo(RabbitMQConstants.Success, replyText, 0, 0);
+            await Writer.SendConnectionCloseAsync(info).ConfigureAwait(false);
+            await _connectionCloseOkSrc.Task.ConfigureAwait(false);
+            ConnectionClosedSrc.SetResult(info);
+        }
+        private async ValueTask Recovery()
+        {
+            foreach (var channelPair in Channels)
             {
-                var info = await _connectionClosedSrc.Task.ConfigureAwait(false);
-                Logger.LogInformation($"Connection closed with: ReplyCode={info.ReplyCode} FailedClassId={info.FailedClassId} FailedMethodId={info.FailedMethodId} ReplyText={info.ReplyText}");
-               // _channelHandler.Stop();
-            }
-            catch (SocketException e)
-            {
-                //_channelHandler.Stop(e);
-                Logger.LogError(e.Message);
-                Logger.LogError(e.StackTrace);
-            }
-            catch (IOException e)
-            {
-               // _channelHandler.Stop(e);
-                Logger.LogError(e.Message);
-                Logger.LogError(e.StackTrace);
-            }
-            catch (RabbitMQException e)
-            {
-                //_channelHandler.Stop(e);
-                Logger.LogError(e.Message);
-                Logger.LogError(e.StackTrace);
-            }
-            catch (Exception e)
-            {
-                //_channelHandler.Stop(e);
-                Logger.LogError(e.Message);
-                Logger.LogError(e.StackTrace);
-            }
-            finally
-            {
-                _listener.Stop();
-                _ctx.Abort();
-                _heartbeat?.Dispose();
+                var channel = channelPair.Value;
+                var src = Channels.GetOrAdd(channelPair.Key, key => new RabbitMQChannel(channelPair.Key, this));
+                await channel.WriterSemaphore.WaitAsync();
+                channel.Session = this;
+
+                _openSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                await Writer.SendChannelOpenAsync(channelPair.Key).ConfigureAwait(false);
+                await _openSrc.Task.ConfigureAwait(false);
+
+
+                foreach (var exchange in channelPair.Value.Exchanges.Values)
+                {
+                    if (exchange.NoWait)
+                    {
+                        await Writer.SendExchangeDeclareAsync(channelPair.Key, exchange).ConfigureAwait(false);
+                        continue;
+                    }
+                    else
+                    {
+                        src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        await Writer.SendExchangeDeclareAsync(channelPair.Key, exchange).ConfigureAwait(false);
+                        await src.CommonTcs.Task.ConfigureAwait(false);
+                    }
+
+                }
+                foreach (var queue in channelPair.Value.Queues.Values)
+                {
+                    if (queue.NoWait)
+                    {
+                        await Writer.SendQueueDeclareAsync(channelPair.Key, queue).ConfigureAwait(false);
+                        continue;
+                    }
+                    else
+                    {
+                        src.QueueTcs = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        await Writer.SendQueueDeclareAsync(channelPair.Key, queue).ConfigureAwait(false);
+                        var declare = await src.QueueTcs.Task.ConfigureAwait(false);
+                    }
+
+                }
+                foreach (var bind in channelPair.Value.Binds.Values)
+                {
+                    if (bind.NoWait)
+                    {
+                        await Writer.SendQueueBindAsync(channelPair.Key, bind).ConfigureAwait(false);
+                        continue;
+                    }
+                    else
+                    {
+                        src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        await Writer.SendQueueBindAsync(channelPair.Key, bind).ConfigureAwait(false);
+                        await src.CommonTcs.Task.ConfigureAwait(false);
+                    }
+                }
+                foreach (var consumer in channelPair.Value.Consumers.Values)
+                {
+                    if (consumer.Conf.NoWait)
+                    {
+                        await Writer.SendBasicConsumeAsync(channelPair.Key, consumer.Conf).ConfigureAwait(false);
+                        continue;
+                    }
+                    else
+                    {
+                        src.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        await Writer.SendBasicConsumeAsync(channelPair.Key, consumer.Conf).ConfigureAwait(false);
+                        var tag = await src.ConsumeTcs.Task.ConfigureAwait(false);
+                        if (!tag.Equals(consumer.Conf.ConsumerTag))
+                        {
+                            RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
+                        }
+                    }
+                }
+                channel.IsClosed = false;
+                channel.WriterSemaphore.Release();
+                //channel.waitTcs.SetResult(false);
             }
         }
     }

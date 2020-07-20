@@ -17,17 +17,17 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             if (message.IsEmpty) { return; }
             var writer = new ValueWriter(output);
-            FrameWriter.WriteFrameHeader(Constants.FrameBody, _channelId, message.Length, ref writer);
+            FrameWriter.WriteFrameHeader(RabbitMQConstants.FrameBody, _channelId, message.Length, ref writer);
             writer.WriteBytes(message.Span);
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
             writer.Commit();
         }
 
         internal void WriteMessage(ReadOnlyMemory<byte> message, ref ValueWriter writer)
         {
-            FrameWriter.WriteFrameHeader(Constants.FrameBody, _channelId, message.Length, ref writer);
+            FrameWriter.WriteFrameHeader(RabbitMQConstants.FrameBody, _channelId, message.Length, ref writer);
             writer.WriteBytes(message.Span);
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
             writer.Commit();
         }
     }

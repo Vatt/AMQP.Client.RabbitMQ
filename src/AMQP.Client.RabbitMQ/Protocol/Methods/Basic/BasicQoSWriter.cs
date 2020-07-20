@@ -19,7 +19,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             writer.WriteLong(message.PrefetchSize);
             writer.WriteShortInt(message.PrefetchCount);
             writer.WriteBool(message.Global);
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
 
             writer.Commit();
         }

@@ -69,7 +69,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
             message = new Frame(header, input.Slice(reader.Position, header.PayloadSize));
             reader.Advance(message.Payload.Length);
             if (!reader.TryRead(out var endMarker)) ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
-            if (endMarker != Constants.FrameEnd) ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
+            if (endMarker != RabbitMQConstants.FrameEnd) ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             return true;
         }
 

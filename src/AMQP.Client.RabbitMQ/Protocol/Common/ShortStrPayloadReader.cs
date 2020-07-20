@@ -15,7 +15,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
             if (!reader.ReadOctet(out var endMarker)) { return false; }
 
-            if (endMarker != Constants.FrameEnd)
+            if (endMarker != RabbitMQConstants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

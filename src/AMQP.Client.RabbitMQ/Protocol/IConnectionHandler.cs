@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
-    public  interface IConnectionHandler
+    public interface IConnectionHandler
     {
         ValueTask OnStartAsync(ServerConf conf);
         ValueTask OnTuneAsync(TuneConf conf);

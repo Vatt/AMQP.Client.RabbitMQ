@@ -9,7 +9,6 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,13 +37,13 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 var result = await reader.ReadAsync(headerReader, token).ConfigureAwait(false);
                 switch (result.FrameType)
                 {
-                    case Constants.FrameMethod:
+                    case RabbitMQConstants.FrameMethod:
                         {
                             var method = await reader.ReadAsync(_methodHeaderReader, token).ConfigureAwait(false);
                             await ProcessMethod(reader, ref result, ref method, token).ConfigureAwait(false);
                             break;
                         }
-                    case Constants.FrameHeartbeat:
+                    case RabbitMQConstants.FrameHeartbeat:
                         {
                             await reader.ReadNoPayloadAsync(token).ConfigureAwait(false);
                             await _connectionHandler.OnHeartbeatAsync().ConfigureAwait(false);

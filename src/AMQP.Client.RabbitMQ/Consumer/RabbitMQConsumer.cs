@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Consumer

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AMQP.Client.RabbitMQ.Protocol.Exceptions
+﻿namespace AMQP.Client.RabbitMQ.Protocol.Exceptions
 {
     public class RabbitMQFrameExeption : RabbitMQException
     {

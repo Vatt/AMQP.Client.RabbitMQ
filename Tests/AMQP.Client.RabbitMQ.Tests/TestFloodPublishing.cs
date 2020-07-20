@@ -40,7 +40,8 @@ namespace AMQP.Client.RabbitMQ.Tests
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
             //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
-            var loggerFactory = LoggerFactory.Create(builder => {
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
                 builder.AddConsole();
             });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
@@ -101,7 +102,8 @@ namespace AMQP.Client.RabbitMQ.Tests
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
             //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
-            var loggerFactory = LoggerFactory.Create(builder => {
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
                 builder.AddConsole();
             });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
@@ -122,12 +124,12 @@ namespace AMQP.Client.RabbitMQ.Tests
             var tcs = new TaskCompletionSource<bool>();
             consumer.Received += async (sender, result) =>
             {
-                
+
                 Assert.Equal(message, Encoding.UTF8.GetString(result.Body));
                 var inc = Interlocked.Increment(ref receivedCount);
                 if (inc == threadCount * publishCount)
                 {
-                    tcs.SetResult(true);                    
+                    tcs.SetResult(true);
                 }
                 await channel.Ack(AckInfo.Create(result.DeliveryTag));
 

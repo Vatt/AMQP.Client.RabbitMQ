@@ -18,7 +18,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
 
         public ValueTask DisposeAsync()
         {
-            return  Writer.DisposeAsync();
+            return Writer.DisposeAsync();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

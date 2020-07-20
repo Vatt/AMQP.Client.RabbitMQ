@@ -86,7 +86,7 @@ namespace AMQP.Client.RabbitMQ
         //}
         public RabbitMQConnectionFactory Build()
         {
-            if (Logger==null)
+            if (Logger == null)
             {
                 Logger = new LoggerFactory().CreateLogger(string.Empty);
             }

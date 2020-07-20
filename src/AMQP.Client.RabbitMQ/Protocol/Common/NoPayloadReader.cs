@@ -16,7 +16,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             {
                 return false;
             }
-            if (endMarker != Constants.FrameEnd)
+            if (endMarker != RabbitMQConstants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

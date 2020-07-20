@@ -5,8 +5,6 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
-using Microsoft.Extensions.Options;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -53,16 +51,17 @@ namespace Test
 
         private static async Task StartPublisher()
         {
-            var loggerFactory = LoggerFactory.Create(builder => {
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
                 builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Debug); 
+                builder.SetMinimumLevel(LogLevel.Debug);
             });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
 
             await connection.StartAsync();
-  
+
             var channel = await connection.OpenChannel();
 
             await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
@@ -77,10 +76,10 @@ namespace Test
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
                 var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
-                if (!result)
-                {
-                    break;
-                }
+                //if (!result)
+                //{
+                //    break;
+                //}
             }
 
             //await Task.Delay(TimeSpan.FromHours(1));
@@ -88,7 +87,8 @@ namespace Test
 
         private static async Task StartConsumer()
         {
-            var loggerFactory = LoggerFactory.Create(builder => {
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
                 builder.AddConsole();
                 builder.SetMinimumLevel(LogLevel.Debug);
             });

@@ -22,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             _bitCount = 0;
             _flagWord = 0;
             var writer = new ValueWriter(output);
-            writer.WriteOctet(Constants.FrameHeader);
+            writer.WriteOctet(RabbitMQConstants.FrameHeader);
             writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
@@ -34,7 +34,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
 
             var payloadSize = writer.Written - checkpoint;
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
 
             Span<byte> span = stackalloc byte[4];
             BinaryPrimitives.WriteInt32BigEndian(span, payloadSize);
@@ -46,7 +46,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             _bitCount = 0;
             _flagWord = 0;
-            writer.WriteOctet(Constants.FrameHeader);
+            writer.WriteOctet(RabbitMQConstants.FrameHeader);
             writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
@@ -58,7 +58,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 
 
             var payloadSize = writer.Written - checkpoint;
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
 
             Span<byte> span = stackalloc byte[4];
             BinaryPrimitives.WriteInt32BigEndian(span, payloadSize);

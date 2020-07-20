@@ -25,7 +25,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             writer.WriteShortStr(message.ConsumerTag);
             writer.WriteBool(message.NoWait);
             var payloadSize = writer.Written - checkpoint;
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
 
             Span<byte> sizeSpan = stackalloc byte[4];
             BinaryPrimitives.WriteInt32BigEndian(sizeSpan, 18);
