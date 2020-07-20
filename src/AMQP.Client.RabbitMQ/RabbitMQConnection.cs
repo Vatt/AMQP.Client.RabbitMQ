@@ -3,6 +3,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -34,29 +35,13 @@ namespace AMQP.Client.RabbitMQ
 
         public async Task StartAsync()
         {
-            //    var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
-            //        .UseSockets()
-            //        .Build();
-            //    _connectionOpenOk = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            //    _cts = new CancellationTokenSource();
-            //    _ctx = await _client.ConnectAsync(Options.Endpoint, _cts.Token).ConfigureAwait(false);
-            //    _writer = new RabbitMQProtocolWriter(_ctx);
-            //    await _writer.SendProtocol(_cts.Token).ConfigureAwait(false);
-
-
-            //    _channelHandler = new ChannelHandler(_writer, Options, _logger);
-            //    ConnectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-            //    _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            //    StartReadingAsync(new RabbitMQProtocolReader(_ctx));
-            //    _watchTask = WatchAsync();
-            //    await _connectionOpenOk.Task.ConfigureAwait(false);
-            await _session.Connect();
-            _watchTask = WatchAsync();
+            await _session.Connect().ConfigureAwait(false);
+            _watchTask = Task.Run(WatchAsync).ContinueWith(ReconnectAsync);
         }
         public async Task CloseAsync(string reason = null)
         {
-            await _session.CloseAsync();
-            await _session.DisposeAsync();
+            await _session.CloseAsync().ConfigureAwait(false);
+            await _session.DisposeAsync().ConfigureAwait(false);
         }
 
         private async Task WatchAsync()
@@ -86,26 +71,23 @@ namespace AMQP.Client.RabbitMQ
                 _logger.LogError(e.Message);
                 _logger.LogError(e.StackTrace);
             }
+        }
+
+        private async ValueTask ReconnectAsync(object? obj)
+        {
             ChannelHandlerLock();
             try
             {
-                await ReconnectAsync();
+                await _session.DisposeAsync().ConfigureAwait(false);
+                _session = new RabbitMQSession(_builder, _channels);
+                await _session.ConnectWithRecovery().ConfigureAwait(false);
+                _watchTask = Task.Run(WatchAsync).ContinueWith(ReconnectAsync);
             }
             catch (Exception e)
             {
-
+                Debugger.Break();
             }
             ChannelHandlerUnlock();
-
-
-        }
-
-        private async ValueTask ReconnectAsync()
-        {
-            await _session.DisposeAsync();
-            _session = new RabbitMQSession(_builder, _channels);
-            await _session.ConnectWithRecovery();
-            _watchTask = WatchAsync();
         }
 
         private void ChannelHandlerLock()

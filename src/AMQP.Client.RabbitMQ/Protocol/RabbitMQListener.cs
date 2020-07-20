@@ -132,7 +132,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         await _connectionHandler.OnCloseOkAsync().ConfigureAwait(false);
                         break;
                     }
-
                 default:
                     throw new RabbitMQMethodException(nameof(ProcessConnection), method.ClassId, method.MethodId);
             }

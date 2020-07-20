@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
-    internal static class RabbitMQSessionChannelHandlerQueueExt
+    internal static class RabbitMQSessionQueueExt
     {
         public static async ValueTask<QueueDeclareOk> QueueDeclareAsync(this RabbitMQSession session, RabbitMQChannel channel, QueueDeclare queue)
         {

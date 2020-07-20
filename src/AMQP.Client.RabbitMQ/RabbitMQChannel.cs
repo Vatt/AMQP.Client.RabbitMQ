@@ -5,6 +5,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -102,7 +103,15 @@ namespace AMQP.Client.RabbitMQ
 
             //await _src.waitTcs.Task.ConfigureAwait(false);
             //await _data.waitTcs.Task.ConfigureAwait(false);
-            await waitTcs.Task.ConfigureAwait(false);
+            try
+            {
+                await waitTcs.Task.ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                Debugger.Break();
+            }
+
 
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
@@ -115,6 +124,7 @@ namespace AMQP.Client.RabbitMQ
 
 
             await WriterSemaphore.WaitAsync().ConfigureAwait(false);
+
             var written = 0;
             var partialInfo = new PublishPartialInfo(ref info, ref content);
             await Session.Writer.PublishPartialAsync(ChannelId, partialInfo).ConfigureAwait(false);

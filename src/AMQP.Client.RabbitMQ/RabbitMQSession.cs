@@ -56,9 +56,11 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask DisposeAsync()
         {
             _heartbeat?.Dispose();
-            await Writer.DisposeAsync();
-            await Reader.DisposeAsync();
-            await _ctx.DisposeAsync();
+            await Writer.DisposeAsync().ConfigureAwait(false);
+            await Reader.DisposeAsync().ConfigureAwait(false);
+            _ctx.Abort();
+            _cts.Cancel();
+            await _ctx.DisposeAsync().ConfigureAwait(false);
             _listener.Stop();
             CancelTcs();
             if (!_connectionCloseOkSrc.Task.IsCompleted && !_connectionCloseOkSrc.Task.IsCanceled)
@@ -159,8 +161,8 @@ namespace AMQP.Client.RabbitMQ
         }
         public async ValueTask ConnectWithRecovery()
         {
-            await Connect();
-            await Recovery();
+            await Connect().ConfigureAwait(false); ;
+            await Recovery().ConfigureAwait(false); ;
         }
         private void StartReadingAsync(RabbitMQProtocolReader reader)
         {

@@ -57,10 +57,10 @@ namespace AMQP.Client.RabbitMQ
                     {
                         src.QueueTcs.SetCanceled();
                     }
-                    if (src.waitTcs != null && !src.waitTcs.Task.IsCompleted)
-                    {
-                        src.waitTcs.SetCanceled();
-                    }
+                    //if (src.waitTcs != null && !src.waitTcs.Task.IsCompleted)
+                    //{
+                    //    src.waitTcs.SetCanceled();
+                    //}
                     //src.WriterSemaphore.Dispose();
                 }
             }

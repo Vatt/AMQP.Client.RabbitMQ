@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
-    internal static class RabbitMQSessionChannelHandlerBasicExt
+    internal static class RabbitMQSessionBasicExt
     {
         internal static async Task ConsumerStartAsync(this RabbitMQSession session, RabbitMQConsumer consumer)
         {
