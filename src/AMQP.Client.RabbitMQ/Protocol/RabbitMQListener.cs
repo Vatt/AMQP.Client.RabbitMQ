@@ -20,15 +20,13 @@ namespace AMQP.Client.RabbitMQ.Protocol
         private IChannelHandler _channelHandler;
         private IConnectionHandler _connectionHandler;
         private MethodHeaderReader _methodHeaderReader = new MethodHeaderReader();
-        private ILogger _logger;
         private bool _isClosed;
 
         public bool IsClosed => _isClosed;
-        public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, ILogger logger, CancellationToken token = default)
+        public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, CancellationToken token = default)
         {
             _connectionHandler = connection;
             _channelHandler = channel;
-            _logger = logger;
             var headerReader = new FrameHeaderReader();
             _isClosed = false;
             //while (true)
@@ -58,7 +56,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
         }
         public void Stop()
         {
-            _logger.LogDebug($"{nameof(RabbitMQListener)}: Stop");
             _isClosed = true;
         }
         //internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)

@@ -1,5 +1,6 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using Microsoft.Extensions.Logging;
+using System;
 using System.IO.Pipelines;
 using System.Net;
 
@@ -7,9 +8,9 @@ namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnectionFactoryBuilder
     {
-        public ConnectionOptions Options;
-        public PipeScheduler PipeScheduler;
-        public ILogger Logger;
+        internal ConnectionOptions Options;
+        internal PipeScheduler PipeScheduler;
+        internal ILogger Logger;
         public RabbitMQConnectionFactoryBuilder(EndPoint endpoint)
         {
             Options = new ConnectionOptions(endpoint);
@@ -79,7 +80,16 @@ namespace AMQP.Client.RabbitMQ
             PipeScheduler = scheduler;
             return this;
         }
-
+        public RabbitMQConnectionFactoryBuilder ConnectionTimeout(TimeSpan timeout)
+        {
+            Options.ConnectionTimeout = timeout;
+            return this;
+        }
+        public RabbitMQConnectionFactoryBuilder ConnectionAttempts(uint count)
+        {
+            Options.ConnectionAttempts = count;
+            return this;
+        }
         //public RabbitMQConnection Build()
         //{
         //    return new RabbitMQConnection(this);
@@ -89,6 +99,14 @@ namespace AMQP.Client.RabbitMQ
             if (Logger == null)
             {
                 Logger = new LoggerFactory().CreateLogger(string.Empty);
+            }
+            if (Options.ConnectionTimeout == null)
+            {
+                Options.ConnectionTimeout = TimeSpan.FromSeconds(15);
+            }
+            if (Options.ConnectionAttempts == 0)
+            {
+                Options.ConnectionAttempts = 5;
             }
             return new RabbitMQConnectionFactory(this);
         }

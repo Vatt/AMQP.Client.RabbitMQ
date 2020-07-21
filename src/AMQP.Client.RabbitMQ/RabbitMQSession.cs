@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -31,6 +32,7 @@ namespace AMQP.Client.RabbitMQ
         private Timer _heartbeat;
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
+        internal TaskCompletionSource ConnectionGlobalLock;
         internal readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
 
         public readonly ILogger Logger;
@@ -39,10 +41,9 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQProtocolReader Reader { get; private set; }
 
         internal readonly ConcurrentDictionary<ushort, RabbitMQChannel> Channels;
-
         public ServerConf ServerOptions;
         public readonly Guid ConnectionId;
-        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels, TaskCompletionSource<CloseInfo> closeSrc)
+        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels, TaskCompletionSource<CloseInfo> closeSrc, TaskCompletionSource connectionLock)
         {
             if (channels == null || closeSrc == null)
             {
@@ -54,13 +55,14 @@ namespace AMQP.Client.RabbitMQ
             ConnectionId = Guid.NewGuid();
             Channels = channels;
             ConnectionClosedSrc = closeSrc;
+            ConnectionGlobalLock = connectionLock;
         }
         public async ValueTask DisposeAsync()
         {
             _heartbeat?.Dispose();
             await Writer.DisposeAsync().ConfigureAwait(false);
             await Reader.DisposeAsync().ConfigureAwait(false);
-            _ctx.Abort();
+            //_ctx.Abort();
             _cts.Cancel();
             await _ctx.DisposeAsync().ConfigureAwait(false);
             _listener.Stop();
@@ -146,24 +148,46 @@ namespace AMQP.Client.RabbitMQ
 
         public async ValueTask Connect()
         {
-            var _client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
-                                .UseSockets()
-                                .Build();
             _connectionOpenOk = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _cts = new CancellationTokenSource();
-            _ctx = await _client.ConnectAsync(Options.Endpoint, _cts.Token).ConfigureAwait(false);
+            _ctx = await TryConnect();
             Writer = new RabbitMQProtocolWriter(_ctx);
             Reader = new RabbitMQProtocolReader(_ctx);
-            await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);
-            
+            await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);            
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
         }
+        private async ValueTask<ConnectionContext> TryConnect()
+        {
+            var client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
+                            .UseSockets()
+                            .Build();
+            for (var i = 0; i < Options.ConnectionAttempts; i++)
+            {
+                try
+                {
+                    var cts = new CancellationTokenSource(Options.ConnectionTimeout);
+                    return await client.ConnectAsync(Options.Endpoint, cts.Token).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    continue;
+                }
+            }
+            return default;
+        }
         public async ValueTask ConnectWithRecovery()
         {
-            await Connect().ConfigureAwait(false); ;
-            await Recovery().ConfigureAwait(false); ;
+            await Connect().ConfigureAwait(false);
+            try
+            {
+                await Recovery().ConfigureAwait(false);
+            }catch(Exception e)
+            {
+                Debugger.Break();
+            }
+            
         }
         private void StartReadingAsync(RabbitMQProtocolReader reader)
         {
@@ -174,7 +198,7 @@ namespace AMQP.Client.RabbitMQ
         {
             try
             {
-                await _listener.StartAsync(reader, this, this, Logger, _cts.Token).ConfigureAwait(false);
+                await _listener.StartAsync(reader, this, this, _cts.Token).ConfigureAwait(false);
             }
             catch (RabbitMQException e)
             {
@@ -207,7 +231,6 @@ namespace AMQP.Client.RabbitMQ
             foreach (var channelPair in Channels)
             {
                 var channel = channelPair.Value;
-                var src = Channels.GetOrAdd(channelPair.Key, key => new RabbitMQChannel(channelPair.Key, this));
                 await channel.WriterSemaphore.WaitAsync();
                 channel.Session = this;
 
@@ -225,9 +248,9 @@ namespace AMQP.Client.RabbitMQ
                     }
                     else
                     {
-                        src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        channel.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
                         await Writer.SendExchangeDeclareAsync(channelPair.Key, exchange).ConfigureAwait(false);
-                        await src.CommonTcs.Task.ConfigureAwait(false);
+                        await channel.CommonTcs.Task.ConfigureAwait(false);
                     }
 
                 }
@@ -240,9 +263,9 @@ namespace AMQP.Client.RabbitMQ
                     }
                     else
                     {
-                        src.QueueTcs = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        channel.QueueTcs = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
                         await Writer.SendQueueDeclareAsync(channelPair.Key, queue).ConfigureAwait(false);
-                        var declare = await src.QueueTcs.Task.ConfigureAwait(false);
+                        var declare = await channel.QueueTcs.Task.ConfigureAwait(false);
                     }
 
                 }
@@ -255,9 +278,9 @@ namespace AMQP.Client.RabbitMQ
                     }
                     else
                     {
-                        src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        channel.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
                         await Writer.SendQueueBindAsync(channelPair.Key, bind).ConfigureAwait(false);
-                        await src.CommonTcs.Task.ConfigureAwait(false);
+                        await channel.CommonTcs.Task.ConfigureAwait(false);
                     }
                 }
                 foreach (var consumer in channelPair.Value.Consumers.Values)
@@ -269,9 +292,9 @@ namespace AMQP.Client.RabbitMQ
                     }
                     else
                     {
-                        src.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        channel.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
                         await Writer.SendBasicConsumeAsync(channelPair.Key, consumer.Conf).ConfigureAwait(false);
-                        var tag = await src.ConsumeTcs.Task.ConfigureAwait(false);
+                        var tag = await channel.ConsumeTcs.Task.ConfigureAwait(false);
                         if (!tag.Equals(consumer.Conf.ConsumerTag))
                         {
                             RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
@@ -280,7 +303,6 @@ namespace AMQP.Client.RabbitMQ
                 }
                 channel.IsClosed = false;
                 channel.WriterSemaphore.Release();
-                //channel.waitTcs.SetResult(false);
             }
         }
     }

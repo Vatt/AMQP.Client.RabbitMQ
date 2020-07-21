@@ -14,18 +14,16 @@ namespace AMQP.Client.RabbitMQ
         internal Dictionary<string, ExchangeDeclare> Exchanges = new Dictionary<string, ExchangeDeclare>();
         internal Dictionary<string, QueueDeclare> Queues = new Dictionary<string, QueueDeclare>();
 
-        public TaskCompletionSource<string> ConsumeTcs;
-        public TaskCompletionSource<QueueDeclareOk> QueueTcs;
-        public TaskCompletionSource<int> CommonTcs;
+        internal TaskCompletionSource<string> ConsumeTcs;
+        internal TaskCompletionSource<QueueDeclareOk> QueueTcs;
+        internal TaskCompletionSource<int> CommonTcs;
 
         internal SemaphoreSlim WriterSemaphore = new SemaphoreSlim(1);
         internal RabbitMQSession Session;
-        internal TaskCompletionSource<bool> waitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool IsClosed = false;
         internal ChannelData(RabbitMQSession session)
         {
             Session = session;
-            waitTcs.SetResult(false);
         }
     }
 }
