@@ -60,20 +60,20 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteBitFlagsAndContinuation(ref ContentHeaderProperties properties, ref ValueWriter writer)
         {
-            if (properties.ContentType != null) { WritePresence(true); }
-            if (properties.ContentEncoding != null) { WritePresence(true); }
-            if (properties.Headers != null) { WritePresence(true); }
-            if (properties.DeliveryMode != 0) { WritePresence(true); }
-            if (properties.Priority != 0) { WritePresence(true); }
-            if (properties.CorrelationId != null) { WritePresence(true); }
-            if (properties.ReplyTo != null) { WritePresence(true); }
-            if (properties.Expiration != null) { WritePresence(true); }
-            if (properties.MessageId != null) { WritePresence(true); }
-            if (properties.Timestamp != 0) { WritePresence(true); }
-            if (properties.Type != null) { WritePresence(true); }
-            if (properties.UserId != null) { WritePresence(true); }
-            if (properties.AppId != null) { WritePresence(true); }
-            if (properties.ClusterId != null) { WritePresence(true); }
+            WritePresence(properties.ContentType != null);
+            WritePresence(properties.ContentEncoding != null);
+            WritePresence(properties.Headers != null);
+            WritePresence(properties.DeliveryMode != 0);
+            WritePresence(properties.Priority != 0);
+            WritePresence(properties.CorrelationId != null);
+            WritePresence(properties.ReplyTo != null);
+            WritePresence(properties.Expiration != null);
+            WritePresence(properties.MessageId != null);
+            WritePresence(properties.Timestamp != 0);
+            WritePresence(properties.Type != null);
+            WritePresence(properties.UserId != null);
+            WritePresence(properties.AppId != null);
+            WritePresence(properties.ClusterId != null);
             writer.WriteShortInt(_flagWord);
             if (properties.ContentType != null) { writer.WriteShortStr(properties.ContentType); }
             if (properties.ContentEncoding != null) { writer.WriteShortStr(properties.ContentEncoding); }
