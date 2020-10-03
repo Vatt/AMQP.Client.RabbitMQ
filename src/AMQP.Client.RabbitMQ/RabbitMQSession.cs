@@ -32,7 +32,7 @@ namespace AMQP.Client.RabbitMQ
         private Timer _heartbeat;
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
-        internal TaskCompletionSource ConnectionGlobalLock;
+        internal TaskCompletionSource<bool> ConnectionGlobalLock;
         internal ManualResetEventSlim LockEvent;
         internal readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
 
