@@ -26,7 +26,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             var writer = new ValueWriter(output);
             FrameWriter.WriteFrameHeader(message.FrameType, message.Channel, 4, ref writer);
             FrameWriter.WriteMethodFrame(message.ClassId, message.MethodId, ref writer);
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
             writer.Commit();
         }
     }

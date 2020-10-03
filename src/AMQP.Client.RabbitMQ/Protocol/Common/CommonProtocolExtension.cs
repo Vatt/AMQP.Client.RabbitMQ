@@ -16,13 +16,14 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         private static readonly NoPayloadReader _noPayloadReader = new NoPayloadReader();
         private static readonly FrameHeaderReader _frameHeaderReader = new FrameHeaderReader();
         private static readonly ShortStrPayloadReader _shortStrPayloadReader = new ShortStrPayloadReader();
+        private static readonly ByteWriter _byteWriter = new ByteWriter();
         public static ValueTask SendHeartbeat(this RabbitMQProtocolWriter protocol, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new ByteWriter(), _heartbeatFrame, token);
+            return protocol.WriteAsync(_byteWriter, _heartbeatFrame, token);
         }
         public static ValueTask SendProtocol(this RabbitMQProtocolWriter protocol, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new ByteWriter(), _protocolMsg, token);
+            return protocol.WriteAsync(_byteWriter, _protocolMsg, token);
         }
         /*
         public static ValueTask<FrameHeader> ReadFrameHeader(this RabbitMQProtocolReader protocol, CancellationToken token = default)

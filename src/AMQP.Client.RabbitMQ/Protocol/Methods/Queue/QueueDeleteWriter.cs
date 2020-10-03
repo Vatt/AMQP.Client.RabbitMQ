@@ -16,7 +16,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
         public void WriteMessage(QueueDelete message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
-            writer.WriteOctet(Constants.FrameMethod);
+            writer.WriteOctet(RabbitMQConstants.FrameMethod);
             writer.WriteShortInt(_channelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
@@ -28,7 +28,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
             writer.WriteBit(message.NoWait);
             writer.BitFlush();
             var payloadSize = writer.Written - checkpoint;
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
 
             Span<byte> span = stackalloc byte[4];
             BinaryPrimitives.WriteInt32BigEndian(span, payloadSize);

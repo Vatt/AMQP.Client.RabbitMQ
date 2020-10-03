@@ -18,7 +18,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Channel
             }
             reader.Advance(4);
             var result = reader.TryRead(out byte end);
-            if (end != Constants.FrameEnd || result == false)
+            if (end != RabbitMQConstants.FrameEnd || result == false)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

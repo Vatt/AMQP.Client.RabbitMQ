@@ -16,7 +16,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
             if (!reader.ReadLong(out var messageCount)) { return false; }
             if (!reader.ReadLong(out var consumerCount)) { return false; }
             if (!reader.ReadOctet(out var endMarker)) { return false; }
-            if (endMarker != Constants.FrameEnd)
+            if (endMarker != RabbitMQConstants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

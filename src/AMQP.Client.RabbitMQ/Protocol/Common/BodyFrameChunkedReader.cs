@@ -37,7 +37,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
                 {
                     return false;
                 }
-                if (type != Constants.FrameBody || channel != _channelId)
+                if (type != RabbitMQConstants.FrameBody || channel != _channelId)
                 {
                     throw new Exception($"{nameof(BodyFrameChunkedReader)}: frame type or channel id missmatch");
                 }
@@ -58,7 +58,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
                     _contentConsumed -= readable;
                     return false;
                 }
-                if (marker != Constants.FrameEnd)
+                if (marker != RabbitMQConstants.FrameEnd)
                 {
                     ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
                 }

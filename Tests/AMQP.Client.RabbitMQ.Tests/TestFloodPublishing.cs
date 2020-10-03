@@ -3,6 +3,7 @@ using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
@@ -19,8 +20,8 @@ namespace AMQP.Client.RabbitMQ.Tests
         private static readonly string message = "test message";
         private static readonly int threadCount = Environment.ProcessorCount;
         private static readonly int publishCount = threadCount * 200;
-        private static readonly int Timeout = 150;
-        private readonly string Host;
+        private static readonly int seconds = 200;
+        private static readonly string Host = "centos0.mshome.net";
 
         private static readonly ExchangeDeclare _exchangeDeclare = ExchangeDeclare.Create("TestExchange", ExchangeType.Direct);
         private static readonly QueueDeclare _queueDeclare = QueueDeclare.Create("TestQueue", arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -44,9 +45,12 @@ namespace AMQP.Client.RabbitMQ.Tests
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
             //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+            });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 
@@ -104,9 +108,12 @@ namespace AMQP.Client.RabbitMQ.Tests
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
             //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+            });
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.ConnectionInfo("guest", "guest", "/")
-                                 .Build();
+            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 
@@ -123,12 +130,12 @@ namespace AMQP.Client.RabbitMQ.Tests
             var tcs = new TaskCompletionSource<bool>();
             consumer.Received += async (sender, result) =>
             {
-                
+
                 Assert.Equal(message, Encoding.UTF8.GetString(result.Body));
                 var inc = Interlocked.Increment(ref receivedCount);
                 if (inc == threadCount * publishCount)
                 {
-                    tcs.SetResult(true);                    
+                    tcs.SetResult(true);
                 }
                 await channel.Ack(AckInfo.Create(result.DeliveryTag));
 

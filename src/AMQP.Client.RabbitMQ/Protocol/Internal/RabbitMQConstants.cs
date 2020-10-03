@@ -1,6 +1,6 @@
 ﻿namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {
-    internal sealed class Constants
+    public sealed class RabbitMQConstants
     {
         //Default rabbitmq constants
         public const byte FrameMethod = 1;

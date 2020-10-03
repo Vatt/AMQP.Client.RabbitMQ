@@ -1,4 +1,5 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using System;
 using System.Net;
 
 namespace AMQP.Client.RabbitMQ
@@ -9,6 +10,8 @@ namespace AMQP.Client.RabbitMQ
         public ClientConf ClientOptions;
         public ConnectionConf ConnOptions;
         public TuneConf TuneOptions;
+        public TimeSpan ConnectionTimeout;
+        public uint ConnectionAttempts;
 
         public ConnectionOptions(EndPoint endpoint)
         {

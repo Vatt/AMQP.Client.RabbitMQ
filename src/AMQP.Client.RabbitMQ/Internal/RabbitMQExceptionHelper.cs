@@ -1,17 +1,17 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 
 namespace AMQP.Client.RabbitMQ.Internal
 {
     internal class RabbitMQExceptionHelper
     {
-        internal static void ThrowIfChannelNotFound()
+        internal static void ThrowIfChannelNotFound(ushort channelId)
         {
-            throw new Exception("Channel not found");
+            throw new RabbitMQChannelNotFoundException(channelId);
         }
 
         internal static void ThrowIfConsumeOkTagMissmatch(string waitngTag, string tag)
         {
-            throw new Exception($"ConsumeOk tag missmatch: waiting:{waitngTag} received:{tag} ");
+            throw new RabbitMQConsumeOkTagMissmatchException(waitngTag, tag);
         }
     }
 }

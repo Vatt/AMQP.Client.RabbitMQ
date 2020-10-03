@@ -8,7 +8,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
-using System;
+using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,24 +20,28 @@ namespace AMQP.Client.RabbitMQ.Protocol
         private IChannelHandler _channelHandler;
         private IConnectionHandler _connectionHandler;
         private MethodHeaderReader _methodHeaderReader = new MethodHeaderReader();
+        private bool _isClosed;
 
+        public bool IsClosed => _isClosed;
         public async Task StartAsync(RabbitMQProtocolReader reader, IConnectionHandler connection, IChannelHandler channel, CancellationToken token = default)
         {
             _connectionHandler = connection;
             _channelHandler = channel;
             var headerReader = new FrameHeaderReader();
-            while (true)
+            _isClosed = false;
+            //while (true)
+            while (!_isClosed)
             {
                 var result = await reader.ReadAsync(headerReader, token).ConfigureAwait(false);
                 switch (result.FrameType)
                 {
-                    case Constants.FrameMethod:
+                    case RabbitMQConstants.FrameMethod:
                         {
                             var method = await reader.ReadAsync(_methodHeaderReader, token).ConfigureAwait(false);
                             await ProcessMethod(reader, ref result, ref method, token).ConfigureAwait(false);
                             break;
                         }
-                    case Constants.FrameHeartbeat:
+                    case RabbitMQConstants.FrameHeartbeat:
                         {
                             await reader.ReadNoPayloadAsync(token).ConfigureAwait(false);
                             await _connectionHandler.OnHeartbeatAsync().ConfigureAwait(false);
@@ -45,12 +49,15 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         }
                     default:
                         {
-                            throw new RabbitMQFrameExeption(result.FrameType);
+                            throw new RabbitMQFrameException(result.FrameType);
                         }
                 }
             }
         }
-
+        public void Stop()
+        {
+            _isClosed = true;
+        }
         //internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref Frame frame)
         internal ValueTask ProcessMethod(RabbitMQProtocolReader protocol, ref FrameHeader header, ref MethodHeader method, CancellationToken token = default)
         {
@@ -122,7 +129,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
                         await _connectionHandler.OnCloseOkAsync().ConfigureAwait(false);
                         break;
                     }
-
                 default:
                     throw new RabbitMQMethodException(nameof(ProcessConnection), method.ClassId, method.MethodId);
             }

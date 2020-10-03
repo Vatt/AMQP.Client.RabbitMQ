@@ -50,8 +50,8 @@ namespace AMQP.Client.RabbitMQ.Consumer
         private byte[] _activeDeliverBody;
         private ConsumeConf _consume;
         private int _deliverPosition;
+        public bool IsClosed { get; internal set; }
         public ref ConsumeConf Conf => ref _consume;
-
         public RabbitMQConsumer(RabbitMQChannel channel, ConsumeConf conf, PipeScheduler scheduler)
         {
             _consume = conf;
@@ -117,6 +117,7 @@ namespace AMQP.Client.RabbitMQ.Consumer
 
         public ValueTask OnConsumerCancelAsync()
         {
+            IsClosed = true;
             Canceled?.Invoke(this, default);
             return default;
         }

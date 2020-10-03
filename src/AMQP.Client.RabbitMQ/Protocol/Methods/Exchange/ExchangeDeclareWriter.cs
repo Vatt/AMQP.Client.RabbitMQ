@@ -32,7 +32,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
             writer.WriteBit(message.NoWait);
             writer.WriteTable(message.Arguments);
             var size = writer.Written - checkpoint;
-            writer.WriteOctet(Constants.FrameEnd);
+            writer.WriteOctet(RabbitMQConstants.FrameEnd);
 
             Span<byte> sizeSpan = stackalloc byte[4];
             BinaryPrimitives.WriteInt32BigEndian(sizeSpan, size);

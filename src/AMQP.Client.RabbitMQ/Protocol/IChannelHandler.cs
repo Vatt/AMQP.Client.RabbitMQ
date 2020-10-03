@@ -27,6 +27,9 @@ namespace AMQP.Client.RabbitMQ.Protocol
         ValueTask OnQosOkAsync(ushort channelId);
         ValueTask OnConsumeCancelOkAsync(ushort channelId, string tag);
 
-        ValueTask Recovery(RabbitMQProtocolWriter writer);
+        //ValueTask Recovery(RabbitMQProtocolWriter writer);
+
+        //void Stop(Exception reason);
+        //void Stop();
     }
 }

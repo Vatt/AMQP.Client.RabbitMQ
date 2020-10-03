@@ -17,7 +17,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (!reader.ReadShortInt(out short failedClassId)) { return false; }
             if (!reader.ReadShortInt(out short failedMethodId)) { return false; }
             if (!reader.ReadOctet(out var endMarker)) { return false; }
-            if (endMarker != Constants.FrameEnd)
+            if (endMarker != RabbitMQConstants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }

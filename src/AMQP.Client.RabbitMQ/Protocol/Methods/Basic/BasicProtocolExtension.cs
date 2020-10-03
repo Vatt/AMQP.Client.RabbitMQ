@@ -11,6 +11,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
     {
         private static readonly BasicDeliverReader _basicDeliverReader = new BasicDeliverReader();
         private static readonly BasicConsumeCancelReader _consumeCancelReader = new BasicConsumeCancelReader();
+        private static readonly PublishFullWriter _fullWriter = new PublishFullWriter();
         public static ValueTask SendBasicConsumeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ConsumeConf info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new BasicConsumeWriter(channelId), info, token);
@@ -71,9 +72,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             return protocol.ReadAsync(reader, token);
         }
         */
-        public static ValueTask PublishAllAsync(this RabbitMQProtocolWriter protocol, ushort channelId, PublishAllInfo info, CancellationToken token = default)
+        public static ValueTask PublishAllAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ref PublishAllInfo info, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new PublishFullWriter(channelId), info, token);
+            return protocol.WriteAsync(_fullWriter, info, token);
         }
         public static ValueTask PublishPartialAsync(this RabbitMQProtocolWriter protocol, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
         {

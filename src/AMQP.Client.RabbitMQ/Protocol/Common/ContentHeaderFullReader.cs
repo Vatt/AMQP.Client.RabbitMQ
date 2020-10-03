@@ -25,7 +25,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (!reader.ReadOctet(out var type)) { return false; }
             if (!reader.ReadShortInt(out short channel)) { return false; }
             if (!reader.ReadLong(out int payload)) { return false; }
-            if (type != Constants.FrameHeader && channel != _channel)
+            if (type != RabbitMQConstants.FrameHeader && channel != _channel)
             {
                 throw new Exception($"Missmatch FrameType or Channel in{typeof(ContentHeaderFullReader)}");
             }
@@ -44,7 +44,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             {
                 return false;
             }
-            if (endMarker != Constants.FrameEnd)
+            if (endMarker != RabbitMQConstants.FrameEnd)
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
