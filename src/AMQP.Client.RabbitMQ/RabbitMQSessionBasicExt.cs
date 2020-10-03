@@ -35,34 +35,19 @@ namespace AMQP.Client.RabbitMQ
             await session.Writer.SendBasicQoSAsync(channel.ChannelId, ref qos).ConfigureAwait(false);
             await data.CommonTcs.Task.ConfigureAwait(false);
         }
-        internal async static ValueTask PublishAllAsync(this RabbitMQSession session, PublishAllInfo info, CancellationToken token = default)
+        internal static ValueTask PublishAllAsync(this RabbitMQSession session, PublishAllInfo info, CancellationToken token = default)
         {
-            try
-            {
-                if (!session.ConnectionGlobalLock.Task.IsCompleted && !session.ConnectionGlobalLock.Task.IsCanceled)
-                {
-                    session.Logger.LogCritical($"{nameof(RabbitMQSession)}: PublishAllAsync waiting");
-                }
-                await session.ConnectionGlobalLock.Task.ConfigureAwait(false);
-                //session.ConnectionGlobalLock.Task.Wait();
-            }
-            catch(Exception e)
-            {
-                Debugger.Break();
-            }
-            
-            await session.Writer.WriteAsync(_fullWriter, info, token);
+            return session.Writer.WriteAsync(_fullWriter, info, token);           
         }
-        internal async static ValueTask PublishPartialAsync(this RabbitMQSession session, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
+        internal static ValueTask PublishPartialAsync(this RabbitMQSession session, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
         {
-            await session.ConnectionGlobalLock.Task.ConfigureAwait(false);
             var writer = new PublishInfoAndContentWriter(channelId);
-            await session.Writer.WriteAsync(writer, info, token);
+            return session.Writer.WriteAsync(writer, info, token);            
         }
-        public async static ValueTask PublishBodyAsync(this RabbitMQSession session, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
+        public static ValueTask PublishBodyAsync(this RabbitMQSession session, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
         {
-            await session.ConnectionGlobalLock.Task.ConfigureAwait(false);
-            await session.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
+            return session.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
+            
         }
     }
 }

@@ -33,6 +33,7 @@ namespace AMQP.Client.RabbitMQ
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
         internal TaskCompletionSource ConnectionGlobalLock;
+        internal ManualResetEventSlim LockEvent;
         internal readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
 
         public readonly ILogger Logger;
@@ -43,7 +44,7 @@ namespace AMQP.Client.RabbitMQ
         internal readonly ConcurrentDictionary<ushort, RabbitMQChannel> Channels;
         public ServerConf ServerOptions;
         public readonly Guid ConnectionId;
-        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels, TaskCompletionSource<CloseInfo> closeSrc, TaskCompletionSource connectionLock)
+        public RabbitMQSession(RabbitMQConnectionFactoryBuilder builder, ConcurrentDictionary<ushort, RabbitMQChannel> channels, TaskCompletionSource<CloseInfo> closeSrc, ManualResetEventSlim lockEvent)
         {
             if (channels == null || closeSrc == null)
             {
@@ -55,7 +56,7 @@ namespace AMQP.Client.RabbitMQ
             ConnectionId = Guid.NewGuid();
             Channels = channels;
             ConnectionClosedSrc = closeSrc;
-            ConnectionGlobalLock = connectionLock;
+            LockEvent = lockEvent;
         }
         public async ValueTask DisposeAsync()
         {

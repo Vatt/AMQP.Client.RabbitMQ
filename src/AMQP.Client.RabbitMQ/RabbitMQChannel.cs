@@ -7,6 +7,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
@@ -93,24 +94,52 @@ namespace AMQP.Client.RabbitMQ
             return Session.ConsumerStartAsync(consumer);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private async ValueTask<bool> PublishAllContinuation(PublishAllInfo allInfo, CancellationToken timeout)
+        {
+            Session.LockEvent.Wait();
+            while(true)
+            {
+                if(timeout.IsCancellationRequested)
+                {
+                    return false;
+                }
+                try
+                {
+                    await Session.PublishAllAsync(allInfo).ConfigureAwait(false);
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Debugger.Break();
+                    continue;
+                }
+            }
+        }
         public async ValueTask<bool> Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             if (IsClosed)
             {
                 return false;
             }
-
-            //await _src.waitTcs.Task.ConfigureAwait(false);
-            //await _data.waitTcs.Task.ConfigureAwait(false);
-
+            Session.LockEvent.Wait();
             var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
             var content = new ContentHeader(60, message.Length, ref properties);
             if (message.Length <= Session.Tune.FrameMax)
             {
                 var allinfo = new PublishAllInfo(ChannelId, ref message, ref info, content);
-                await Session.PublishAllAsync(allinfo).ConfigureAwait(false);
-                return true;
+                try
+                {
+                    await Session.PublishAllAsync(allinfo).ConfigureAwait(false);
+                }catch(Exception e)
+                {
+                    Debugger.Break();
+                    var cts = new CancellationTokenSource(Session.Options.ConnectionTimeout);
+                    using (var timeoutRegistratiuon = cts.Token.Register(() => cts.Cancel()))
+                    {
+                        return await PublishAllContinuation(allinfo, cts.Token);
+                    }
+                }
+                
             }
 
 
@@ -119,6 +148,7 @@ namespace AMQP.Client.RabbitMQ
             var written = 0;
             var partialInfo = new PublishPartialInfo(ref info, ref content);
             await Session.PublishPartialAsync(ChannelId, partialInfo).ConfigureAwait(false);
+
             while (written < content.BodySize)
             {
                 var batchCnt = 0;
@@ -130,6 +160,7 @@ namespace AMQP.Client.RabbitMQ
                     written += writable;
                 }
                 await Session.PublishBodyAsync(ChannelId, _publishBatch).ConfigureAwait(false);
+
                 _publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
 

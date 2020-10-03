@@ -19,7 +19,7 @@ namespace Test
     {
         private static string Host = "centos0.mshome.net";
         //private static int Size = 1024 * 1024; //32;
-        private static int Size = 32;
+        private static int Size = 32;//134217728;
 
         //private static string Host = 
         private static async Task Main(string host, int size)
@@ -45,8 +45,8 @@ namespace Test
             {
                 Size = size;
             }
-            await ChannelTest();
-            //await Task.WhenAll(StartConsumer(), StartPublisher());
+            //await ChannelTest();
+            await Task.WhenAll(StartConsumer(), StartPublisher(), StartPublisher());
 
         }
 
@@ -121,14 +121,14 @@ namespace Test
         {
             var loggerFactory = LoggerFactory.Create(builder =>
             {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Debug);
+                //builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
             });
 
             var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
             var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty))
                                  .ConnectionTimeout(TimeSpan.FromSeconds(30))
-                                 .ConnectionAttempts(10)
+                                 .ConnectionAttempts(100000)
                                  .Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
