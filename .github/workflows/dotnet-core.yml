@@ -14,6 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       project_path: ./Test/
+      test_path: ./Tests/AMQP.Client.RabbitMQ.Tests/
+    
+    services:
+      rabbitmq:
+        image: rabbitmq
+        ports:
+          - 5672:5672
     
     steps:
     - uses: actions/checkout@v2
@@ -25,6 +32,10 @@ jobs:
       run: dotnet restore $project_path
     - name: Build
       run: dotnet build --configuration Release --no-restore $project_path
+    - name: Test
+      run: dotnet test $test_path
+      env:
+        RABBITMQ_HOST: localhost
     - name: Publish win
       run: dotnet publish --output ./output/ --configuration Release --runtime win-x64 --self-contained true -p:PublishTrimmed=true -p:PublishSingleFile=true -p:DebugType=None  $project_path
     - name: Publish linux

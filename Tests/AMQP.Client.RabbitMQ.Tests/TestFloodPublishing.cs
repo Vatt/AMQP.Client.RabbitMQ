@@ -18,8 +18,8 @@ namespace AMQP.Client.RabbitMQ.Tests
     public class TestFloodPublishing
     {
         private static readonly string message = "test message";
-        private static readonly int threadCount = 16;
-        private static readonly int publishCount = 200000;
+        private static readonly int threadCount = Environment.ProcessorCount;
+        private static readonly int publishCount = threadCount * 200;
         private static readonly int seconds = 200;
         private static readonly string Host = "centos0.mshome.net";
 
@@ -32,10 +32,15 @@ namespace AMQP.Client.RabbitMQ.Tests
         private static readonly ConsumeConf _consumerConfNoAck = ConsumeConf.Create("TestQueue", "TestConsumerNoAck", true);
         private static readonly ConsumeConf _consumerConfWithAck = ConsumeConf.Create("TestQueue", "TestConsumerWithAck");
 
+
+		public TestFloodPublishing()
+		{
+            Host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "centos0.mshome.net";
+        }
+
         [Fact]
         public async Task TestMultithreadFloodPublishingNoAck()
         {
-
             var receivedCount = 0;
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
@@ -72,7 +77,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
@@ -94,6 +99,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             await channel.ExchangeDeleteAsync(_exchangeDelete);
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingNoAck");
         }
+
         [Fact]
         public async Task TestMultithreadFloodPublishingWithAck()
         {
@@ -136,7 +142,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
             await channel.ConsumerStartAsync(consumer);
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
