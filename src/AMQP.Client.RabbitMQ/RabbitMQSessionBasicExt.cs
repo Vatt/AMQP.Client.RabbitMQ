@@ -17,15 +17,22 @@ namespace AMQP.Client.RabbitMQ
         internal static async Task ConsumerStartAsync(this RabbitMQSession session, RabbitMQConsumer consumer)
         {
             var data = session.GetChannelData(consumer.Channel.ChannelId);
-            data.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await session.Writer.SendBasicConsumeAsync(consumer.Channel.ChannelId, consumer.Conf).ConfigureAwait(false);
-            var tag = await data.ConsumeTcs.Task.ConfigureAwait(false);
-            if (!tag.Equals(consumer.Conf.ConsumerTag))
+            if (!consumer.Conf.NoWait)
             {
-                RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
+                data.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            consumer.IsClosed = false;
-            data.Consumers.Add(tag, consumer);
+            
+            await session.Writer.SendBasicConsumeAsync(consumer.Channel.ChannelId, consumer.Conf).ConfigureAwait(false);
+            if (!consumer.Conf.NoWait)
+            {
+                var tag = await data.ConsumeTcs.Task.ConfigureAwait(false);
+                if (!tag.Equals(consumer.Conf.ConsumerTag))
+                {
+                    RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
+                }
+                consumer.IsClosed = false;
+            }
+            data.Consumers.Add(consumer.Conf.ConsumerTag, consumer);
         }
 
         internal static async Task QoS(this RabbitMQSession session, RabbitMQChannel channel, QoSInfo qos)

@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Tests
         private static readonly int threadCount = Environment.ProcessorCount;
         private static readonly int publishCount = threadCount * 200;
         private static readonly int seconds = 200;
-        private static readonly string Host = "centos0.mshome.net";
+        private static string Host = "centos0.mshome.net";
 
         private static readonly ExchangeDeclare _exchangeDeclare = ExchangeDeclare.Create("TestExchange", ExchangeType.Direct);
         private static readonly QueueDeclare _queueDeclare = QueueDeclare.Create("TestQueue", arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } });
@@ -77,7 +77,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
@@ -142,7 +142,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
             await channel.ConsumerStartAsync(consumer);
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Timeout));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {

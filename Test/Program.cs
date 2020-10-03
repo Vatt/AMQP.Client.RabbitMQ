@@ -19,7 +19,7 @@ namespace Test
     {
         private static string Host = "centos0.mshome.net";
         //private static int Size = 1024 * 1024; //32;
-        private static int Size = 32;//134217728;
+        private static int Size = 4096;//134217728;
 
         //private static string Host = 
         private static async Task Main(string host, int size)
@@ -46,7 +46,7 @@ namespace Test
                 Size = size;
             }
             //await ChannelTest();
-            await Task.WhenAll(StartConsumer(), StartPublisher(), StartPublisher());
+            await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
 
@@ -73,12 +73,12 @@ namespace Test
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var properties = new ContentHeaderProperties();
-            properties.AppId = "testapp";
+            //properties.AppId = "testapp";
             var body = new byte[Size];
             int i = 0;
             while (true/*!channel.IsClosed*/)
             {
-                properties.CorrelationId = Guid.NewGuid().ToString();
+                //properties.CorrelationId = Guid.NewGuid().ToString();
                 var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
                 //if (!result)
                 //{
@@ -108,9 +108,13 @@ namespace Test
             await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true), PipeScheduler.ThreadPool);
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.CreateNoWait("TestQueue", "TestConsumer", true), PipeScheduler.ThreadPool);
             consumer.Received += /*async*/ (sender, result) =>
             {
+                if (result.Body[0] != 42)
+                {
+                    throw new Exception("SHIT");
+                }
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));
             };
             await channel.ConsumerStartAsync(consumer);
