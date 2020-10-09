@@ -1,11 +1,11 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -33,7 +33,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             writer.WriteBit(message.Info.Immediate);
             writer.BitFlush();
             writer.WriteOctet(RabbitMQConstants.FrameEnd);
-            
+
             _bitCount = 0;
             _flagWord = 0;
             writer.WriteOctet(RabbitMQConstants.FrameHeader);
@@ -105,7 +105,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     public class PublishAllInfo
     {
         public ContentHeader _contentHeader;
-        public BasicPublishInfo _info;        
+        public BasicPublishInfo _info;
         public ushort ChannelId;
         public ReadOnlyMemory<byte> Body { get; }
 
@@ -117,7 +117,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             ChannelId = channelId;
         }
 
-        public ref BasicPublishInfo Info => ref  _info;
-        public ref ContentHeader Header => ref  _contentHeader;
+        public ref BasicPublishInfo Info => ref _info;
+        public ref ContentHeader Header => ref _contentHeader;
     }
 }

@@ -1,7 +1,7 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Exceptions;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
+using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {

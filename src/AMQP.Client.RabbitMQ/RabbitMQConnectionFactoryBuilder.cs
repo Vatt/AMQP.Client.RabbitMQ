@@ -1,8 +1,8 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.IO.Pipelines;
 using System.Net;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using Microsoft.Extensions.Logging;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -89,26 +89,6 @@ namespace AMQP.Client.RabbitMQ
         {
             Options.ConnectionAttempts = count;
             return this;
-        }
-        //public RabbitMQConnection Build()
-        //{
-        //    return new RabbitMQConnection(this);
-        //}
-        public RabbitMQConnectionFactory Build()
-        {
-            if (Logger == null)
-            {
-                Logger = new LoggerFactory().CreateLogger(string.Empty);
-            }
-            if (Options.ConnectionTimeout == null)
-            {
-                Options.ConnectionTimeout = TimeSpan.FromSeconds(15);
-            }
-            if (Options.ConnectionAttempts == 0)
-            {
-                Options.ConnectionAttempts = 5;
-            }
-            return new RabbitMQConnectionFactory(this);
         }
     }
 }

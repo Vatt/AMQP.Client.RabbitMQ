@@ -1,13 +1,11 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -21,7 +19,7 @@ namespace AMQP.Client.RabbitMQ
             {
                 data.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            
+
             await session.Writer.SendBasicConsumeAsync(consumer.Channel.ChannelId, consumer.Conf).ConfigureAwait(false);
             if (!consumer.Conf.NoWait)
             {
@@ -44,17 +42,21 @@ namespace AMQP.Client.RabbitMQ
         }
         internal static ValueTask PublishAllAsync(this RabbitMQSession session, PublishAllInfo info, CancellationToken token = default)
         {
-            return session.Writer.WriteAsync(_fullWriter, info, token);           
+            return session.Writer.WriteAsync(_fullWriter, info, token);
+        }
+        internal static ValueTask PublishBatchAsync(this RabbitMQSession session, PublishAllInfo[] info, CancellationToken token = default)
+        {
+            return session.Writer.WriteManyAsync(_fullWriter, info, token);
         }
         internal static ValueTask PublishPartialAsync(this RabbitMQSession session, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
         {
             var writer = new PublishInfoAndContentWriter(channelId);
-            return session.Writer.WriteAsync(writer, info, token);            
+            return session.Writer.WriteAsync(writer, info, token);
         }
         public static ValueTask PublishBodyAsync(this RabbitMQSession session, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
         {
             return session.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
-            
+
         }
     }
 }

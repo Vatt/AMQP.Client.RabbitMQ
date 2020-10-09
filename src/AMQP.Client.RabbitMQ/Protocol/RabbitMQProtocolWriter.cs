@@ -1,17 +1,17 @@
-﻿using Bedrock.Framework.Protocols;
-using Microsoft.AspNetCore.Connections;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Net.Connections;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
     public class RabbitMQProtocolWriter : IAsyncDisposable
     {
         private readonly ProtocolWriter Writer;
-        public RabbitMQProtocolWriter(ConnectionContext ctx)
+        public RabbitMQProtocolWriter(Connection ctx)
         {
             Writer = ctx.CreateWriter();
         }

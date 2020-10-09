@@ -1,7 +1,7 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Common;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {

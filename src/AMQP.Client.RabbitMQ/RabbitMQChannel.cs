@@ -1,14 +1,14 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
+﻿using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -97,9 +97,9 @@ namespace AMQP.Client.RabbitMQ
         private async ValueTask<bool> PublishAllContinuation(PublishAllInfo allInfo, CancellationToken timeout)
         {
             Session.LockEvent.Wait();
-            while(true)
+            while (true)
             {
-                if(timeout.IsCancellationRequested)
+                if (timeout.IsCancellationRequested)
                 {
                     return false;
                 }
@@ -114,6 +114,27 @@ namespace AMQP.Client.RabbitMQ
                     continue;
                 }
             }
+        }
+
+        public async ValueTask<bool> PublishBatch(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte>[] messages)
+        {
+            if (IsClosed)
+            {
+                return false;
+            }
+
+            Session.LockEvent.Wait();
+            var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
+            var content = new ContentHeader(60, messages[1].Length, ref properties);
+            var batch = new PublishAllInfo[messages.Length];
+            for (int i = 0; i < messages.Length; i++)
+            {
+                batch[i] = new PublishAllInfo(ChannelId, ref messages[i], ref info, content);
+            }
+
+            await Session.PublishBatchAsync(batch);
+            return true;
+
         }
         public async ValueTask<bool> Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
@@ -130,7 +151,9 @@ namespace AMQP.Client.RabbitMQ
                 try
                 {
                     await Session.PublishAllAsync(allinfo).ConfigureAwait(false);
-                }catch(Exception e)
+                    return true;
+                }
+                catch (Exception e)
                 {
                     Debugger.Break();
                     var cts = new CancellationTokenSource(Session.Options.ConnectionTimeout);
@@ -139,7 +162,7 @@ namespace AMQP.Client.RabbitMQ
                         return await PublishAllContinuation(allinfo, cts.Token);
                     }
                 }
-                
+
             }
 
 

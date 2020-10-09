@@ -1,5 +1,4 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Exceptions;
-using System;
 
 namespace AMQP.Client.RabbitMQ.Protocol.ThrowHelpers
 {

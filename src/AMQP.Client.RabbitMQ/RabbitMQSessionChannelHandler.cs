@@ -1,4 +1,9 @@
-﻿using AMQP.Client.RabbitMQ.Consumer;
+﻿using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
@@ -8,11 +13,6 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {

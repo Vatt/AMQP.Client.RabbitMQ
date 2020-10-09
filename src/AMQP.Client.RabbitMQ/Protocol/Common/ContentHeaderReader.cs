@@ -1,6 +1,6 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
+﻿using System.Buffers;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
-using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {

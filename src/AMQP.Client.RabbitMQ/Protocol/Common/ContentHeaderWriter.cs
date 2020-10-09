@@ -1,10 +1,10 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -165,7 +165,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (present)
             {
                 int bit = 15 - _bitCount;
-                _flagWord = (ushort) (_flagWord | (1 << bit));
+                _flagWord = (ushort)(_flagWord | (1 << bit));
             }
 
             _bitCount++;

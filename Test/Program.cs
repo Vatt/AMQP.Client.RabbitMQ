@@ -6,35 +6,35 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
+using System.Net.Connections;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Network;
+using AMQP.Client.RabbitMQ.Network.Internal.Pipe;
+using AMQP.Client.RabbitMQ.Network.Internal.Pool;
 
 namespace Test
 {
     //Закрытие канала от сервера проверить можно кривым указанием очереди в консумере
     //на 16 мегах чтото непонятное творится
 
-    internal class Program
+    internal class Program 
     {
         private static string Host = "centos0.mshome.net";
         //private static int Size = 1024 * 1024; //32;
         private static int Size = 32;//134217728;
 
         //private static string Host = 
+
         private static async Task Main(string host, int size)
         {
             //using Microsoft.Extensions.ObjectPool;
-            //private static ObjectPool<FrameContentReader> _readerPool = ObjectPool.Create<FrameContentReader>();
-
-            //Utf8JsonWriter
-            //Utf8JsonReader
-            //JsonSerializer 
-
-            //await RunDefault();
-            //await ChannelTest();
-
-            //await RunDefault();
+        
+            
 
             if (!string.IsNullOrEmpty(host))
             {
@@ -45,23 +45,26 @@ namespace Test
             {
                 Size = size;
             }
+            await RunDefault();
             //await ChannelTest();
-            await Task.WhenAll(StartConsumer(), StartPublisher());
+            //await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
 
         private static async Task StartPublisher()
         {
-            var loggerFactory = LoggerFactory.Create(builder =>
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Debug);
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                    loggerBuilder.SetMinimumLevel(LogLevel.Debug);
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
+                builder.ConnectionAttempts(100);
             });
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty))
-                                 .ConnectionTimeout(TimeSpan.FromSeconds(30))
-                                 .ConnectionAttempts(100)
-                                 .Build();
+ 
             var connection = factory.CreateConnection();
 
             await connection.StartAsync();
@@ -73,13 +76,19 @@ namespace Test
             await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
 
             var properties = new ContentHeaderProperties();
-            //properties.AppId = "testapp";
+            properties.AppId = "testapp";
             var body = new byte[Size];
+            var batch = new ReadOnlyMemory<byte>[15];
+            for (int j = 0; j < batch.Length; j++)
+            {
+                batch[j] = body;
+            }
             int i = 0;
             while (true/*!channel.IsClosed*/)
             {
-                //properties.CorrelationId = Guid.NewGuid().ToString();
-                var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
+                properties.CorrelationId = Guid.NewGuid().ToString();
+                //var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
+                var result = await channel.PublishBatch("TestExchange", string.Empty, false, false, properties, batch);
                 //if (!result)
                 //{
                 //    break;
@@ -91,14 +100,18 @@ namespace Test
 
         private static async Task StartConsumer()
         {
-            var loggerFactory = LoggerFactory.Create(builder =>
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Debug);
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                    loggerBuilder.SetMinimumLevel(LogLevel.Debug);
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
+                builder.ConnectionAttempts(100);
             });
-
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
+            
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 
@@ -123,17 +136,18 @@ namespace Test
 
         public static async Task ChannelTest()
         {
-            var loggerFactory = LoggerFactory.Create(builder =>
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
-                //builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Information);
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                    loggerBuilder.SetMinimumLevel(LogLevel.Debug);
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
+                builder.ConnectionAttempts(100);
             });
-
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty))
-                                 .ConnectionTimeout(TimeSpan.FromSeconds(30))
-                                 .ConnectionAttempts(100000)
-                                 .Build();
+            
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel1 = await connection.OpenChannel();
@@ -194,8 +208,17 @@ namespace Test
 
         public static async Task RunDefault()
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Build();
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
+            {
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                    loggerBuilder.SetMinimumLevel(LogLevel.Debug);
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
+                builder.ConnectionAttempts(100);
+            });
             var connection = factory.CreateConnection();
             await connection.StartAsync();
             var channel = await connection.OpenChannel();

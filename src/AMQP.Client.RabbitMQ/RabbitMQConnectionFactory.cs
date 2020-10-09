@@ -1,4 +1,7 @@
-﻿namespace AMQP.Client.RabbitMQ
+﻿using System;
+using System.Net;
+
+namespace AMQP.Client.RabbitMQ
 {
     public class RabbitMQConnectionFactory
     {
@@ -12,6 +15,13 @@
         public RabbitMQConnection CreateConnection()
         {
             return new RabbitMQConnection(_builder);
+        }
+
+        public static RabbitMQConnectionFactory Create(EndPoint endpoint, Action<RabbitMQConnectionFactoryBuilder> configure)
+        {
+            var buidler = new RabbitMQConnectionFactoryBuilder(endpoint);
+            configure(buidler);
+            return new RabbitMQConnectionFactory(buidler);
         }
     }
 }

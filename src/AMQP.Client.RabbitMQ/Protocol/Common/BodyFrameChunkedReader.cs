@@ -1,9 +1,9 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
-using Bedrock.Framework.Protocols;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {

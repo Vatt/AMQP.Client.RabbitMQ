@@ -5,6 +5,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace ProducerTest
 {
@@ -14,8 +15,15 @@ namespace ProducerTest
 
         private static async Task Main(string[] args)
         {
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.Build();
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
+            {
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                    loggerBuilder.SetMinimumLevel(LogLevel.Debug);
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+            });
             var connection = factory.CreateConnection();
 
             await connection.StartAsync();

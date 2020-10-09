@@ -1,4 +1,13 @@
-﻿using AMQP.Client.RabbitMQ.Internal;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Connections;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Internal;
+using AMQP.Client.RabbitMQ.Network;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Exceptions;
@@ -8,17 +17,7 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using Bedrock.Framework;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -27,12 +26,11 @@ namespace AMQP.Client.RabbitMQ
         private RabbitMQListener _listener;
         //private ChannelHandler _channelHandler;
         private CancellationTokenSource _cts;
-        private ConnectionContext _ctx;
+        private Connection _ctx;
 
         private Timer _heartbeat;
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
-        internal TaskCompletionSource<bool> ConnectionGlobalLock;
         internal ManualResetEventSlim LockEvent;
         internal readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
 
@@ -154,22 +152,20 @@ namespace AMQP.Client.RabbitMQ
             _ctx = await TryConnect();
             Writer = new RabbitMQProtocolWriter(_ctx);
             Reader = new RabbitMQProtocolReader(_ctx);
-            await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);            
+            await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
         }
-        private async ValueTask<ConnectionContext> TryConnect()
+        private async ValueTask<Connection> TryConnect()
         {
-            var client = new ClientBuilder(new ServiceCollection().BuildServiceProvider()) //.UseClientTls()
-                            .UseSockets()
-                            .Build();
+            var factory = new NetworkConnectionFactory();
             for (var i = 0; i < Options.ConnectionAttempts; i++)
             {
                 try
                 {
                     var cts = new CancellationTokenSource(Options.ConnectionTimeout);
-                    return await client.ConnectAsync(Options.Endpoint, cts.Token).ConfigureAwait(false);
+                    return await factory.ConnectAsync(Options.Endpoint, cancellationToken: cts.Token).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -184,11 +180,12 @@ namespace AMQP.Client.RabbitMQ
             try
             {
                 await Recovery().ConfigureAwait(false);
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Debugger.Break();
             }
-            
+
         }
         private void StartReadingAsync(RabbitMQProtocolReader reader)
         {

@@ -44,13 +44,14 @@ namespace AMQP.Client.RabbitMQ.Tests
             var receivedCount = 0;
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
-            //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
-            var loggerFactory = LoggerFactory.Create(builder =>
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
-                builder.AddConsole();
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
             });
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 
@@ -64,7 +65,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             await channel.ConsumerStartAsync(consumer);
 
             var tcs = new TaskCompletionSource<bool>();
-            consumer.Received += async (sender, result) =>
+            consumer.Received += (sender, result) =>
             {
                 Assert.Equal(message, Encoding.UTF8.GetString(result.Body));
 
@@ -107,13 +108,14 @@ namespace AMQP.Client.RabbitMQ.Tests
             var receivedCount = 0;
             byte[] sendBody = Encoding.UTF8.GetBytes(message);
 
-            //var builder = new RabbitMQConnectionFactoryBuilder(new IPEndPoint(IPAddress.Loopback, 5672));
-            var loggerFactory = LoggerFactory.Create(builder =>
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
-                builder.AddConsole();
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
             });
-            var builder = new RabbitMQConnectionFactoryBuilder(new DnsEndPoint(Host, 5672));
-            var factory = builder.AddLogger(loggerFactory.CreateLogger(string.Empty)).Build();
             var connection = factory.CreateConnection();
             await connection.StartAsync();
 

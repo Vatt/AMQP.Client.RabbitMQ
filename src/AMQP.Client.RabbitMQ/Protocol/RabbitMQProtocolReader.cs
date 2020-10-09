@@ -1,18 +1,18 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
-using Bedrock.Framework.Protocols;
-using Microsoft.AspNetCore.Connections;
-using System;
+﻿using System;
 using System.Buffers;
+using System.Net.Connections;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
     public class RabbitMQProtocolReader : IAsyncDisposable
     {
         private readonly ProtocolReader _protocol;
-        public RabbitMQProtocolReader(ConnectionContext ctx)
+        public RabbitMQProtocolReader(Connection ctx)
         {
             _protocol = ctx.CreateReader();
         }

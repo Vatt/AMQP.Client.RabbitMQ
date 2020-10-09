@@ -1,14 +1,14 @@
-﻿using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Exceptions;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using Microsoft.Extensions.Logging;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -73,7 +73,7 @@ namespace AMQP.Client.RabbitMQ
                 _logger.LogError(e.StackTrace);
             }
             catch (Exception e)
-            {               
+            {
                 _logger.LogError(e.Message);
                 _logger.LogError(e.StackTrace);
             }
@@ -90,17 +90,17 @@ namespace AMQP.Client.RabbitMQ
             {
                 _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
                 _watchTask = Task.Run(WatchAsync).ContinueWith(ReconnectAsync);
-                await _session.DisposeAsync().ConfigureAwait(false);                                
+                await _session.DisposeAsync().ConfigureAwait(false);
                 _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc, _lockEvent);
                 await _session.ConnectWithRecovery().ConfigureAwait(false);
-                
+
 
             }
             catch (Exception e)
             {
                 _logger.LogDebug($"{nameof(RabbitMQConnection)}: reconnect failed with exception message {e.Message}");
                 _connectionClosedSrc.SetException(e);
-                Debugger.Break();               
+                Debugger.Break();
             }
             _lockEvent.Set();
             _logger.LogDebug($"{nameof(RabbitMQConnection)}: end reconnect");
