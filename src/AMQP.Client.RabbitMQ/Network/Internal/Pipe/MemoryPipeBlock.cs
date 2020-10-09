@@ -1,11 +1,12 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Network.Internal.Pool;
+using System;
 using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 {
     partial class MemoryPipe
     {
-        private class MemoryPipeBlock : IDisposable
+        internal class MemoryPipeBlock : IDisposable
         {
             private IMemoryOwner<byte> _data;
             private Memory<byte> _dataMemory;
@@ -59,6 +60,14 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
                 {
                     WriterComplete = true;
                 }
+            }
+            public void Release()
+            {
+                (_data as MemoryBlock).Return();
+                _writerIndex = -1;
+                _readerIndex = -1;
+                _data = null;
+                _isDisposed = true;
             }
             public void Dispose()
             {

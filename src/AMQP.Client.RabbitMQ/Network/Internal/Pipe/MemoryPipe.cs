@@ -61,6 +61,8 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
                     }
                     else
                     {
+                        _readerHead.Release();
+                        _readerHead = null;
                         _ = _tail.TryDequeue(out _readerHead);
                     }
                 }
@@ -78,6 +80,11 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
             if (_writerHead.WriterComplete)
             {
                 if (!ReferenceEquals(_writerHead, _readerHead))
+                {
+                    _tail.Enqueue(_writerHead);
+                    _writerHead = createBlock();
+                }
+                else
                 {
                     _tail.Enqueue(_writerHead);
                     _writerHead = createBlock();
@@ -109,7 +116,9 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
             
             if (ReadableMemory.Length > 0)
             {
-                return new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(ReadableMemory),false, false ));
+                var headSegment = MemoryPipeSequenceSegment.Create(_readerHead);
+                var sequence = new ReadOnlySequence<byte>(headSegment,0,headSegment, headSegment.Memory.Length);
+                return new ValueTask<ReadResult>(new ReadResult(sequence, false, false ));
             }
             // _state.SetReadingState();
            
@@ -125,7 +134,9 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
             //         break;
             //     }
             // }
-            return new ReadResult(new ReadOnlySequence<byte>(ReadableMemory), false, false );
+            var headSegment = MemoryPipeSequenceSegment.Create(_readerHead);
+            var sequence = new ReadOnlySequence<byte>(headSegment,0,headSegment, headSegment.Memory.Length);
+            return new ReadResult(sequence, false, false );
         }
 
         private async void OnReadingComplete(Action<object?> continuation, object? state, short token,

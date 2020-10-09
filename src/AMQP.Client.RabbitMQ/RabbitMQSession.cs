@@ -160,8 +160,8 @@ namespace AMQP.Client.RabbitMQ
         private async ValueTask<Connection> TryConnect()
         {
             var factory = new NetworkConnectionFactory();
-            for (var i = 0; i < Options.ConnectionAttempts; i++)
-            {
+            //for (var i = 0; i < Options.ConnectionAttempts; i++)
+            //{
                 try
                 {
                     var cts = new CancellationTokenSource(Options.ConnectionTimeout);
@@ -169,10 +169,10 @@ namespace AMQP.Client.RabbitMQ
                 }
                 catch (Exception e)
                 {
-                    continue;
+                    return default; ;
                 }
-            }
-            return default;
+            //}
+            //return default;
         }
         public async ValueTask ConnectWithRecovery()
         {

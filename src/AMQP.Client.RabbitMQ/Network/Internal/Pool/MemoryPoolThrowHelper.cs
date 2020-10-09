@@ -8,7 +8,10 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pool
         {
             throw new ObjectDisposedException(argument.ToString());
         }
-
+        public static void ThrowInvalidOperationException(ExceptionArgument argument)
+        {
+            throw new InvalidOperationException(argument.ToString());
+        }
         public enum ExceptionArgument
         {
             MemoryPool,

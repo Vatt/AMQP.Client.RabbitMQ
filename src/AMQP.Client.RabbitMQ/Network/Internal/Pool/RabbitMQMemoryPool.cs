@@ -38,6 +38,14 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pool
             _blocks.TryPop(out block);
             return block;
         }
+        internal void Return(MemoryBlock block)
+        {
+            if (block.Owner == null || !ReferenceEquals(block.Owner, this))
+            {
+                MemoryPoolThrowHelper.ThrowInvalidOperationException(MemoryPoolThrowHelper.ExceptionArgument.MemoryPool);
+            }
+            _blocks.Push(block);
+        }
         protected override void Dispose(bool disposing)
         {
             if (_isDisposed)

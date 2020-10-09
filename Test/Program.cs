@@ -45,9 +45,9 @@ namespace Test
             {
                 Size = size;
             }
-            await RunDefault();
+            //await RunDefault();
             //await ChannelTest();
-            //await Task.WhenAll(StartConsumer(), StartPublisher());
+            await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
 
@@ -87,8 +87,8 @@ namespace Test
             while (true/*!channel.IsClosed*/)
             {
                 properties.CorrelationId = Guid.NewGuid().ToString();
-                //var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
-                var result = await channel.PublishBatch("TestExchange", string.Empty, false, false, properties, batch);
+                var result = await channel.Publish("TestExchange", string.Empty, false, false, properties, body);
+                //var result = await channel.PublishBatch("TestExchange", string.Empty, false, false, properties, batch);
                 //if (!result)
                 //{
                 //    break;
@@ -126,7 +126,7 @@ namespace Test
             {
                 if (result.Body[0] != 42)
                 {
-                    throw new Exception("SHIT");
+                    //throw new Exception("SHIT");
                 }
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));
             };

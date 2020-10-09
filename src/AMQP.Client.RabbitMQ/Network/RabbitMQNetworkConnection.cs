@@ -77,7 +77,7 @@ namespace AMQP.Client.RabbitMQ.Network
                 var buffer = result.Buffer;
 
                 await _sender.SendAsync(buffer);
-                _application.Input.AdvanceTo(new SequencePosition(null, (int)buffer.Length));
+                _application.Input.AdvanceTo(buffer.End);
 
                 if (result.IsCompleted)
                 {

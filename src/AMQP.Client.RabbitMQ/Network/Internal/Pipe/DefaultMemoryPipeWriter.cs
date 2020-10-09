@@ -20,7 +20,8 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 
             public override void Advance(int bytes)
             {
-                _localWritten += bytes;
+                //_localWritten += bytes;
+                _pipe.WriterAdvance(bytes);
             }
 
             public override Memory<byte> GetMemory(int sizeHint = 0) => _pipe.WritableMemory;
@@ -38,9 +39,9 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 
             public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = new CancellationToken())
             {
-                Debug.Assert(_localWritten > 0);
-                _pipe.WriterAdvance(_localWritten);
-                _localWritten = 0;
+                //Debug.Assert(_localWritten > 0);
+                //_pipe.WriterAdvance(_localWritten);
+                //_localWritten = 0;
                 return new ValueTask<FlushResult>(new FlushResult(false, false));
             }
 
