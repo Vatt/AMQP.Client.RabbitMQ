@@ -1,6 +1,6 @@
-﻿using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Core;
+﻿using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {

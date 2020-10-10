@@ -1,14 +1,14 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Exceptions;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using Microsoft.Extensions.Logging;
 
 namespace AMQP.Client.RabbitMQ
 {

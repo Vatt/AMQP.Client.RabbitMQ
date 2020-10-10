@@ -3,10 +3,10 @@ using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace ConsumerTest
 {
@@ -35,7 +35,7 @@ namespace ConsumerTest
             await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue"));
             await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId,"TestQueue", "TestConsumer", true));
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId, "TestQueue", "TestConsumer", true));
             consumer.Received += /*async*/ (sender, result) =>
             {
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));

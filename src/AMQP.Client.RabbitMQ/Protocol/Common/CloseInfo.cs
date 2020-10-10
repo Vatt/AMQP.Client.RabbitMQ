@@ -22,7 +22,7 @@
 
         public static CloseInfo Create(short code, string text, short failedClassId, short failedMethodId)
         {
-            return new CloseInfo(0,0,0, code, text, failedClassId, failedMethodId);
+            return new CloseInfo(0, 0, 0, code, text, failedClassId, failedMethodId);
         }
     }
 }

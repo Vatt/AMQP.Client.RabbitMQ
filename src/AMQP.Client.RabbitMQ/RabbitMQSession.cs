@@ -1,4 +1,14 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Internal;
+using AMQP.Client.RabbitMQ.Network;
+using AMQP.Client.RabbitMQ.Protocol;
+using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Exceptions;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
@@ -6,19 +16,6 @@ using System.Net.Connections;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Internal;
-using AMQP.Client.RabbitMQ.Network;
-using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
-using AMQP.Client.RabbitMQ.Protocol.Core;
-using AMQP.Client.RabbitMQ.Protocol.Exceptions;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
-using Microsoft.Extensions.Logging;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -129,7 +126,7 @@ namespace AMQP.Client.RabbitMQ
                 Options.TuneOptions.FrameMax = conf.FrameMax;
             }
             await Writer.WriteAsync(ProtocolWriters.ConnectionTuneOkWriter, Options.TuneOptions).ConfigureAwait(false);
-            await Writer.WriteAsync(ProtocolWriters.ConnectionOpenWriter,Options.ConnOptions.VHost).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.ConnectionOpenWriter, Options.ConnOptions.VHost).ConfigureAwait(false);
         }
         private void Heartbeat(object state)
         {
@@ -140,7 +137,7 @@ namespace AMQP.Client.RabbitMQ
         {
             try
             {
-                await Writer.WriteAsync(ProtocolWriters.ByteWriter,_heartbeatFrame, _cts.Token).ConfigureAwait(false);
+                await Writer.WriteAsync(ProtocolWriters.ByteWriter, _heartbeatFrame, _cts.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -155,7 +152,7 @@ namespace AMQP.Client.RabbitMQ
             _ctx = await TryConnect();
             Writer = _ctx.CreateWriter();
             Reader = _ctx.CreateReader();
-            await Writer.WriteAsync(ProtocolWriters.ByteWriter,_protocolMsg, _cts.Token).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.ByteWriter, _protocolMsg, _cts.Token).ConfigureAwait(false);
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
@@ -165,15 +162,15 @@ namespace AMQP.Client.RabbitMQ
             var factory = new NetworkConnectionFactory(Logger);
             //for (var i = 0; i < Options.ConnectionAttempts; i++)
             //{
-                try
-                {
-                    var cts = new CancellationTokenSource(Options.ConnectionTimeout);
-                    return await factory.ConnectAsync(Options.Endpoint, cancellationToken: cts.Token).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    return default; ;
-                }
+            try
+            {
+                var cts = new CancellationTokenSource(Options.ConnectionTimeout);
+                return await factory.ConnectAsync(Options.Endpoint, cancellationToken: cts.Token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                return default; ;
+            }
             //}
             //return default;
         }

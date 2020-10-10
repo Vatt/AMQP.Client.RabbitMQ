@@ -1,19 +1,18 @@
-﻿using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
+﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -207,7 +206,7 @@ namespace AMQP.Client.RabbitMQ
         {
             //await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             var replyText = reason == null ? string.Empty : reason;
-            await Writer.WriteAsync(ProtocolWriters.CloseWriter, new CloseInfo(channel.ChannelId, 20, 40,RabbitMQConstants.ReplySuccess, replyText, 0, 0)).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.CloseWriter, new CloseInfo(channel.ChannelId, 20, 40, RabbitMQConstants.ReplySuccess, replyText, 0, 0)).ConfigureAwait(false);
             await _manualCloseSrc.Task.ConfigureAwait(false);
             Channels.TryRemove(channel.ChannelId, out _);
             Logger.LogDebug($"{nameof(RabbitMQSession)}: Channel {channel.ChannelId} closed");

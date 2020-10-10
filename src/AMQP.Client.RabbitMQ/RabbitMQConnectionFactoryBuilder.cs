@@ -1,8 +1,8 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
+using Microsoft.Extensions.Logging;
+using System;
 using System.IO.Pipelines;
 using System.Net;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using Microsoft.Extensions.Logging;
 
 namespace AMQP.Client.RabbitMQ
 {

@@ -22,8 +22,8 @@ namespace AMQP.Client.RabbitMQ.Tests
         private static readonly int publishCount = threadCount * 200;
         private static readonly int seconds = 200;
         private static string Host = "centos0.mshome.net";
-		public TestFloodPublishing()
-		{
+        public TestFloodPublishing()
+        {
             Host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "centos0.mshome.net";
         }
 
@@ -84,8 +84,8 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             Assert.Equal(threadCount * publishCount, receivedCount);
 
-            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId,"TestQueue", "TestExchange"));
-            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId,"TestQueue"));
+            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
+            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "TestQueue"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.Create(channel.ChannelId, "TestExchange"));
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingNoAck");
         }
@@ -150,8 +150,8 @@ namespace AMQP.Client.RabbitMQ.Tests
             //await consumer1.CancelAsync(); //TODO: fix this
             Assert.Equal(threadCount * publishCount, receivedCount);
 
-            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId,"TestQueue", "TestExchange"));
-            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId,"TestQueue"));
+            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
+            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "TestQueue"));
             await channel.ExchangeDeleteAsync(ExchangeDelete.Create(channel.ChannelId, "TestExchange"));
 
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingWithAck");

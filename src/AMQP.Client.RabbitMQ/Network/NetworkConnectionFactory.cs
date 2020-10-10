@@ -1,11 +1,9 @@
-﻿using System.Diagnostics;
-using System.IO.Pipelines;
+﻿using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Connections;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace AMQP.Client.RabbitMQ.Network
 {

@@ -1,8 +1,8 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Core;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
@@ -10,7 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
     {
         public void WriteMessage((ConnectionConf, ClientConf) messagePair, IBufferWriter<byte> output)
         {
-            (var info, var  message) = messagePair;
+            (var info, var message) = messagePair;
             var writer = new ValueWriter(output);
             writer.WriteOctet(1);
             writer.WriteShortInt(0);

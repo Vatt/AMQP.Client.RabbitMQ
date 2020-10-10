@@ -1,10 +1,10 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Framing;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using AMQP.Client.RabbitMQ.Protocol.Core;
-using AMQP.Client.RabbitMQ.Protocol.Framing;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {

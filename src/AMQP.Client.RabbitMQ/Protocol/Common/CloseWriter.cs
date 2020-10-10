@@ -1,8 +1,8 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.Core;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
-using AMQP.Client.RabbitMQ.Protocol.Core;
-using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -15,7 +15,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
-            FrameWriter.WriteMethodFrame(message.ClassId,message.MethodId, ref writer);
+            FrameWriter.WriteMethodFrame(message.ClassId, message.MethodId, ref writer);
             writer.WriteShortInt(message.ReplyCode);
             writer.WriteShortStr(message.ReplyText);
             writer.WriteShortInt(message.FailedClassId);

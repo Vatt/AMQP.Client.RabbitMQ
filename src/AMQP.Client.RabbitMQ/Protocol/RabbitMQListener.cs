@@ -1,11 +1,11 @@
-﻿using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Protocol.Core;
+﻿using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ.Protocol
 {
@@ -152,7 +152,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                     }
                 case 40: //close
                     {
-                        var closeInfo = await ReadAsync(ProtocolReaders.CloseReader, token).ConfigureAwait(false); 
+                        var closeInfo = await ReadAsync(ProtocolReaders.CloseReader, token).ConfigureAwait(false);
                         await _channelHandler.OnChannelCloseAsync(header.Channel, closeInfo).ConfigureAwait(false);
                         break;
                     }
@@ -173,13 +173,13 @@ namespace AMQP.Client.RabbitMQ.Protocol
             {
                 case 11: //declare-ok
                     {
-                        var declareOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false); 
-                        await _channelHandler.OnExchangeDeclareOkAsync(header.Channel).ConfigureAwait(false); 
+                        var declareOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false);
+                        await _channelHandler.OnExchangeDeclareOkAsync(header.Channel).ConfigureAwait(false);
                         break;
                     }
                 case 21: //delete-ok
                     {
-                        var declareOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false); 
+                        var declareOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false);
                         await _channelHandler.OnExchangeDeleteOkAsync(header.Channel).ConfigureAwait(false);
                         break;
                     }
@@ -200,13 +200,13 @@ namespace AMQP.Client.RabbitMQ.Protocol
                     }
                 case 21: //bind-ok
                     {
-                        var bindOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false); 
+                        var bindOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false);
                         await _channelHandler.OnQueueBindOkAsync(header.Channel).ConfigureAwait(false);
                         break;
                     }
                 case 51: //unbind-ok
                     {
-                        var unbindOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false); 
+                        var unbindOk = await ReadAsync(ProtocolReaders.NoPayloadReader, token).ConfigureAwait(false);
                         await _channelHandler.OnQueueUnbindOkAsync(header.Channel).ConfigureAwait(false);
                         break;
                     }

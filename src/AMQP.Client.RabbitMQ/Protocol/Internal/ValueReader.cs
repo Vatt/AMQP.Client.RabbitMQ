@@ -1,10 +1,10 @@
-﻿using System;
+﻿using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
-using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Internal
 {

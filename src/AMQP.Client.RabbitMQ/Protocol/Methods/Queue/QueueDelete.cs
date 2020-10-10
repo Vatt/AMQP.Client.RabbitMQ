@@ -16,7 +16,7 @@
             NoWait = false;
         }
         public static QueueDelete Create(ushort channelId, string queueName, bool ifUnused = false, bool ifEmpty = false)
-        { 
+        {
             return new QueueDelete(channelId, queueName, ifUnused, ifEmpty);
         }
     }

@@ -1,8 +1,8 @@
-﻿using System;
-using System.Buffers;
-using AMQP.Client.RabbitMQ.Protocol.Core;
+﻿using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
+using System;
+using System.Buffers;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
@@ -36,7 +36,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (!reader.ReadShortStr(out var replyText)) { return false; }
             if (!reader.ReadShortInt(out short failedClassId)) { return false; }
             if (!reader.ReadShortInt(out short failedMethodId)) { return false; }
-            message = CloseInfo.Create(replyCode, replyText, failedClassId, failedMethodId);;
+            message = CloseInfo.Create(replyCode, replyText, failedClassId, failedMethodId); ;
             return true;
         }
     }

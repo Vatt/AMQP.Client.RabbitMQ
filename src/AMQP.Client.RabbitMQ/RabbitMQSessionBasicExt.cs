@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
+﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -37,7 +33,7 @@ namespace AMQP.Client.RabbitMQ
         {
             var data = session.GetChannelData(channel.ChannelId);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await session.Writer.WriteAsync(ProtocolWriters.BasicQoSWriter,qos).ConfigureAwait(false);
+            await session.Writer.WriteAsync(ProtocolWriters.BasicQoSWriter, qos).ConfigureAwait(false);
             await data.CommonTcs.Task.ConfigureAwait(false);
         }
     }

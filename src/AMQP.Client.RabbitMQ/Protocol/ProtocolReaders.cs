@@ -21,6 +21,6 @@ namespace AMQP.Client.RabbitMQ.Protocol
         public static readonly MethodHeaderReader MethodHeaderReader = new MethodHeaderReader();
         public static readonly NoPayloadReader NoPayloadReader = new NoPayloadReader();
         public static readonly ShortStrPayloadReader ShortStrPayloadReader = new ShortStrPayloadReader();
-    
+
     }
 }

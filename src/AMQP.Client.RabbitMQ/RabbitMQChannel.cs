@@ -1,16 +1,14 @@
-﻿using System;
-using System.Buffers;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Consumer;
+﻿using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Protocol;
-using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -110,7 +108,7 @@ namespace AMQP.Client.RabbitMQ
                     await Session.Writer.WriteAsync3(
                             ProtocolWriters.BasicPublishWriter, info,
                             ProtocolWriters.ContentHeaderWriter, content,
-                            ProtocolWriters.BodyFrameWriter,(ChannelId, message))
+                            ProtocolWriters.BodyFrameWriter, (ChannelId, message))
                         .ConfigureAwait(false);
                     return true;
                 }
@@ -139,7 +137,7 @@ namespace AMQP.Client.RabbitMQ
                     await Session.Writer.WriteAsync3(
                         ProtocolWriters.BasicPublishWriter, info,
                         ProtocolWriters.ContentHeaderWriter, content,
-                        ProtocolWriters.BodyFrameWriter,(ChannelId, message))
+                        ProtocolWriters.BodyFrameWriter, (ChannelId, message))
                         .ConfigureAwait(false);
                     return true;
                 }
@@ -149,20 +147,20 @@ namespace AMQP.Client.RabbitMQ
                     var cts = new CancellationTokenSource(Session.Options.ConnectionTimeout);
                     using (var timeoutRegistratiuon = cts.Token.Register(() => cts.Cancel()))
                     {
-                        return await PublishAllContinuation(info, content,message, cts.Token);
+                        return await PublishAllContinuation(info, content, message, cts.Token);
                     }
                 }
             }
 
 
             await WriterSemaphore.WaitAsync().ConfigureAwait(false);
-            
+
             var written = 0;
             await Session.Writer.WriteAsync2(
                     ProtocolWriters.BasicPublishWriter, info,
                     ProtocolWriters.ContentHeaderWriter, content)
                 .ConfigureAwait(false);
-            
+
             while (written < content.BodySize)
             {
                 var batchCnt = 0;
@@ -177,7 +175,7 @@ namespace AMQP.Client.RabbitMQ
                 await Session.Writer.WriteManyAsync(ProtocolWriters.BodyFrameWriter, _publishBatch).ConfigureAwait(false);
                 //_publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
-            
+
             WriterSemaphore.Release();
             return true;
         }
