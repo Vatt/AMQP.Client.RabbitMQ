@@ -1,6 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Network.Internal.Pool;
 using System;
 using System.Buffers;
+using System.Diagnostics;
 
 namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 {
@@ -15,7 +16,20 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
             internal int _readerIndex;
             private bool _isDisposed;
             public Memory<byte> Writable => _dataMemory.Slice(_writerIndex, _dataLength - _writerIndex);
-            public Memory<byte> Readable => _dataMemory.Slice(_readerIndex, _writerIndex - _readerIndex);
+            public Memory<byte> Readable 
+            { 
+                get 
+                {
+                    try
+                    {
+                        return _dataMemory.Slice(_readerIndex, _writerIndex - _readerIndex);
+                    }catch(Exception _)
+                    {
+                        Debugger.Break();
+                        return default;
+                    }
+                } 
+            }
             public bool WriterComplete { get; private set; }
             public bool ReaderComplete { get; private set; }
             public bool IsCompleted => WriterComplete && ReaderComplete;

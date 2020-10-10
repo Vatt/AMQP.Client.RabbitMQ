@@ -159,7 +159,7 @@ namespace AMQP.Client.RabbitMQ
         }
         private async ValueTask<Connection> TryConnect()
         {
-            var factory = new NetworkConnectionFactory();
+            var factory = new NetworkConnectionFactory(Logger);
             //for (var i = 0; i < Options.ConnectionAttempts; i++)
             //{
                 try

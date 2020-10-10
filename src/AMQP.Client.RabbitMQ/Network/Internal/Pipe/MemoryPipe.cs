@@ -12,16 +12,14 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
     public partial class MemoryPipe
     {
         private readonly MemoryPool<byte> _pool;
-        private readonly object _readerLock = new object();
+        private readonly object _lock = new object();
         private readonly ConcurrentQueue<MemoryPipeBlock> _tail;
         private MemoryPipeBlock _readerHead;
         private MemoryPipeBlock _writerHead;
-        private PipeAwaitable _awaitable;
-
+        private SegmentStack _segmentStack;
 
         private DefaultMemoryPipeReader _reader;
         private DefaultMemoryPipeWriter _writer;
-        private PipeAwaitable _readerAwaitable;
         private MemoryPipeState _state;
         public bool ReadingInProgress => _state.IsReadingActive;
 
@@ -38,7 +36,7 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
             _tail = new ConcurrentQueue<MemoryPipeBlock>();
             _state.ResetAll();
             //_awaitable = new PipeAwaitable(false, null);
-
+            _segmentStack  = new SegmentStack();
             _writer = new DefaultMemoryPipeWriter(this);
             _reader = new DefaultMemoryPipeReader(this);
         }
@@ -46,55 +44,49 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 
         private void ReaderAdvance(int bytes)
         {
-           /* if (bytes == 0)
+            lock (_lock)
             {
-                return;
-            }*/
-            _readerHead.AdvanceReaderPosition(bytes);
-            if (_readerHead.IsCompleted)
-            {
-                if (!ReferenceEquals(_readerHead, _writerHead))
+                _readerHead.AdvanceReaderPosition(bytes);
+                if (_readerHead.IsCompleted)
                 {
-                    if (_tail.IsEmpty)
+                    if (!ReferenceEquals(_readerHead, _writerHead))
                     {
-                        _readerHead = _writerHead;
-                    }
-                    else
-                    {
-                        _readerHead.Release();
-                        _readerHead = null;
-                        _ = _tail.TryDequeue(out _readerHead);
+                        if (_tail.IsEmpty)
+                        {
+                            _readerHead = _writerHead;
+                        }
+                        else
+                        {
+                            _readerHead.Release();
+                            _readerHead = null;
+                            _ = _tail.TryDequeue(out _readerHead);
+                        }
                     }
                 }
             }
-            //if (_state.IsReadingActive)
-            //{
-            //    _state.CompleteReader();
-            //}
-            
+   
         }
         private void WriterAdvance(int bytes)
         {
-            _writerHead.AdvanceWriterPosition(bytes);
-
-            if (_writerHead.WriterComplete)
+            lock (_lock)
             {
-                if (!ReferenceEquals(_writerHead, _readerHead))
+                _writerHead.AdvanceWriterPosition(bytes);
+
+                if (_writerHead.WriterComplete)
                 {
-                    _tail.Enqueue(_writerHead);
-                    _writerHead = createBlock();
-                }
-                else
-                {
-                    _tail.Enqueue(_writerHead);
-                    _writerHead = createBlock();
+                    if (!ReferenceEquals(_writerHead, _readerHead))
+                    {
+                        _tail.Enqueue(_writerHead);
+                        _writerHead = createBlock();
+                    }
+                    else
+                    {
+                        //_tail.Enqueue(_writerHead);
+                        _writerHead = createBlock();
+                    }
                 }
             }
-
-            //if (_state.IsReadingActive)
-            //{
-            //    _state.CompleteReader();
-            //}           
+      
         }
 
         private MemoryPipeBlock createBlock()
@@ -127,15 +119,21 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 
         private ReadResult GetReadAsyncResult()
         {
-            // while (true)
-            // {
-            //     if (ReadableMemory.Length > 0)
-            //     {
-            //         break;
-            //     }
-            // }
-            var headSegment = MemoryPipeSequenceSegment.Create(_readerHead);
-            var sequence = new ReadOnlySequence<byte>(headSegment,0,headSegment, headSegment.Memory.Length);
+
+            ReadOnlySequence<byte> sequence;
+            
+            if (_tail.Count > 0)
+            {
+                _tail.TryPeek(out var tailBlock);
+                var (headSegment, tailSegment) = MemoryPipeSequenceSegment.Create(_readerHead, tailBlock);
+                sequence = new ReadOnlySequence<byte>(headSegment, 0, tailSegment, tailSegment.Memory.Length);
+            }
+            else
+            {
+                var headSegment = MemoryPipeSequenceSegment.Create(_readerHead);
+                sequence = new ReadOnlySequence<byte>(headSegment, 0, headSegment, headSegment.Memory.Length);
+            }
+            
             return new ReadResult(sequence, false, false );
         }
 

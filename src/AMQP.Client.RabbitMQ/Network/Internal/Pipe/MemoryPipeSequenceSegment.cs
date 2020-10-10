@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Generic;
 
 namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
 {
@@ -11,7 +12,12 @@ namespace AMQP.Client.RabbitMQ.Network.Internal.Pipe
                 Memory = block.Readable;
             }
 
-            public static MemoryPipeSequenceSegment Create(MemoryPipeBlock block) => new  MemoryPipeSequenceSegment(block);
+            public void Refresh(MemoryPipeBlock block)
+            {
+                Memory = block.Readable;
+            }
+
+            public static MemoryPipeSequenceSegment Create(MemoryPipeBlock block) => new MemoryPipeSequenceSegment(block);
 
             public static (MemoryPipeSequenceSegment, MemoryPipeSequenceSegment) Create(MemoryPipeBlock block0, MemoryPipeBlock block1)
             {
