@@ -11,7 +11,6 @@ namespace AMQP.Client.RabbitMQ
 {
     internal static class RabbitMQSessionBasicExt
     {
-        private static readonly PublishFullWriter _fullWriter = new PublishFullWriter();
         internal static async Task ConsumerStartAsync(this RabbitMQSession session, RabbitMQConsumer consumer)
         {
             var data = session.GetChannelData(consumer.Channel.ChannelId);
@@ -39,19 +38,6 @@ namespace AMQP.Client.RabbitMQ
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             await session.Writer.SendBasicQoSAsync(channel.ChannelId, ref qos).ConfigureAwait(false);
             await data.CommonTcs.Task.ConfigureAwait(false);
-        }
-        internal static ValueTask PublishAllAsync(this RabbitMQSession session, PublishAllInfo info, CancellationToken token = default)
-        {
-            return session.Writer.WriteAsync(_fullWriter, info, token);
-        }
-        internal static ValueTask PublishBatchAsync(this RabbitMQSession session, PublishAllInfo[] info, CancellationToken token = default)
-        {
-            return session.Writer.WriteManyAsync(_fullWriter, info, token);
-        }
-        internal static ValueTask PublishPartialAsync(this RabbitMQSession session, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
-        {
-            var writer = new PublishInfoAndContentWriter(channelId);
-            return session.Writer.WriteAsync(writer, info, token);
         }
         public static ValueTask PublishBodyAsync(this RabbitMQSession session, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
         {

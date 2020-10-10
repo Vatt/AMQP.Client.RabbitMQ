@@ -12,7 +12,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
     {
         private static readonly BasicDeliverReader _basicDeliverReader = new BasicDeliverReader();
         private static readonly BasicConsumeCancelReader _consumeCancelReader = new BasicConsumeCancelReader();
-        private static readonly PublishFullWriter _fullWriter = new PublishFullWriter();
         public static ValueTask SendBasicConsumeAsync(this ProtocolWriter protocol, ushort channelId, ConsumeConf info, CancellationToken token = default)
         {
             return protocol.WriteAsync(ProtocolWriters.BasicConsumeWriter, info, token);
@@ -69,20 +68,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             return protocol.ReadAsync(reader, token);
         }
         */
-        public static ValueTask PublishAllAsync(this ProtocolWriter protocol, ushort channelId, ref PublishAllInfo info, CancellationToken token = default)
-        {
-            return protocol.WriteAsync(_fullWriter, info, token);
-        }
-        public static ValueTask PublishPartialAsync(this ProtocolWriter protocol, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
-        {
-            var writer = new PublishInfoAndContentWriter(channelId);
-            return protocol.WriteAsync(writer, info, token);
-        }
-
-        // public static ValueTask PublishBodyAsync(this ProtocolWriter protocol, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
-        // {
-        //     return protocol.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
-        // }
         public static IChunkedBodyFrameReader CreateResetableChunkedBodyReader(this RabbitMQProtocolReader protocol, ushort channelId)
         {
             return new BodyFrameChunkedReader(channelId);

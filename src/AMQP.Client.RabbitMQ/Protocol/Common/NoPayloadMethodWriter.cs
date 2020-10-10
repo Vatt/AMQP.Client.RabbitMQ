@@ -19,7 +19,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         }
     }
 
-    public class NoPayloadMethodWrtier : IMessageWriter<NoPaylodMethodInfo>
+    public class NoPayloadMethodWriter : IMessageWriter<NoPaylodMethodInfo>
     {
         public void WriteMessage(NoPaylodMethodInfo message, IBufferWriter<byte> output)
         {

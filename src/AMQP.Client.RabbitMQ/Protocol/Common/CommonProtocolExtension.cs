@@ -67,7 +67,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         public static ValueTask SendCloseOk(this ProtocolWriter protocol, byte type, ushort channel, short classId, short methodId, CancellationToken token = default)
         {
             var info = new NoPaylodMethodInfo(type, channel, classId, methodId);
-            return protocol.WriteAsync(new NoPayloadMethodWrtier(), info, token);
+            return protocol.WriteAsync(new NoPayloadMethodWriter(), info, token);
         }
         internal static string ReadShortStrPayload(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {

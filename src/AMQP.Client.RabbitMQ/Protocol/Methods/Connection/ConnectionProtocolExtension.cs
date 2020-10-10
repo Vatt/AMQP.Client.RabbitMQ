@@ -13,7 +13,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         private static ConnectionOpenOkReader _connectionOpenOkReader = new ConnectionOpenOkReader();
         public static ValueTask SendStartOkAsync(this ProtocolWriter protocol, ClientConf clientInfo, ConnectionConf connInfo, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new ConnectionStartOkWriter(connInfo), clientInfo, token);
+            return protocol.WriteAsync(ProtocolWriters.ConnectionStartOkWriter , (connInfo, clientInfo), token);
         }
         public static ValueTask SendTuneOkAsync(this ProtocolWriter protocol, TuneConf info, CancellationToken token = default)
         {
