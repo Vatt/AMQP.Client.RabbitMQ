@@ -15,23 +15,19 @@ using Xunit;
 
 namespace AMQP.Client.RabbitMQ.Tests
 {
-    public class TestFloodPublishing
+    public class TestFloodPublishing : TestBase
     {
-        private static readonly string message = "test message";
-        private static readonly int threadCount = Environment.ProcessorCount;
-        private static readonly int publishCount = threadCount * 100;
-        private static readonly int seconds = 2000;
-        private static string Host = "centos0.mshome.net";
-        public TestFloodPublishing()
+
+        public TestFloodPublishing() : base()
         {
-            Host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "centos0.mshome.net";
+            
         }
 
         [Fact]
         public async Task TestMultithreadFloodPublishingNoAck()
         {
             var receivedCount = 0;
-            byte[] sendBody = Encoding.UTF8.GetBytes(message);
+            byte[] sendBody = Encoding.UTF8.GetBytes(Message);
 
             var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
@@ -56,10 +52,10 @@ namespace AMQP.Client.RabbitMQ.Tests
             var tcs = new TaskCompletionSource<bool>();
             consumer.Received += (sender, result) =>
             {
-                Assert.Equal(message, Encoding.UTF8.GetString(result.Body));
+                Assert.Equal(Message, Encoding.UTF8.GetString(result.Body));
 
                 var inc = Interlocked.Increment(ref receivedCount);
-                if (inc == threadCount * publishCount)
+                if (inc == ThreadCount * PublishCount)
                 {
                     tcs.SetResult(true);
                 }
@@ -67,14 +63,14 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
 
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Seconds));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
                 var tasks = new List<Task>();
-                for (int i = 0; i < threadCount; i++)
+                for (int i = 0; i < ThreadCount; i++)
                 {
-                    var task = StartFloodAsync(channel,  "TestExchange", sendBody, publishCount);
+                    var task = StartFloodAsync(channel,  "TestExchange", sendBody, PublishCount);
                     tasks.Add(task);
                 }
                 await Task.WhenAll(tasks);
@@ -82,7 +78,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             }
             //await consumer1.CancelAsync(); //TODOL fix this     
 
-            Assert.Equal(threadCount * publishCount, receivedCount);
+            Assert.Equal(ThreadCount * PublishCount, receivedCount);
 
             await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
             var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "TestQueue"));
@@ -95,7 +91,7 @@ namespace AMQP.Client.RabbitMQ.Tests
         {
 
             var receivedCount = 0;
-            byte[] sendBody = Encoding.UTF8.GetBytes(message);
+            byte[] sendBody = Encoding.UTF8.GetBytes(Message);
 
             var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
             {
@@ -122,9 +118,9 @@ namespace AMQP.Client.RabbitMQ.Tests
             consumer.Received += async (sender, result) =>
             {
 
-                Assert.Equal(message, Encoding.UTF8.GetString(result.Body));
+                Assert.Equal(Message, Encoding.UTF8.GetString(result.Body));
                 var inc = Interlocked.Increment(ref receivedCount);
-                if (inc == threadCount * publishCount)
+                if (inc == ThreadCount * PublishCount)
                 {
                     tcs.SetResult(true);
                 }
@@ -133,22 +129,22 @@ namespace AMQP.Client.RabbitMQ.Tests
             };
 
             await channel.ConsumerStartAsync(consumer);
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Seconds));
 
             using (var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled()))
             {
                 var tasks = new List<Task>();
-                for (int i = 0; i < threadCount; i++)
+                for (int i = 0; i < ThreadCount; i++)
                 {
-                    var task = StartFloodAsync(channel, "TestExchange", sendBody, publishCount);
+                    var task = StartFloodAsync(channel, "TestExchange", sendBody, PublishCount);
                     tasks.Add(task);
                 }
                 await Task.WhenAll(tasks);
                 await tcs.Task;
 
             }
-            //await consumer1.CancelAsync(); //TODO: fix this
-            Assert.Equal(threadCount * publishCount, receivedCount);
+            //await consumer.CancelAsync(); //TODO: fix this
+            Assert.Equal(ThreadCount * PublishCount, receivedCount);
 
             await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
             var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "TestQueue"));
