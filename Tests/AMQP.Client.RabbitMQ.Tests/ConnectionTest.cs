@@ -21,7 +21,6 @@ namespace AMQP.Client.RabbitMQ.Tests
                 var loggerFactory = LoggerFactory.Create(loggerBuilder =>
                 {
                     loggerBuilder.AddConsole();
-                    loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
             });

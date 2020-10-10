@@ -198,5 +198,10 @@ namespace AMQP.Client.RabbitMQ
         {
             return Session.QoS(this, qos);
         }
+
+        public async Task CloseAsync()
+        {
+            await Session.CloseChannel(this, $"Channel {ChannelId} closed gracefully");
+        }
     }
 }

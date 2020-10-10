@@ -208,6 +208,9 @@ namespace AMQP.Client.RabbitMQ
             var replyText = reason == null ? string.Empty : reason;
             await Writer.WriteAsync(ProtocolWriters.CloseWriter, new CloseInfo(channel.ChannelId, 20, 40, RabbitMQConstants.ReplySuccess, replyText, 0, 0)).ConfigureAwait(false);
             await _manualCloseSrc.Task.ConfigureAwait(false);
+            channel.IsClosed = true;
+            channel.Session = null;
+            channel.WriterSemaphore = null;
             Channels.TryRemove(channel.ChannelId, out _);
             Logger.LogDebug($"{nameof(RabbitMQSession)}: Channel {channel.ChannelId} closed");
             //_writerSemaphore.Release();
