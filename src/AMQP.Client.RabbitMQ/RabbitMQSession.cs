@@ -32,7 +32,7 @@ namespace AMQP.Client.RabbitMQ
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
         private TaskCompletionSource<bool> _connectionOpenOk;
         internal ManualResetEventSlim LockEvent;
-        internal readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
+        private readonly TaskCompletionSource<CloseInfo> ConnectionClosedSrc;
 
         public readonly ILogger Logger;
         public readonly ConnectionOptions Options;
@@ -298,6 +298,11 @@ namespace AMQP.Client.RabbitMQ
                 channel.IsClosed = false;
                 channel.WriterSemaphore.Release();
             }
+        }
+
+        internal void SetException(Exception ex)
+        {
+            ConnectionClosedSrc.SetException(ex);
         }
     }
 }

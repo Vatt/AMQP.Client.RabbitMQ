@@ -19,7 +19,7 @@ namespace Test
     {
         private static string Host = "centos0.mshome.net";
         //private static int Size = 1024 * 1024; //32;
-        private static int Size = 32;//129*1024;
+        private static int Size = 32;
 
         //private static string Host = 
 
@@ -40,7 +40,7 @@ namespace Test
             }
             await RunDefault();
             //await ChannelTest();
-           // await Task.WhenAll(StartConsumer(), StartPublisher());
+            //await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
 

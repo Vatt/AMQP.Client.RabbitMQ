@@ -156,28 +156,39 @@ namespace AMQP.Client.RabbitMQ
             await WriterSemaphore.WaitAsync().ConfigureAwait(false);
 
             var written = 0;
-            await Session.Writer.WriteAsync2(
-                    ProtocolWriters.BasicPublishWriter, info,
-                    ProtocolWriters.ContentHeaderWriter, content)
-                .ConfigureAwait(false);
-
-            while (written < content.BodySize)
+            try
             {
-                var batchCnt = 0;
-                while (batchCnt < _publishBatchSize && written < content.BodySize)
-                {
-                    var writable = Math.Min(Session.Tune.FrameMax, (int)content.BodySize - written);
-                    _publishBatch[batchCnt] = (ChannelId, message.Slice(written, writable));
-                    batchCnt++;
-                    written += writable;
-                }
-                //await Session.PublishBodyAsync(ChannelId, _publishBatch).ConfigureAwait(false);
-                await Session.Writer.WriteManyAsync(ProtocolWriters.BodyFrameWriter, _publishBatch).ConfigureAwait(false);
-                //_publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
-            }
+                await Session.Writer.WriteAsync2(
+                        ProtocolWriters.BasicPublishWriter, info,
+                        ProtocolWriters.ContentHeaderWriter, content)
+                    .ConfigureAwait(false);
 
-            WriterSemaphore.Release();
+                while (written < content.BodySize)
+                {
+                    var batchCnt = 0;
+                    while (batchCnt < _publishBatchSize && written < content.BodySize)
+                    {
+                        var writable = Math.Min(Session.Tune.FrameMax, (int) content.BodySize - written);
+                        _publishBatch[batchCnt] = (ChannelId, message.Slice(written, writable));
+                        batchCnt++;
+                        written += writable;
+                    }
+                    await Session.Writer.WriteManyAsync(ProtocolWriters.BodyFrameWriter, _publishBatch).ConfigureAwait(false);
+                    _publishBatch.AsSpan().Fill((0,ReadOnlyMemory<byte>.Empty));
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Session.SetException(ex);
+            }
+            finally
+            {
+                WriterSemaphore.Release();
+            }
             return true;
+
         }
 
         public ValueTask Ack(AckInfo ack)
