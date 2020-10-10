@@ -177,14 +177,14 @@ namespace AMQP.Client.RabbitMQ
         public async ValueTask ConnectWithRecovery()
         {
             await Connect().ConfigureAwait(false);
-            try
-            {
+            // try
+            // {
                 await Recovery().ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                Debugger.Break();
-            }
+            // }
+            // catch (Exception e)
+            // {
+            //     Debugger.Break();
+            // }
 
         }
         private void StartReadingAsync(ProtocolReader reader)
@@ -219,7 +219,7 @@ namespace AMQP.Client.RabbitMQ
         public async Task CloseAsync(string reason = null)
         {
             var replyText = reason == null ? "Connection closed gracefully" : reason;
-            var info = CloseInfo.Create(RabbitMQConstants.Success, replyText, 0, 0);
+            var info = CloseInfo.CreateCloseConnection(RabbitMQConstants.Success, replyText, 0,0);
             await Writer.WriteAsync(ProtocolWriters.CloseWriter, info).ConfigureAwait(false);
             await _connectionCloseOkSrc.Task.ConfigureAwait(false);
             ConnectionClosedSrc.SetResult(info);

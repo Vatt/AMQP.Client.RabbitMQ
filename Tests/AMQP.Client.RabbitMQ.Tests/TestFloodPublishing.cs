@@ -19,8 +19,8 @@ namespace AMQP.Client.RabbitMQ.Tests
     {
         private static readonly string message = "test message";
         private static readonly int threadCount = Environment.ProcessorCount;
-        private static readonly int publishCount = threadCount * 200;
-        private static readonly int seconds = 200;
+        private static readonly int publishCount = threadCount * 100;
+        private static readonly int seconds = 2000;
         private static string Host = "centos0.mshome.net";
         public TestFloodPublishing()
         {
@@ -74,7 +74,7 @@ namespace AMQP.Client.RabbitMQ.Tests
                 var tasks = new List<Task>();
                 for (int i = 0; i < threadCount; i++)
                 {
-                    var task = StartFloodAsync(channel, "TestQueue", sendBody, publishCount);
+                    var task = StartFloodAsync(channel,  "TestExchange", sendBody, publishCount);
                     tasks.Add(task);
                 }
                 await Task.WhenAll(tasks);
@@ -140,7 +140,7 @@ namespace AMQP.Client.RabbitMQ.Tests
                 var tasks = new List<Task>();
                 for (int i = 0; i < threadCount; i++)
                 {
-                    var task = StartFloodAsync(channel, "TestQueue", sendBody, publishCount);
+                    var task = StartFloodAsync(channel, "TestExchange", sendBody, publishCount);
                     tasks.Add(task);
                 }
                 await Task.WhenAll(tasks);
@@ -156,12 +156,12 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingWithAck");
         }
-        async Task StartFloodAsync(RabbitMQChannel channel, string queue, byte[] body, int count)
+        async Task StartFloodAsync(RabbitMQChannel channel, string exchange, byte[] body, int count)
         {
             var propertiesConsume = new ContentHeaderProperties();
             for (int i = 0; i < count; i++)
             {
-                await channel.Publish(string.Empty, queue, false, false, propertiesConsume, body);
+                await channel.Publish(exchange, string.Empty, false, false, propertiesConsume, body);
             }
         }
     }

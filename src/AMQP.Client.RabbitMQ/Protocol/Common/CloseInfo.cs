@@ -19,10 +19,17 @@
             FailedClassId = failedClassId;
             FailedMethodId = failedMethodId;
         }
-
         public static CloseInfo Create(short code, string text, short failedClassId, short failedMethodId)
         {
             return new CloseInfo(0, 0, 0, code, text, failedClassId, failedMethodId);
+        }
+        public static CloseInfo CreateCloseConnection(short code, string text, short failedClassId, short failedMethodId)
+        {
+            return new CloseInfo(0, 10, 50, code, text, failedClassId, failedMethodId);
+        }
+        public static CloseInfo CreateCloseChannel(short code, string text, short failedClassId, short failedMethodId)
+        {
+            return new CloseInfo(0, 20, 50, code, text, failedClassId, failedMethodId);
         }
     }
 }

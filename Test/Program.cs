@@ -38,9 +38,9 @@ namespace Test
             {
                 Size = size;
             }
-            //await RunDefault();
+            await RunDefault();
             //await ChannelTest();
-            await Task.WhenAll(StartConsumer(), StartPublisher());
+           // await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
 
@@ -236,12 +236,7 @@ namespace Test
             await channel.ConsumerStartAsync(consumer);
             await channel.Publish("TestExchange", string.Empty, false, false, new ContentHeaderProperties(), new byte[16 * 1024 * 1024 + 1]);
 
-            //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue", "TestExchange"));
-            //await channel.QueueUnbindAsync(QueueUnbind.Create("TestQueue2", "TestExchange2"));
-            //var deleteOk = await channel.QueueDeleteAsync(QueueDelete.Create("TestQueue"));
-            //await channel.QueueDeleteNoWaitAsync(QueueDelete.Create("TestQueue2"));
-            //await channel.ExchangeDeleteAsync(ExchangeDelete.Create("TestExchange"));
-            //await channel.ExchangeDeleteAsync(ExchangeDelete.CreateNoWait("TestExchange2"));
+
             await connection.CloseAsync();
 
             await Task.Delay(TimeSpan.FromHours(2));
