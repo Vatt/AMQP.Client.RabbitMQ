@@ -14,8 +14,6 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Network;
-using AMQP.Client.RabbitMQ.Network.Internal.Pipe;
-using AMQP.Client.RabbitMQ.Network.Internal.Pool;
 
 namespace Test
 {
