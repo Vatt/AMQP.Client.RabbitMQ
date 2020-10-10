@@ -12,7 +12,6 @@ namespace AMQP.Client.RabbitMQ.Protocol.Core
         private readonly PipeWriter _writer;
         private readonly SemaphoreSlim _semaphore;
         private bool _disposed;
-        internal PipeWriter PipeWriter => _writer;
         public ProtocolWriter(Stream stream) :
             this(PipeWriter.Create(stream))
         {
