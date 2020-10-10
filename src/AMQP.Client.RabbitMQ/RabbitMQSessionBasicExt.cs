@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 
@@ -19,7 +20,7 @@ namespace AMQP.Client.RabbitMQ
                 data.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
-            await session.Writer.SendBasicConsumeAsync(consumer.Channel.ChannelId, consumer.Conf).ConfigureAwait(false);
+            await session.Writer.WriteAsync(ProtocolWriters.BasicConsumeWriter, consumer.Conf).ConfigureAwait(false);
             if (!consumer.Conf.NoWait)
             {
                 var tag = await data.ConsumeTcs.Task.ConfigureAwait(false);
@@ -36,13 +37,8 @@ namespace AMQP.Client.RabbitMQ
         {
             var data = session.GetChannelData(channel.ChannelId);
             data.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await session.Writer.SendBasicQoSAsync(channel.ChannelId, ref qos).ConfigureAwait(false);
+            await session.Writer.WriteAsync(ProtocolWriters.BasicQoSWriter,qos).ConfigureAwait(false);
             await data.CommonTcs.Task.ConfigureAwait(false);
-        }
-        public static ValueTask PublishBodyAsync(this RabbitMQSession session, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
-        {
-            //return session.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
-            return default;
         }
     }
 }

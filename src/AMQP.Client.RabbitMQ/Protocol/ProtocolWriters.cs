@@ -1,5 +1,7 @@
 ﻿using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
+using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
@@ -8,6 +10,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
 {
     internal static class ProtocolWriters
     {
+        public static readonly ByteWriter ByteWriter = new ByteWriter();
         public static readonly NoPayloadMethodWriter NoPayloadMethodWriter = new NoPayloadMethodWriter();
         public static readonly CloseWriter CloseWriter = new CloseWriter();
         public static readonly ContentHeaderWriter ContentHeaderWriter = new ContentHeaderWriter();
@@ -28,6 +31,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         public static readonly ConnectionOpenWriter ConnectionOpenWriter = new ConnectionOpenWriter();
         public static readonly ConnectionStartOkWriter ConnectionStartOkWriter = new ConnectionStartOkWriter();
         public static readonly ConnectionTuneOkWriter ConnectionTuneOkWriter = new ConnectionTuneOkWriter();
+        public static readonly ChannelOpenWriter ChannelOpenWriter = new ChannelOpenWriter();
 
     }
 }

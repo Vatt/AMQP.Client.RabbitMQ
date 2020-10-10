@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 
@@ -96,21 +97,30 @@ namespace AMQP.Client.RabbitMQ.Consumer
             message.CopyTo(span);
             _deliverPosition += (int)message.Length;
         }
-        public async ValueTask OnBeginDeliveryAsync(RabbitMQDeliver deliver, RabbitMQProtocolReader protocol)
+        public async ValueTask OnBeginDeliveryAsync(RabbitMQDeliver deliver, ProtocolReader protocol)
         {
             var activeContent = await protocol.ReadAsync(_contentFullReader).ConfigureAwait(false);
-            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)activeContent.BodySize);
+            protocol.Advance();
+            if (activeContent.IsCanceled || activeContent.IsCompleted)
+            {
+                //TODO: do some
+            }
+            _activeDeliverBody = ArrayPool<byte>.Shared.Rent((int)activeContent.Message.BodySize);
             _deliverPosition = 0;
-            _bodyReader.Reset(activeContent.BodySize);
+            _bodyReader.Reset(activeContent.Message.BodySize);
 
             while (!_bodyReader.IsComplete)
             {
-                var result = await protocol.ReadWithoutAdvanceAsync(_bodyReader).ConfigureAwait(false);
-                Copy(result);
+                var result = await protocol.ReadAsync(_bodyReader).ConfigureAwait(false);
+                if (result.IsCanceled || result.IsCompleted)
+                {
+                    //TODO: do some
+                }
+                Copy(result.Message);
                 protocol.Advance();
             }
 
-            var arg = new DeliverArgs(deliver.DeliverTag, activeContent, _activeDeliverBody);
+            var arg = new DeliverArgs(deliver.DeliverTag, activeContent.Message, _activeDeliverBody);
             _scheduler.Schedule(Invoke, arg);
 
         }

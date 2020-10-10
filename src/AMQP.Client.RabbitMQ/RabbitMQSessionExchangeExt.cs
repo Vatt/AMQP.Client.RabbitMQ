@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 
 namespace AMQP.Client.RabbitMQ
@@ -11,12 +12,12 @@ namespace AMQP.Client.RabbitMQ
             var data = session.GetChannelData(channel.ChannelId);
             if (exchange.NoWait)
             {
-                await session.Writer.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
+                await session.Writer.WriteAsync(ProtocolWriters.ExchangeDeclareWriter, exchange).ConfigureAwait(false);
                 data.Exchanges.Add(exchange.Name, exchange);
                 return;
             }
             src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await session.Writer.SendExchangeDeclareAsync(channel.ChannelId, exchange).ConfigureAwait(false);
+            await session.Writer.WriteAsync(ProtocolWriters.ExchangeDeclareWriter, exchange).ConfigureAwait(false);
 
             await src.CommonTcs.Task.ConfigureAwait(false);
             data.Exchanges.Add(exchange.Name, exchange);
@@ -27,13 +28,12 @@ namespace AMQP.Client.RabbitMQ
             var data = session.GetChannelData(channel.ChannelId);
             if (exchange.NoWait)
             {
-                await session.Writer.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
+                await session.Writer.WriteAsync(ProtocolWriters.ExchangeDeleteWriter, exchange).ConfigureAwait(false);
                 data.Exchanges.Remove(exchange.Name);
                 return;
             }
             src.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await session.Writer.SendExchangeDeleteAsync(channel.ChannelId, exchange).ConfigureAwait(false);
-
+            await session.Writer.WriteAsync(ProtocolWriters.ExchangeDeleteWriter, exchange).ConfigureAwait(false);
             await src.CommonTcs.Task.ConfigureAwait(false);
             data.Exchanges.Remove(exchange.Name);
         }

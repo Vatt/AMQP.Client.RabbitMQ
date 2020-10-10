@@ -7,6 +7,7 @@ using AMQP.Client.RabbitMQ.Consumer;
 using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
@@ -113,7 +114,7 @@ namespace AMQP.Client.RabbitMQ
             throw new NotImplementedException();
         }
 
-        public ValueTask OnBeginDeliveryAsync(ushort channelId, RabbitMQDeliver deliver, RabbitMQProtocolReader protocol)
+        public ValueTask OnBeginDeliveryAsync(ushort channelId, RabbitMQDeliver deliver, ProtocolReader protocol)
         {
             var data = GetChannelData(channelId);
             if (!data.Consumers.TryGetValue(deliver.ConsumerTag, out var consumer))
@@ -192,7 +193,7 @@ namespace AMQP.Client.RabbitMQ
             //await _semaphore.WaitAsync().ConfigureAwait(false);
             var id = Interlocked.Increment(ref _channelId);
             _openSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await Writer.SendChannelOpenAsync((ushort)id).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.ChannelOpenWriter, (ushort)id).ConfigureAwait(false);
             await _openSrc.Task.ConfigureAwait(false);
 
             var newChannel = Channels.GetOrAdd((ushort)id, key => new RabbitMQChannel((ushort)id, this));
@@ -206,7 +207,7 @@ namespace AMQP.Client.RabbitMQ
         {
             //await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             var replyText = reason == null ? string.Empty : reason;
-            await Writer.SendClose(new CloseInfo(channel.ChannelId, 20, 40,RabbitMQConstants.ReplySuccess, replyText, 0, 0)).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.CloseWriter, new CloseInfo(channel.ChannelId, 20, 40,RabbitMQConstants.ReplySuccess, replyText, 0, 0)).ConfigureAwait(false);
             await _manualCloseSrc.Task.ConfigureAwait(false);
             Channels.TryRemove(channel.ChannelId, out _);
             Logger.LogDebug($"{nameof(RabbitMQSession)}: Channel {channel.ChannelId} closed");

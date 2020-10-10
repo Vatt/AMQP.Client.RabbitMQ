@@ -193,7 +193,7 @@ namespace AMQP.Client.RabbitMQ
             //{
             //    throw new Exception($"{nameof(RabbitMQChannel)}.{nameof(Reject)}: channel is canceled");
             //}
-            return Session.Writer.SendRejectAsync(ChannelId, ref reject);
+            return Session.Writer.WriteAsync(ProtocolWriters.BasicRejectWriter, reject);
         }
 
         public Task QoS(QoSInfo qos)

@@ -24,6 +24,8 @@ namespace AMQP.Client.RabbitMQ
 {
     sealed partial class RabbitMQSession : IConnectionHandler, IAsyncDisposable
     {
+        private static readonly ReadOnlyMemory<byte> _protocolMsg = new ReadOnlyMemory<byte>(new byte[8] { 65, 77, 81, 80, 0, 0, 9, 1 });
+        private static readonly ReadOnlyMemory<byte> _heartbeatFrame = new ReadOnlyMemory<byte>(new byte[8] { 8, 0, 0, 0, 0, 0, 0, 206 });
         private RabbitMQListener _listener;
         //private ChannelHandler _channelHandler;
         private CancellationTokenSource _cts;
@@ -38,7 +40,7 @@ namespace AMQP.Client.RabbitMQ
         public readonly ILogger Logger;
         public readonly ConnectionOptions Options;
         public ProtocolWriter Writer { get; private set; }
-        public RabbitMQProtocolReader Reader { get; private set; }
+        public ProtocolReader Reader { get; private set; }
 
         internal readonly ConcurrentDictionary<ushort, RabbitMQChannel> Channels;
         public ServerConf ServerOptions;
@@ -112,7 +114,7 @@ namespace AMQP.Client.RabbitMQ
         {
             Logger.LogDebug($"{nameof(RabbitMQSession)} {ConnectionId}: Start received");
             ServerOptions = conf;
-            await Writer.SendStartOkAsync(Options.ClientOptions, Options.ConnOptions).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.ConnectionStartOkWriter, (Options.ConnOptions, Options.ClientOptions)).ConfigureAwait(false);
         }
 
         async ValueTask IConnectionHandler.OnTuneAsync(TuneConf conf)
@@ -126,8 +128,8 @@ namespace AMQP.Client.RabbitMQ
             {
                 Options.TuneOptions.FrameMax = conf.FrameMax;
             }
-            await Writer.SendTuneOkAsync(Options.TuneOptions).ConfigureAwait(false);
-            await Writer.SendOpenAsync(Options.ConnOptions.VHost).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.ConnectionTuneOkWriter, Options.TuneOptions).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.ConnectionOpenWriter,Options.ConnOptions.VHost).ConfigureAwait(false);
         }
         private void Heartbeat(object state)
         {
@@ -138,7 +140,7 @@ namespace AMQP.Client.RabbitMQ
         {
             try
             {
-                await Writer.SendHeartbeat().ConfigureAwait(false);
+                await Writer.WriteAsync(ProtocolWriters.ByteWriter,_heartbeatFrame, _cts.Token).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -152,8 +154,8 @@ namespace AMQP.Client.RabbitMQ
             _cts = new CancellationTokenSource();
             _ctx = await TryConnect();
             Writer = _ctx.CreateWriter();
-            Reader = new RabbitMQProtocolReader(_ctx);
-            await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);
+            Reader = _ctx.CreateReader();
+            await Writer.WriteAsync(ProtocolWriters.ByteWriter,_protocolMsg, _cts.Token).ConfigureAwait(false);
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
@@ -188,12 +190,12 @@ namespace AMQP.Client.RabbitMQ
             }
 
         }
-        private void StartReadingAsync(RabbitMQProtocolReader reader)
+        private void StartReadingAsync(ProtocolReader reader)
         {
             _listener = new RabbitMQListener();
             _ = StartReadingInner(reader);
         }
-        private async Task StartReadingInner(RabbitMQProtocolReader reader)
+        private async Task StartReadingInner(ProtocolReader reader)
         {
             try
             {
@@ -221,7 +223,7 @@ namespace AMQP.Client.RabbitMQ
         {
             var replyText = reason == null ? "Connection closed gracefully" : reason;
             var info = CloseInfo.Create(RabbitMQConstants.Success, replyText, 0, 0);
-            await Writer.SendConnectionCloseAsync(info).ConfigureAwait(false);
+            await Writer.WriteAsync(ProtocolWriters.CloseWriter, info).ConfigureAwait(false);
             await _connectionCloseOkSrc.Task.ConfigureAwait(false);
             ConnectionClosedSrc.SetResult(info);
         }
@@ -234,7 +236,7 @@ namespace AMQP.Client.RabbitMQ
                 channel.Session = this;
 
                 _openSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                await Writer.SendChannelOpenAsync(channelPair.Key).ConfigureAwait(false);
+                await Writer.WriteAsync(ProtocolWriters.ChannelOpenWriter, channelPair.Key).ConfigureAwait(false);
                 await _openSrc.Task.ConfigureAwait(false);
 
 
@@ -242,13 +244,12 @@ namespace AMQP.Client.RabbitMQ
                 {
                     if (exchange.NoWait)
                     {
-                        await Writer.SendExchangeDeclareAsync(channelPair.Key, exchange).ConfigureAwait(false);
-                        continue;
+                        await Writer.WriteAsync(ProtocolWriters.ExchangeDeclareWriter, exchange).ConfigureAwait(false);
                     }
                     else
                     {
                         channel.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        await Writer.SendExchangeDeclareAsync(channelPair.Key, exchange).ConfigureAwait(false);
+                        await Writer.WriteAsync(ProtocolWriters.ExchangeDeclareWriter, exchange).ConfigureAwait(false);
                         await channel.CommonTcs.Task.ConfigureAwait(false);
                     }
 
@@ -257,13 +258,12 @@ namespace AMQP.Client.RabbitMQ
                 {
                     if (queue.NoWait)
                     {
-                        await Writer.SendQueueDeclareAsync(channelPair.Key, queue).ConfigureAwait(false);
-                        continue;
+                        await Writer.WriteAsync(ProtocolWriters.QueueDeclareWriter, queue).ConfigureAwait(false);
                     }
                     else
                     {
                         channel.QueueTcs = new TaskCompletionSource<QueueDeclareOk>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        await Writer.SendQueueDeclareAsync(channelPair.Key, queue).ConfigureAwait(false);
+                        await Writer.WriteAsync(ProtocolWriters.QueueDeclareWriter, queue).ConfigureAwait(false);
                         var declare = await channel.QueueTcs.Task.ConfigureAwait(false);
                     }
 
@@ -272,13 +272,12 @@ namespace AMQP.Client.RabbitMQ
                 {
                     if (bind.NoWait)
                     {
-                        await Writer.SendQueueBindAsync(channelPair.Key, bind).ConfigureAwait(false);
-                        continue;
+                        await Writer.WriteAsync(ProtocolWriters.QueueBindWriter, bind).ConfigureAwait(false);
                     }
                     else
                     {
                         channel.CommonTcs = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        await Writer.SendQueueBindAsync(channelPair.Key, bind).ConfigureAwait(false);
+                        await Writer.WriteAsync(ProtocolWriters.QueueBindWriter, bind).ConfigureAwait(false);
                         await channel.CommonTcs.Task.ConfigureAwait(false);
                     }
                 }
@@ -286,13 +285,12 @@ namespace AMQP.Client.RabbitMQ
                 {
                     if (consumer.Conf.NoWait)
                     {
-                        await Writer.SendBasicConsumeAsync(channelPair.Key, consumer.Conf).ConfigureAwait(false);
-                        continue;
+                        await Writer.WriteAsync(ProtocolWriters.BasicConsumeWriter, consumer.Conf).ConfigureAwait(false);
                     }
                     else
                     {
                         channel.ConsumeTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        await Writer.SendBasicConsumeAsync(channelPair.Key, consumer.Conf).ConfigureAwait(false);
+                        await Writer.WriteAsync(ProtocolWriters.BasicConsumeWriter, consumer.Conf).ConfigureAwait(false);
                         var tag = await channel.ConsumeTcs.Task.ConfigureAwait(false);
                         if (!tag.Equals(consumer.Conf.ConsumerTag))
                         {

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 
@@ -21,7 +22,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
         ValueTask OnExchangeDeclareOkAsync(ushort channelId);
         ValueTask OnExchangeDeleteOkAsync(ushort channelId);
 
-        ValueTask OnBeginDeliveryAsync(ushort channelId, RabbitMQDeliver deliver, RabbitMQProtocolReader protocol);
+        ValueTask OnBeginDeliveryAsync(ushort channelId, RabbitMQDeliver deliver, ProtocolReader protocol);
         ValueTask OnConsumeOkAsync(ushort channelId, string tag);
         ValueTask OnConsumeCancelAsync(ushort channelId, ConsumeCancelInfo cancelInfo);
         ValueTask OnQosOkAsync(ushort channelId);

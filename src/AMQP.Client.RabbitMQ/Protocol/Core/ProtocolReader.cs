@@ -28,10 +28,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Core
         {
             _reader = reader;
         }
-
         public ValueTask<ProtocolReadResult<TReadMessage>> ReadAsync<TReadMessage>(IMessageReader<TReadMessage> reader, CancellationToken cancellationToken = default)
         {
-            return ReadAsync(reader, maximumMessageSize: null, cancellationToken);
+             return ReadAsync(reader, maximumMessageSize: null, cancellationToken);
         }
 
         public ValueTask<ProtocolReadResult<TReadMessage>> ReadAsync<TReadMessage>(IMessageReader<TReadMessage> reader, int maximumMessageSize, CancellationToken cancellationToken = default)
