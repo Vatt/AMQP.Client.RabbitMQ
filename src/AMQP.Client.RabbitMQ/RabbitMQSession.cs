@@ -10,6 +10,7 @@ using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Network;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
@@ -36,7 +37,7 @@ namespace AMQP.Client.RabbitMQ
 
         public readonly ILogger Logger;
         public readonly ConnectionOptions Options;
-        public RabbitMQProtocolWriter Writer { get; private set; }
+        public ProtocolWriter Writer { get; private set; }
         public RabbitMQProtocolReader Reader { get; private set; }
 
         internal readonly ConcurrentDictionary<ushort, RabbitMQChannel> Channels;
@@ -150,7 +151,7 @@ namespace AMQP.Client.RabbitMQ
             _connectionOpenOk = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _cts = new CancellationTokenSource();
             _ctx = await TryConnect();
-            Writer = new RabbitMQProtocolWriter(_ctx);
+            Writer = _ctx.CreateWriter();
             Reader = new RabbitMQProtocolReader(_ctx);
             await Writer.SendProtocol(_cts.Token).ConfigureAwait(false);
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -219,7 +220,7 @@ namespace AMQP.Client.RabbitMQ
         public async Task CloseAsync(string reason = null)
         {
             var replyText = reason == null ? "Connection closed gracefully" : reason;
-            var info = new CloseInfo(RabbitMQConstants.Success, replyText, 0, 0);
+            var info = CloseInfo.Create(RabbitMQConstants.Success, replyText, 0, 0);
             await Writer.SendConnectionCloseAsync(info).ConfigureAwait(false);
             await _connectionCloseOkSrc.Task.ConfigureAwait(false);
             ConnectionClosedSrc.SetResult(info);

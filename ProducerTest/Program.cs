@@ -30,9 +30,9 @@ namespace ProducerTest
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
+            await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";

@@ -8,16 +8,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
     internal class QueueDeleteWriter : IMessageWriter<QueueDelete>
     {
-        private readonly ushort _channelId;
-        public QueueDeleteWriter(ushort channelId)
-        {
-            _channelId = channelId;
-        }
         public void WriteMessage(QueueDelete message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(RabbitMQConstants.FrameMethod);
-            writer.WriteShortInt(_channelId);
+            writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(50, 40, ref writer);

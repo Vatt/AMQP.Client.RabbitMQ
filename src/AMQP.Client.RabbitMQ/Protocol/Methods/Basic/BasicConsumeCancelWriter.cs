@@ -8,16 +8,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
     internal class BasicConsumeCancelWriter : IMessageWriter<ConsumeCancelInfo>
     {
-        private readonly ushort _channelId;
-        public BasicConsumeCancelWriter(ushort channelId)
-        {
-            _channelId = channelId;
-        }
         public void WriteMessage(ConsumeCancelInfo message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);
-            writer.WriteShortInt(_channelId);
+            writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
 

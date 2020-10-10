@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 {
@@ -12,9 +13,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         private static readonly BasicDeliverReader _basicDeliverReader = new BasicDeliverReader();
         private static readonly BasicConsumeCancelReader _consumeCancelReader = new BasicConsumeCancelReader();
         private static readonly PublishFullWriter _fullWriter = new PublishFullWriter();
-        public static ValueTask SendBasicConsumeAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ConsumeConf info, CancellationToken token = default)
+        public static ValueTask SendBasicConsumeAsync(this ProtocolWriter protocol, ushort channelId, ConsumeConf info, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new BasicConsumeWriter(channelId), info, token);
+            return protocol.WriteAsync(ProtocolWriters.BasicConsumeWriter, info, token);
         }
         public static string ReadBasicConsumeOk(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
@@ -45,9 +46,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.Read(_basicDeliverReader, input);
         }
-        public static ValueTask SendBasicQoSAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ref QoSInfo info, CancellationToken token = default)
+        public static ValueTask SendBasicQoSAsync(this ProtocolWriter protocol, ushort channelId, ref QoSInfo info, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new BasicQoSWriter(channelId), info, token);
+            return protocol.WriteAsync(ProtocolWriters.BasicQoSWriter, info, token);
         }
         public static bool ReadBasicQoSOkAsync(this RabbitMQProtocolReader protocol, in ReadOnlySequence<byte> input)
         {
@@ -57,13 +58,9 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
         {
             return protocol.ReadNoPayloadAsync(token);
         }
-        public static ValueTask SendRejectAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ref RejectInfo info, CancellationToken token = default)
+        public static ValueTask SendRejectAsync(this ProtocolWriter protocol, ushort channelId, ref RejectInfo info, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new BasicRejectWriter(channelId), info, token);
-        }
-        public static ValueTask SendAckAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ref AckInfo info, CancellationToken token = default)
-        {
-            return protocol.WriteAsync(new BasicAckWriter(channelId), info, token);
+            return protocol.WriteAsync(ProtocolWriters.BasicRejectWriter, info, token);
         }
         /*
         public static ValueTask<ContentHeader> ReadContentHeaderWithFrameHeaderAsync(this RabbitMQProtocolReader protocol, ushort channelId, CancellationToken token = default)
@@ -72,20 +69,20 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
             return protocol.ReadAsync(reader, token);
         }
         */
-        public static ValueTask PublishAllAsync(this RabbitMQProtocolWriter protocol, ushort channelId, ref PublishAllInfo info, CancellationToken token = default)
+        public static ValueTask PublishAllAsync(this ProtocolWriter protocol, ushort channelId, ref PublishAllInfo info, CancellationToken token = default)
         {
             return protocol.WriteAsync(_fullWriter, info, token);
         }
-        public static ValueTask PublishPartialAsync(this RabbitMQProtocolWriter protocol, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
+        public static ValueTask PublishPartialAsync(this ProtocolWriter protocol, ushort channelId, PublishPartialInfo info, CancellationToken token = default)
         {
             var writer = new PublishInfoAndContentWriter(channelId);
             return protocol.WriteAsync(writer, info, token);
         }
 
-        public static ValueTask PublishBodyAsync(this RabbitMQProtocolWriter protocol, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
-        {
-            return protocol.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
-        }
+        // public static ValueTask PublishBodyAsync(this ProtocolWriter protocol, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
+        // {
+        //     return protocol.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
+        // }
         public static IChunkedBodyFrameReader CreateResetableChunkedBodyReader(this RabbitMQProtocolReader protocol, ushort channelId)
         {
             return new BodyFrameChunkedReader(channelId);

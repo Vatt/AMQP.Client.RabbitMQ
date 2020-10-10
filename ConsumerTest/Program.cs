@@ -31,11 +31,11 @@ namespace ConsumerTest
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
+            await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId,"TestQueue", "TestConsumer", true));
             consumer.Received += /*async*/ (sender, result) =>
             {
                 //await channel.Ack(AckInfo.Create(result.DeliveryTag));

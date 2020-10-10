@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 
@@ -17,11 +18,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         private static readonly FrameHeaderReader _frameHeaderReader = new FrameHeaderReader();
         private static readonly ShortStrPayloadReader _shortStrPayloadReader = new ShortStrPayloadReader();
         private static readonly ByteWriter _byteWriter = new ByteWriter();
-        public static ValueTask SendHeartbeat(this RabbitMQProtocolWriter protocol, CancellationToken token = default)
+        public static ValueTask SendHeartbeat(this ProtocolWriter protocol, CancellationToken token = default)
         {
             return protocol.WriteAsync(_byteWriter, _heartbeatFrame, token);
         }
-        public static ValueTask SendProtocol(this RabbitMQProtocolWriter protocol, CancellationToken token = default)
+        public static ValueTask SendProtocol(this ProtocolWriter protocol, CancellationToken token = default)
         {
             return protocol.WriteAsync(_byteWriter, _protocolMsg, token);
         }
@@ -59,11 +60,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
         {
             return protocol.ReadAsync(_noPayloadReader, token);
         }
-        public static ValueTask SendClose(this RabbitMQProtocolWriter protocol, ushort channelId, short classId, short methodId, CloseInfo info, CancellationToken token = default)
+        public static ValueTask SendClose(this ProtocolWriter protocol, CloseInfo info, CancellationToken token = default)
         {
-            return protocol.WriteAsync(new CloseWriter(channelId, classId, methodId), info, token);
+            return protocol.WriteAsync(ProtocolWriters.CloseWriter, info, token);
         }
-        public static ValueTask SendCloseOk(this RabbitMQProtocolWriter protocol, byte type, ushort channel, short classId, short methodId, CancellationToken token = default)
+        public static ValueTask SendCloseOk(this ProtocolWriter protocol, byte type, ushort channel, short classId, short methodId, CancellationToken token = default)
         {
             var info = new NoPaylodMethodInfo(type, channel, classId, methodId);
             return protocol.WriteAsync(new NoPayloadMethodWrtier(), info, token);

@@ -21,7 +21,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             {
                 ReaderThrowHelper.ThrowIfEndMarkerMissmatch();
             }
-            message = new CloseInfo(replyCode, replyText, failedClassId, failedMethodId);
+            message = CloseInfo.Create(replyCode, replyText, failedClassId, failedMethodId);
 
             consumed = reader.Position;
             examined = consumed;
@@ -36,7 +36,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             if (!reader.ReadShortStr(out var replyText)) { return false; }
             if (!reader.ReadShortInt(out short failedClassId)) { return false; }
             if (!reader.ReadShortInt(out short failedMethodId)) { return false; }
-            message = new CloseInfo(replyCode, replyText, failedClassId, failedMethodId);
+            message = CloseInfo.Create(replyCode, replyText, failedClassId, failedMethodId);;
             return true;
         }
     }

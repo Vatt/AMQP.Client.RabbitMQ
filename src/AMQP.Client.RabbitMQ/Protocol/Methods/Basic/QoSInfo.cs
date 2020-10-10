@@ -4,13 +4,15 @@
     {
         public readonly int PrefetchSize;
         public readonly ushort PrefetchCount;
+        public readonly ushort ChannelId;
         public readonly bool Global;
-        internal QoSInfo(int prefetchSize, ushort prefetchCount, bool global)
+        internal QoSInfo(ushort channelId, int prefetchSize, ushort prefetchCount, bool global)
         {
+            ChannelId = channelId;
             PrefetchSize = prefetchSize;
             PrefetchCount = prefetchCount;
             Global = global;
         }
-        public static QoSInfo Create(int prefetchSize, ushort prefetchCount, bool global = false) => new QoSInfo(prefetchSize, prefetchCount, global);
+        public static QoSInfo Create(ushort channelId, int prefetchSize, ushort prefetchCount, bool global = false) => new QoSInfo(channelId, prefetchSize, prefetchCount, global);
     }
 }

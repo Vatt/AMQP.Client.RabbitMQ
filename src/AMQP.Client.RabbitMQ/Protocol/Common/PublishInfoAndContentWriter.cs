@@ -10,20 +10,18 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
     {
         private ushort _channelId;
         private BasicPublishWriter _basicPublishWriter;
-        private ContentHeaderWriter _contentHeaderWriter;
 
         public PublishInfoAndContentWriter(ushort channelId)
         {
             _channelId = channelId;
-            _basicPublishWriter = new BasicPublishWriter(_channelId);
-            _contentHeaderWriter = new ContentHeaderWriter(_channelId);
+            _basicPublishWriter = new BasicPublishWriter();
         }
 
         public void WriteMessage(PublishPartialInfo message, IBufferWriter<byte> output)
         {
             var writer = new ValueWriter(output);
             _basicPublishWriter.WriteMessage(ref message.Info, ref writer);
-            _contentHeaderWriter.WriteMessage(ref message.Header, ref writer);
+            ProtocolWriters.ContentHeaderWriter.WriteMessage(ref message.Header, ref writer);
             writer.Commit();
         }
     }

@@ -23,7 +23,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Basic
 
             consumed = reader.Position;
             examined = consumed;
-            message = new ConsumeCancelInfo(tag, noWait);
+            message = new ConsumeCancelInfo(0, tag, noWait); //TODO: FIXIT IT!
             return true;
         }
     }

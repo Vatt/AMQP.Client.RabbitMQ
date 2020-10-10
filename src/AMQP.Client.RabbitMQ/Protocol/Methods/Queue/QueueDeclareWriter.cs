@@ -9,16 +9,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 
     internal class QueueDeclareWriter : IMessageWriter<QueueDeclare>
     {
-        private readonly ushort ChannelId;
-        public QueueDeclareWriter(ushort channelId)
-        {
-            ChannelId = channelId;
-        }
         public void WriteMessage(QueueDeclare message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);
-            writer.WriteShortInt(ChannelId);
+            writer.WriteShortInt(message.ChannelId);
             var reseved = writer.Reserve(4);
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(50, 10, ref writer);

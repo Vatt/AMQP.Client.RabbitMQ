@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Consumer;
+using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
@@ -14,14 +16,14 @@ namespace AMQP.Client.RabbitMQ
 {
     public sealed class RabbitMQChannel : ChannelData
     {
-        private readonly ReadOnlyMemory<byte>[] _publishBatch;
+        private readonly (ushort, ReadOnlyMemory<byte>)[] _publishBatch;
         private static readonly int _publishBatchSize = 4;
         public readonly ushort ChannelId;
 
         internal RabbitMQChannel(ushort id, RabbitMQSession session) : base(session)
         {
             ChannelId = id;
-            _publishBatch = new ReadOnlyMemory<byte>[_publishBatchSize];
+            _publishBatch = new (ushort, ReadOnlyMemory<byte>)[_publishBatchSize];
         }
 
 
@@ -94,7 +96,7 @@ namespace AMQP.Client.RabbitMQ
             return Session.ConsumerStartAsync(consumer);
         }
 
-        private async ValueTask<bool> PublishAllContinuation(PublishAllInfo allInfo, CancellationToken timeout)
+        private async ValueTask<bool> PublishAllContinuation(BasicPublishInfo info, ContentHeader content, ReadOnlyMemory<byte> message, CancellationToken timeout)
         {
             Session.LockEvent.Wait();
             while (true)
@@ -105,7 +107,11 @@ namespace AMQP.Client.RabbitMQ
                 }
                 try
                 {
-                    await Session.PublishAllAsync(allInfo).ConfigureAwait(false);
+                    await Session.Writer.WriteAsync3(
+                            ProtocolWriters.BasicPublishWriter, info,
+                            ProtocolWriters.ContentHeaderWriter, content,
+                            ProtocolWriters.BodyFrameWriter,(ChannelId, message))
+                        .ConfigureAwait(false);
                     return true;
                 }
                 catch (Exception e)
@@ -116,26 +122,6 @@ namespace AMQP.Client.RabbitMQ
             }
         }
 
-        public async ValueTask<bool> PublishBatch(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte>[] messages)
-        {
-            if (IsClosed)
-            {
-                return false;
-            }
-
-            Session.LockEvent.Wait();
-            var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
-            var content = new ContentHeader(60, messages[1].Length, ref properties);
-            var batch = new PublishAllInfo[messages.Length];
-            for (int i = 0; i < messages.Length; i++)
-            {
-                batch[i] = new PublishAllInfo(ChannelId, ref messages[i], ref info, content);
-            }
-
-            await Session.PublishBatchAsync(batch);
-            return true;
-
-        }
         public async ValueTask<bool> Publish(string exchangeName, string routingKey, bool mandatory, bool immediate, ContentHeaderProperties properties, ReadOnlyMemory<byte> message)
         {
             if (IsClosed)
@@ -143,14 +129,18 @@ namespace AMQP.Client.RabbitMQ
                 return false;
             }
             Session.LockEvent.Wait();
-            var info = new BasicPublishInfo(exchangeName, routingKey, mandatory, immediate);
-            var content = new ContentHeader(60, message.Length, ref properties);
+            var info = new BasicPublishInfo(ChannelId, exchangeName, routingKey, mandatory, immediate);
+            var content = new ContentHeader(ChannelId, 60, message.Length, ref properties);
             if (message.Length <= Session.Tune.FrameMax)
             {
-                var allinfo = new PublishAllInfo(ChannelId, ref message, ref info, content);
                 try
                 {
-                    await Session.PublishAllAsync(allinfo).ConfigureAwait(false);
+
+                    await Session.Writer.WriteAsync3(
+                        ProtocolWriters.BasicPublishWriter, info,
+                        ProtocolWriters.ContentHeaderWriter, content,
+                        ProtocolWriters.BodyFrameWriter,(ChannelId, message))
+                        .ConfigureAwait(false);
                     return true;
                 }
                 catch (Exception e)
@@ -159,41 +149,42 @@ namespace AMQP.Client.RabbitMQ
                     var cts = new CancellationTokenSource(Session.Options.ConnectionTimeout);
                     using (var timeoutRegistratiuon = cts.Token.Register(() => cts.Cancel()))
                     {
-                        return await PublishAllContinuation(allinfo, cts.Token);
+                        return await PublishAllContinuation(info, content,message, cts.Token);
                     }
                 }
-
             }
 
 
             await WriterSemaphore.WaitAsync().ConfigureAwait(false);
-
+            
             var written = 0;
-            var partialInfo = new PublishPartialInfo(ref info, ref content);
-            await Session.PublishPartialAsync(ChannelId, partialInfo).ConfigureAwait(false);
-
+            await Session.Writer.WriteAsync2(
+                    ProtocolWriters.BasicPublishWriter, info,
+                    ProtocolWriters.ContentHeaderWriter, content)
+                .ConfigureAwait(false);
+            
             while (written < content.BodySize)
             {
                 var batchCnt = 0;
                 while (batchCnt < _publishBatchSize && written < content.BodySize)
                 {
                     var writable = Math.Min(Session.Tune.FrameMax, (int)content.BodySize - written);
-                    _publishBatch[batchCnt] = message.Slice(written, writable);
+                    _publishBatch[batchCnt] = (ChannelId, message.Slice(written, writable));
                     batchCnt++;
                     written += writable;
                 }
-                await Session.PublishBodyAsync(ChannelId, _publishBatch).ConfigureAwait(false);
-
-                _publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
+                //await Session.PublishBodyAsync(ChannelId, _publishBatch).ConfigureAwait(false);
+                await Session.Writer.WriteManyAsync(ProtocolWriters.BodyFrameWriter, _publishBatch).ConfigureAwait(false);
+                //_publishBatch.AsSpan().Fill(ReadOnlyMemory<byte>.Empty);
             }
-
+            
             WriterSemaphore.Release();
             return true;
         }
 
         public ValueTask Ack(AckInfo ack)
         {
-            return Session.Writer.SendAckAsync(ChannelId, ref ack);
+            return Session.Writer.WriteAsync(ProtocolWriters.BasicAckWriter, ack);
         }
 
         public ValueTask Reject(RejectInfo reject)

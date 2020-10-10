@@ -2,13 +2,15 @@
 {
     public readonly struct AckInfo
     {
+        public readonly ushort ChannelId;
         public readonly long DeliveryTag;
         public readonly bool Multiple;
-        internal AckInfo(long deliveryTag, bool multiple)
+        internal AckInfo(ushort channelId, long deliveryTag, bool multiple)
         {
+            ChannelId = channelId;
             DeliveryTag = deliveryTag;
             Multiple = multiple;
         }
-        public static AckInfo Create(long deliveryTag, bool multiple = false) => new AckInfo(deliveryTag, multiple);
+        public static AckInfo Create(ushort channelId, long deliveryTag, bool multiple = false) => new AckInfo(channelId, deliveryTag, multiple);
     }
 }

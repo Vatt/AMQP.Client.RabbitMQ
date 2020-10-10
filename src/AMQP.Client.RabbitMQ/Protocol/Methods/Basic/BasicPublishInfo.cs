@@ -2,12 +2,14 @@
 {
     public readonly struct BasicPublishInfo
     {
+        public readonly ushort ChannelId;
         public readonly string ExchangeName;
         public readonly string RoutingKey;
         public readonly bool Mandatory;
         public readonly bool Immediate;
-        public BasicPublishInfo(string exchangeName, string routingKey, bool mandatory, bool immediate)
+        public BasicPublishInfo(ushort channelId, string exchangeName, string routingKey, bool mandatory, bool immediate)
         {
+            ChannelId = channelId;
             ExchangeName = exchangeName;
             RoutingKey = routingKey;
             Mandatory = mandatory;

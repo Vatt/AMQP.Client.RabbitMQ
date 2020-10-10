@@ -8,16 +8,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Queue
 {
     internal class QueueUnbindWriter : IMessageWriter<QueueUnbind>
     {
-        private readonly ushort _channelId;
-        public QueueUnbindWriter(ushort channelId)
-        {
-            _channelId = channelId;
-        }
         public void WriteMessage(QueueUnbind message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);
-            writer.WriteShortInt(_channelId);
+            writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(50, 50, ref writer);

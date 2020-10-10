@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AMQP.Client.RabbitMQ.Protocol.Common;
+using AMQP.Client.RabbitMQ.Protocol.Core;
 
 namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
 {
@@ -10,23 +11,23 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Connection
         private static ConnectionStartReader _connectionStartReader = new ConnectionStartReader();
         private static ConnectionTuneReader _connectionTuneReader = new ConnectionTuneReader();
         private static ConnectionOpenOkReader _connectionOpenOkReader = new ConnectionOpenOkReader();
-        public static ValueTask SendStartOkAsync(this RabbitMQProtocolWriter protocol, ClientConf clientInfo, ConnectionConf connInfo, CancellationToken token = default)
+        public static ValueTask SendStartOkAsync(this ProtocolWriter protocol, ClientConf clientInfo, ConnectionConf connInfo, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ConnectionStartOkWriter(connInfo), clientInfo, token);
         }
-        public static ValueTask SendTuneOkAsync(this RabbitMQProtocolWriter protocol, TuneConf info, CancellationToken token = default)
+        public static ValueTask SendTuneOkAsync(this ProtocolWriter protocol, TuneConf info, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ConnectionTuneOkWriter(), info, token);
         }
-        public static ValueTask SendOpenAsync(this RabbitMQProtocolWriter protocol, string vhost, CancellationToken token = default)
+        public static ValueTask SendOpenAsync(this ProtocolWriter protocol, string vhost, CancellationToken token = default)
         {
             return protocol.WriteAsync(new ConnectionOpenWriter(), vhost, token);
         }
-        public static ValueTask SendConnectionCloseAsync(this RabbitMQProtocolWriter protocol, CloseInfo info, CancellationToken token = default)
+        public static ValueTask SendConnectionCloseAsync(this ProtocolWriter protocol, CloseInfo info, CancellationToken token = default)
         {
-            return protocol.SendClose(0, 10, 50, info, token);
+            return protocol.SendClose(info, token);
         }
-        public static ValueTask SendConnectionCloseOkAsync(this RabbitMQProtocolWriter protocol, CancellationToken token = default)
+        public static ValueTask SendConnectionCloseOkAsync(this ProtocolWriter protocol, CancellationToken token = default)
         {
             return protocol.SendCloseOk(1, 0, 10, 51, token);
         }

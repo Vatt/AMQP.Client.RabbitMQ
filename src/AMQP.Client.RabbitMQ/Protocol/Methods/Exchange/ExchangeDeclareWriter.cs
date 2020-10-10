@@ -8,16 +8,11 @@ namespace AMQP.Client.RabbitMQ.Protocol.Methods.Exchange
 {
     internal class ExchangeDeclareWriter : IMessageWriter<ExchangeDeclare>
     {
-        private readonly ushort _channelId;
-        public ExchangeDeclareWriter(ushort channelId)
-        {
-            _channelId = channelId;
-        }
         public void WriteMessage(ExchangeDeclare message, IBufferWriter<byte> output)
         {
             ValueWriter writer = new ValueWriter(output);
             writer.WriteOctet(1);
-            writer.WriteShortInt(_channelId);
+            writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             FrameWriter.WriteMethodFrame(40, 10, ref writer);

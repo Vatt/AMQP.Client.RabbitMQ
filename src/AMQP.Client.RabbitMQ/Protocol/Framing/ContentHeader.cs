@@ -40,26 +40,23 @@ namespace AMQP.Client.RabbitMQ.Protocol.Framing
 
     public class ContentHeader
     {
+        public readonly ushort ChannelId;
         public readonly long BodySize;
         public ContentHeaderProperties Properties;
         public readonly ushort ClassId;
         public readonly ushort Weight;
-        public ContentHeader(ushort classId, ushort weight, long bodySize) : this(classId, bodySize)
+        public ContentHeader(ushort channelId, ushort classId, long bodySize)
         {
-            Weight = weight;
-            Properties = new ContentHeaderProperties();
-        }
-
-        public ContentHeader(ushort classId, long bodySize)
-        {
+            ChannelId = channelId;
             ClassId = classId;
             Weight = 0;
             BodySize = bodySize;
             Properties = new ContentHeaderProperties();
         }
 
-        public ContentHeader(ushort classId, long bodySize, ref ContentHeaderProperties properties)
+        public ContentHeader(ushort channelId, ushort classId, long bodySize, ref ContentHeaderProperties properties)
         {
+            ChannelId = channelId;
             ClassId = classId;
             Weight = 0;
             BodySize = bodySize;

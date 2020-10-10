@@ -10,14 +10,8 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
 {
     internal class ContentHeaderWriter : IMessageWriter<ContentHeader>
     {
-        private readonly ushort _channelId;
         private int _bitCount;
         private ushort _flagWord;
-
-        public ContentHeaderWriter(ushort channelId)
-        {
-            _channelId = channelId;
-        }
 
         public void WriteMessage(ContentHeader message, IBufferWriter<byte> output)
         {
@@ -25,7 +19,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             _flagWord = 0;
             var writer = new ValueWriter(output);
             writer.WriteOctet(RabbitMQConstants.FrameHeader);
-            writer.WriteShortInt(_channelId);
+            writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             writer.WriteShortInt(message.ClassId);
@@ -50,7 +44,7 @@ namespace AMQP.Client.RabbitMQ.Protocol.Common
             _bitCount = 0;
             _flagWord = 0;
             writer.WriteOctet(RabbitMQConstants.FrameHeader);
-            writer.WriteShortInt(_channelId);
+            writer.WriteShortInt(message.ChannelId);
             var reserved = writer.Reserve(4);
             var checkpoint = writer.Written;
             writer.WriteShortInt(message.ClassId);

@@ -55,8 +55,8 @@ namespace AMQP.Client.RabbitMQ
         }
         public static ValueTask PublishBodyAsync(this RabbitMQSession session, ushort channelId, IEnumerable<ReadOnlyMemory<byte>> batch, CancellationToken token = default)
         {
-            return session.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
-
+            //return session.Writer.WriteManyAsync(new BodyFrameWriter(channelId), batch, token);
+            return default;
         }
     }
 }

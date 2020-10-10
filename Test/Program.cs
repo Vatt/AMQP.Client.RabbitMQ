@@ -6,14 +6,9 @@ using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
-using System.Net.Connections;
-using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Network;
 
 namespace Test
 {
@@ -24,7 +19,7 @@ namespace Test
     {
         private static string Host = "centos0.mshome.net";
         //private static int Size = 1024 * 1024; //32;
-        private static int Size = 32;//134217728;
+        private static int Size = 32;//129*1024;
 
         //private static string Host = 
 
@@ -59,6 +54,7 @@ namespace Test
                     loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.Heartbeat(300);
                 builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
                 builder.ConnectionAttempts(100);
             });
@@ -69,9 +65,9 @@ namespace Test
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
+            await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
 
             var properties = new ContentHeaderProperties();
             properties.AppId = "testapp";
@@ -115,11 +111,11 @@ namespace Test
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
+            await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId,"TestQueue", "TestExchange"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.CreateNoWait("TestQueue", "TestConsumer", true), PipeScheduler.ThreadPool);
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.CreateNoWait(channel.ChannelId,"TestQueue", "TestConsumer", true), PipeScheduler.ThreadPool);
             consumer.Received += /*async*/ (sender, result) =>
             {
                 if (result.Body[0] != 42)
@@ -150,19 +146,19 @@ namespace Test
             await connection.StartAsync();
             var channel1 = await connection.OpenChannel();
             var channel2 = await connection.OpenChannel();
-            await channel1.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel1.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
-            var declareOk = await channel1.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel1.QueueDeclareNoWaitAsync(QueueDeclare.Create("TestQueue2"));
-            var purgeOk = await channel1.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
-            await channel1.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
-            await channel1.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
-            await channel1.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2"));
+            await channel1.ExchangeDeclareAsync(ExchangeDeclare.Create(channel1.ChannelId,"TestExchange", ExchangeType.Direct));
+            await channel1.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait(channel1.ChannelId, "TestExchange2", ExchangeType.Direct));
+            var declareOk = await channel1.QueueDeclareAsync(QueueDeclare.Create(channel1.ChannelId,"TestQueue"));
+            await channel1.QueueDeclareNoWaitAsync(QueueDeclare.Create(channel1.ChannelId, "TestQueue2"));
+            var purgeOk = await channel1.QueuePurgeAsync(QueuePurge.Create(channel1.ChannelId,"TestQueue"));
+            await channel1.QueuePurgeNoWaitAsync(QueuePurge.Create(channel1.ChannelId,"TestQueue2"));
+            await channel1.QueueBindAsync(QueueBind.Create(channel1.ChannelId,"TestQueue", "TestExchange"));
+            await channel1.QueueBindAsync(QueueBind.CreateNoWait(channel1.ChannelId,"TestQueue2", "TestExchange2"));
 
             var body1 = new byte[Size];
 
 
-            var consumer1 = new RabbitMQConsumer(channel1, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            var consumer1 = new RabbitMQConsumer(channel1, ConsumeConf.Create(channel1.ChannelId,"TestQueue", "TestConsumer", true));
             consumer1.Received += async (sender, result) =>
             {
                 //await channel1.Ack(deliver.DeliveryTag, true);
@@ -171,7 +167,7 @@ namespace Test
                 var published =  await channel2.Publish("TestExchange2", string.Empty, false, false, propertiesConsume, body1);
             };
 
-            var consumer2 = new RabbitMQConsumer(channel2, ConsumeConf.Create("TestQueue2", "TestConsumer2", true));
+            var consumer2 = new RabbitMQConsumer(channel2, ConsumeConf.Create(channel2.ChannelId, "TestQueue2", "TestConsumer2", true));
             consumer2.Received += async (sender, result) =>
             {
                 //await channel2.Ack(deliver.DeliveryTag, true);
@@ -221,16 +217,16 @@ namespace Test
             await connection.StartAsync();
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create("TestExchange", ExchangeType.Direct));
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait("TestExchange2", ExchangeType.Direct));
-            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create("TestQueue"));
-            await channel.QueueDeclareNoWaitAsync(QueueDeclare.Create("TestQueue2"));
-            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create("TestQueue"));
-            await channel.QueuePurgeNoWaitAsync(QueuePurge.Create("TestQueue2"));
-            await channel.QueueBindAsync(QueueBind.Create("TestQueue", "TestExchange"));
-            await channel.QueueBindAsync(QueueBind.CreateNoWait("TestQueue2", "TestExchange2"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.CreateNoWait(channel.ChannelId, "TestExchange2", ExchangeType.Direct));
+            var declareOk = await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId,"TestQueue"));
+            await channel.QueueDeclareNoWaitAsync(QueueDeclare.Create(channel.ChannelId,"TestQueue2"));
+            var purgeOk = await channel.QueuePurgeAsync(QueuePurge.Create(channel.ChannelId, "TestQueue"));
+            await channel.QueuePurgeNoWaitAsync(QueuePurge.Create(channel.ChannelId, "TestQueue2"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
+            await channel.QueueBindAsync(QueueBind.CreateNoWait(channel.ChannelId, "TestQueue2", "TestExchange2"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create("TestQueue", "TestConsumer", true));
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId, "TestQueue", "TestConsumer", true));
 
             consumer.Received += (sender, result) =>
             {
