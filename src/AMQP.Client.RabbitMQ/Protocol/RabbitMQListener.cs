@@ -1,16 +1,10 @@
-﻿using System.Net.Mime;
+﻿using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using AMQP.Client.RabbitMQ.Protocol.Common;
 using AMQP.Client.RabbitMQ.Protocol.Core;
 using AMQP.Client.RabbitMQ.Protocol.Exceptions;
 using AMQP.Client.RabbitMQ.Protocol.Framing;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Basic;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Channel;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Exchange;
-using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using AMQP.Client.RabbitMQ.Protocol.ThrowHelpers;
 
 namespace AMQP.Client.RabbitMQ.Protocol
@@ -55,7 +49,7 @@ namespace AMQP.Client.RabbitMQ.Protocol
                 }
             }
         }
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async ValueTask<T> ReadAsync<T>(IMessageReader<T> reader, CancellationToken token = default)
         {
             var result = await _protocol.ReadAsync(reader, token).ConfigureAwait(false);
