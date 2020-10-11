@@ -11,7 +11,6 @@ namespace AMQP.Client.RabbitMQ
         public ConnectionConf ConnOptions;
         public TuneConf TuneOptions;
         public TimeSpan ConnectionTimeout;
-        public uint ConnectionAttempts;
 
         public ConnectionOptions(EndPoint endpoint)
         {

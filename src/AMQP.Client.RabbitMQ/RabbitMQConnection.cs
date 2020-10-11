@@ -52,14 +52,21 @@ namespace AMQP.Client.RabbitMQ
             _channels = new ConcurrentDictionary<ushort, RabbitMQChannel>();
             _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
             _lockEvent = new ManualResetEventSlim(true);
-            _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc, _lockEvent);
         }
 
-        public async Task StartAsync()
+        public async ValueTask<bool> StartAsync()
         {
-            ThrowIfConnectionClosed();
-            await _session.Connect().ConfigureAwait(false);
+
+            Closed = false;
+            _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc, _lockEvent);
+            var isConnected = await _session.Connect().ConfigureAwait(false);
+            if (!isConnected)
+            {
+                Closed = true;
+                return false;
+            }
             _watchTask = WatchAsync();
+            return true;
         }
         public async Task CloseAsync(string reason = null)
         {
@@ -107,7 +114,11 @@ namespace AMQP.Client.RabbitMQ
                 onConnectionClosed(new ConnectionCloseArgs(info, exception));
                 if (exception != null || info.ReplyCode != RabbitMQConstants.Success )
                 {
-                    await ReconnectAsync().ConfigureAwait(false);
+                    var isReconnected = await ReconnectAsync().ConfigureAwait(false);
+                    if (!isReconnected)
+                    {
+                        Closed = true;
+                    }
                 }
                 else
                 {
@@ -116,28 +127,34 @@ namespace AMQP.Client.RabbitMQ
             }
         }
 
-        private async ValueTask ReconnectAsync()
+        private async ValueTask<bool> ReconnectAsync()
         {
             ThrowIfConnectionClosed();
-            _logger.LogDebug($"{nameof(RabbitMQConnection)}: begin reconnect");
+            _logger.LogDebug($"{nameof(RabbitMQConnection)}: begin reconnection");
             try
             {
                 _connectionClosedSrc = new TaskCompletionSource<CloseInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
                 _watchTask = WatchAsync();
                 await _session.DisposeAsync().ConfigureAwait(false);
                 _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc, _lockEvent);
-                await _session.ConnectWithRecovery().ConfigureAwait(false);
+                var isReconnected = await _session.ConnectWithRecovery().ConfigureAwait(false);
+                if (!isReconnected)
+                {
+                    _logger.LogDebug($"{nameof(RabbitMQConnection)}: reconnection failed");
+                    return false;
+                }
 
 
             }
             catch (Exception e)
             {
-                _logger.LogDebug($"{nameof(RabbitMQConnection)}: reconnect failed with exception message {e.Message}");
+                _logger.LogDebug($"{nameof(RabbitMQConnection)}: reconnection failed with exception message {e.Message}");
                 _connectionClosedSrc.SetException(e);
                 Debugger.Break();
             }
             _lockEvent.Set();
-            _logger.LogDebug($"{nameof(RabbitMQConnection)}: end reconnect");
+            _logger.LogDebug($"{nameof(RabbitMQConnection)}: end reconnection");
+            return true;
         }
         public Task<RabbitMQChannel> OpenChannel()
         {

@@ -27,8 +27,7 @@ namespace Test
         {
             //using Microsoft.Extensions.ObjectPool;
 
-
-
+            Host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "centos0.mshome.net";
             if (!string.IsNullOrEmpty(host))
             {
                 Host = host;
@@ -39,10 +38,10 @@ namespace Test
                 Size = size;
             }
 
-            await RunConsumerPublisher();
+            //await RunConsumerPublisher();
             //await RunDefault();
             //await ChannelTest();
-            //await Task.WhenAll(StartConsumer(), StartPublisher());
+            await Task.WhenAll(StartConsumer(), StartPublisher());
 
         }
 
@@ -56,9 +55,8 @@ namespace Test
                     loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
-                builder.Heartbeat(300);
-                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
-                builder.ConnectionAttempts(100);
+                builder.Heartbeat(30);
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(15));
             });
             var connection = factory.CreateConnection();
             await connection.StartAsync();
@@ -94,9 +92,8 @@ namespace Test
                     loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
-                builder.Heartbeat(300);
-                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
-                builder.ConnectionAttempts(100);
+                builder.Heartbeat(30);
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(15));
             });
 
             var connection = factory.CreateConnection();
@@ -131,8 +128,7 @@ namespace Test
                     loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
-                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
-                builder.ConnectionAttempts(100);
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(15));
             });
 
             var connection = factory.CreateConnection();
@@ -163,8 +159,7 @@ namespace Test
                     loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
-                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
-                builder.ConnectionAttempts(100);
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(15));
             });
 
             var connection = factory.CreateConnection();
@@ -236,7 +231,6 @@ namespace Test
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
                 builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
-                builder.ConnectionAttempts(100);
             });
             var connection = factory.CreateConnection();
             await connection.StartAsync();

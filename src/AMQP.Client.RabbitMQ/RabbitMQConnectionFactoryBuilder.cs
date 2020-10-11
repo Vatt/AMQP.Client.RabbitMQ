@@ -85,10 +85,5 @@ namespace AMQP.Client.RabbitMQ
             Options.ConnectionTimeout = timeout;
             return this;
         }
-        public RabbitMQConnectionFactoryBuilder ConnectionAttempts(uint count)
-        {
-            Options.ConnectionAttempts = count;
-            return this;
-        }
     }
 }

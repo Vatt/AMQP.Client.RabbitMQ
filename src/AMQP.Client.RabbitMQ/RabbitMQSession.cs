@@ -1,4 +1,12 @@
-﻿using AMQP.Client.RabbitMQ.Internal;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Connections;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Network;
 using AMQP.Client.RabbitMQ.Protocol;
 using AMQP.Client.RabbitMQ.Protocol.Common;
@@ -8,14 +16,6 @@ using AMQP.Client.RabbitMQ.Protocol.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Connection;
 using AMQP.Client.RabbitMQ.Protocol.Methods.Queue;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
-using System.Net.Connections;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AMQP.Client.RabbitMQ
 {
@@ -26,7 +26,7 @@ namespace AMQP.Client.RabbitMQ
         private RabbitMQListener _listener;
         //private ChannelHandler _channelHandler;
         private CancellationTokenSource _cts;
-        private Connection _ctx;
+        private Connection _connection;
 
         private Timer _heartbeat;
         private TaskCompletionSource<bool> _connectionCloseOkSrc;
@@ -63,7 +63,7 @@ namespace AMQP.Client.RabbitMQ
             await Reader.DisposeAsync().ConfigureAwait(false);
             //_ctx.Abort();
             _cts.Cancel();
-            await _ctx.DisposeAsync().ConfigureAwait(false);
+            await _connection.DisposeAsync().ConfigureAwait(false);
             _listener.Stop();
             CancelTcs();
             if (!_connectionCloseOkSrc.Task.IsCompleted && !_connectionCloseOkSrc.Task.IsCanceled)
@@ -145,46 +145,73 @@ namespace AMQP.Client.RabbitMQ
             }
         }
 
-        public async ValueTask Connect()
+        public async ValueTask<bool> Connect()
         {
             _connectionOpenOk = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _cts = new CancellationTokenSource();
-            _ctx = await TryConnect();
-            Writer = _ctx.CreateWriter();
-            Reader = _ctx.CreateReader();
+            _connection = await TryConnect().ConfigureAwait(false);
+            if (_connection == null)
+            {
+                return false;
+            }
+            Writer = _connection.CreateWriter();
+            Reader = _connection.CreateReader();
             await Writer.WriteAsync(ProtocolWriters.ByteWriter, _protocolMsg, _cts.Token).ConfigureAwait(false);
             _connectionCloseOkSrc = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             StartReadingAsync(Reader);
             await _connectionOpenOk.Task.ConfigureAwait(false);
+            return true;
         }
-        private async ValueTask<Connection> TryConnect()
+        private async ValueTask<Connection?> TryConnect()
         {
             var factory = new NetworkConnectionFactory(Logger);
-            //for (var i = 0; i < Options.ConnectionAttempts; i++)
-            //{
+            var cts = new CancellationTokenSource(Options.ConnectionTimeout);
+            var tcs = new TaskCompletionSource<Connection>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var timeoutRegistration = cts.Token.Register(() => tcs.SetCanceled());
+            while(!tcs.Task.IsCompleted)
+            {
+                try
+                {
+                
+                    var connection = await factory.ConnectAsync(Options.Endpoint, cancellationToken: cts.Token).ConfigureAwait(false);
+                    if (connection != null)
+                    {
+                        tcs.SetResult(connection);
+                        break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    continue;
+                }
+            }
+
+            if (tcs.Task.IsCanceled)
+            {
+                return null;
+                
+            }
+            return tcs.Task.Result;
+        }
+        public async ValueTask<bool> ConnectWithRecovery()
+        {
+            bool isConnected = false; 
             try
             {
-                var cts = new CancellationTokenSource(Options.ConnectionTimeout);
-                return await factory.ConnectAsync(Options.Endpoint, cancellationToken: cts.Token).ConfigureAwait(false);
+                isConnected =  await Connect().ConfigureAwait(false);
+                if (!isConnected)
+                {
+                    return false;
+                }
+                await Recovery().ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                return default; ;
+               Debugger.Break();
+               return false;
             }
-            //}
-            //return default;
-        }
-        public async ValueTask ConnectWithRecovery()
-        {
-            await Connect().ConfigureAwait(false);
-            // try
-            // {
-                await Recovery().ConfigureAwait(false);
-            // }
-            // catch (Exception e)
-            // {
-            //     Debugger.Break();
-            // }
+
+            return true;
 
         }
         private void StartReadingAsync(ProtocolReader reader)
