@@ -9,10 +9,21 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using AMQP.Client.RabbitMQ.Internal;
 using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ
 {
+    public class ConnectionCloseArgs : EventArgs
+    {
+        public Exception? Exception { get; }
+        public CloseInfo? Info { get; }
+        public ConnectionCloseArgs(CloseInfo? info, Exception? exception)
+        {
+            Info = info;
+            Exception = exception;
+        }
+    }
     public class RabbitMQConnection
     {
 
@@ -29,8 +40,13 @@ namespace AMQP.Client.RabbitMQ
         private TaskCompletionSource<CloseInfo> _connectionClosedSrc;
         private ManualResetEventSlim _lockEvent;
         private Task _watchTask;
+        
+        public bool Closed { get; private set;}
+        public event EventHandler<ConnectionCloseArgs> ConnectionClosed;
+        
         internal RabbitMQConnection(RabbitMQConnectionFactoryBuilder builder)
         {
+            Closed = false;
             _builder = builder;
             _logger = _builder.Logger;
             _channels = new ConcurrentDictionary<ushort, RabbitMQChannel>();
@@ -41,11 +57,13 @@ namespace AMQP.Client.RabbitMQ
 
         public async Task StartAsync()
         {
+            ThrowIfConnectionClosed();
             await _session.Connect().ConfigureAwait(false);
             _watchTask = WatchAsync();
         }
         public async Task CloseAsync(string reason = null)
         {
+            ThrowIfConnectionClosed();
             await _session.CloseAsync().ConfigureAwait(false);
             await _session.DisposeAsync().ConfigureAwait(false);
         }
@@ -86,15 +104,21 @@ namespace AMQP.Client.RabbitMQ
             }
             finally
             {
+                onConnectionClosed(new ConnectionCloseArgs(info, exception));
                 if (exception != null || info.ReplyCode != RabbitMQConstants.Success )
                 {
                     await ReconnectAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Closed = true;
                 }
             }
         }
 
         private async ValueTask ReconnectAsync()
         {
+            ThrowIfConnectionClosed();
             _logger.LogDebug($"{nameof(RabbitMQConnection)}: begin reconnect");
             try
             {
@@ -117,7 +141,20 @@ namespace AMQP.Client.RabbitMQ
         }
         public Task<RabbitMQChannel> OpenChannel()
         {
+            ThrowIfConnectionClosed();
             return _session.OpenChannel();
+        }
+        protected virtual void onConnectionClosed(ConnectionCloseArgs e)
+        {
+            ConnectionClosed?.Invoke(this, e);
+        }
+
+        private void ThrowIfConnectionClosed()
+        {
+            if (Closed)
+            {
+                RabbitMQExceptionHelper.ThrowConnectionClosed(ConnectionId);
+            }
         }
     }
 }

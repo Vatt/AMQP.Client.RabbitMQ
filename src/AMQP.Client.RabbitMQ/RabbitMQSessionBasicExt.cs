@@ -22,7 +22,7 @@ namespace AMQP.Client.RabbitMQ
                 var tag = await data.ConsumeTcs.Task.ConfigureAwait(false);
                 if (!tag.Equals(consumer.Conf.ConsumerTag))
                 {
-                    RabbitMQExceptionHelper.ThrowIfConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
+                    RabbitMQExceptionHelper.ThrowConsumeOkTagMissmatch(consumer.Conf.ConsumerTag, tag);
                 }
                 consumer.IsClosed = false;
             }

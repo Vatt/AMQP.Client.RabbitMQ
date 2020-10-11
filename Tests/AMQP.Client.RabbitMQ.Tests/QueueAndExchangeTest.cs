@@ -66,7 +66,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             }
             catch(Exception e)
             {
-                Debug.Assert(false);
+                Assert.True(false);
             }
 
         }
@@ -121,7 +121,7 @@ namespace AMQP.Client.RabbitMQ.Tests
             }
             catch(Exception e)
             {
-                Debug.Assert(false);
+                Assert.True(false);
             }
 
         }

@@ -27,22 +27,15 @@ namespace AMQP.Client.RabbitMQ.Tests
                     });
                     builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
                 });
-                try
-                {
-                    var connection = factory.CreateConnection();
-                    await connection.StartAsync();
-                    var channel = await connection.OpenChannel();
-                    await channel.CloseAsync();
-                    await connection.CloseAsync();
-                }
-                catch (Exception e)
-                {
-                    Debug.Assert(false);
-                }
+                var connection = factory.CreateConnection();
+                await connection.StartAsync();
+                var channel = await connection.OpenChannel();
+                await channel.CloseAsync();
+                await connection.CloseAsync();
             }
             catch (Exception e)
             {
-                Debug.Assert(false);
+                Assert.True(false);
             }
         }
         

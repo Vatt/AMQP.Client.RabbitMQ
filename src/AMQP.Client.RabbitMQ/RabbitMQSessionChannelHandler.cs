@@ -221,7 +221,7 @@ namespace AMQP.Client.RabbitMQ
         {
             if (!Channels.TryGetValue(channelId, out var data))
             {
-                RabbitMQExceptionHelper.ThrowIfChannelNotFound(channelId);
+                RabbitMQExceptionHelper.ThrowChannelNotFound(channelId);
             }
             return data;
         }
