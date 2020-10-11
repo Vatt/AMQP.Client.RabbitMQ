@@ -44,7 +44,7 @@ namespace AMQP.Client.RabbitMQ.Tests
                 await connection.CloseAsync();
                 await _connectionCloseTcs.Task;
             }
-            Assert.True(_connectionCloseTcs.Task.IsCompleted);
+            Assert.True(_connectionCloseTcs.Task.IsCompleted && !_connectionCloseTcs.Task.IsCanceled);
             
             
 

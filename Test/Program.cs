@@ -12,9 +12,6 @@ using System.Threading.Tasks;
 
 namespace Test
 {
-    //Закрытие канала от сервера проверить можно кривым указанием очереди в консумере
-    //на 16 мегах чтото непонятное творится
-
     internal class Program
     {
         private static string Host = "centos0.mshome.net";

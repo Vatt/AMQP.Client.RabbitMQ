@@ -42,11 +42,11 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             var channel = await connection.OpenChannel();
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
-            var queueOk = await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue", arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
-            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "xUnitTestExchangeFlooding", ExchangeType.Direct));
+            var queueOk = await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "xUnitTestQueueFlooding"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "xUnitTestQueueFlooding", "xUnitTestExchangeFlooding"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId, "TestQueue", "TestConsumerNoAck", true), PipeScheduler.ThreadPool);
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId, "xUnitTestQueueFlooding", "TestConsumerNoAck", true), PipeScheduler.ThreadPool);
             await channel.ConsumerStartAsync(consumer);
 
             var tcs = new TaskCompletionSource<bool>();
@@ -70,7 +70,7 @@ namespace AMQP.Client.RabbitMQ.Tests
                 var tasks = new List<Task>();
                 for (int i = 0; i < ThreadCount; i++)
                 {
-                    var task = StartFloodAsync(channel,  "TestExchange", sendBody, PublishCount);
+                    var task = StartFloodAsync(channel,  "xUnitTestExchangeFlooding", sendBody, PublishCount);
                     tasks.Add(task);
                 }
                 await Task.WhenAll(tasks);
@@ -80,9 +80,9 @@ namespace AMQP.Client.RabbitMQ.Tests
 
             Assert.Equal(ThreadCount * PublishCount, receivedCount);
 
-            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
-            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "TestQueue"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.Create(channel.ChannelId, "TestExchange"));
+            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "xUnitTestQueueFlooding", "xUnitTestExchangeFlooding"));
+            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "xUnitTestQueueFlooding"));
+            await channel.ExchangeDeleteAsync(ExchangeDelete.Create(channel.ChannelId, "xUnitTestExchangeFlooding"));
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingNoAck");
         }
 
@@ -108,11 +108,11 @@ namespace AMQP.Client.RabbitMQ.Tests
 
 
 
-            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "TestExchange", ExchangeType.Direct));
-            var queueOk = await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "TestQueue", arguments: new Dictionary<string, object> { { "TEST_ARGUMENT", true } }));
-            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
+            await channel.ExchangeDeclareAsync(ExchangeDeclare.Create(channel.ChannelId, "xUnitTestExchangeFlooding", ExchangeType.Direct));
+            var queueOk = await channel.QueueDeclareAsync(QueueDeclare.Create(channel.ChannelId, "xUnitTestQueueFlooding"));
+            await channel.QueueBindAsync(QueueBind.Create(channel.ChannelId, "xUnitTestQueueFlooding", "xUnitTestExchangeFlooding"));
 
-            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId, "TestQueue", "TestConsumerWithAck"), PipeScheduler.ThreadPool);
+            var consumer = new RabbitMQConsumer(channel, ConsumeConf.Create(channel.ChannelId, "xUnitTestQueueFlooding", "TestConsumerWithAck"), PipeScheduler.ThreadPool);
 
             var tcs = new TaskCompletionSource<bool>();
             consumer.Received += async (sender, result) =>
@@ -136,7 +136,7 @@ namespace AMQP.Client.RabbitMQ.Tests
                 var tasks = new List<Task>();
                 for (int i = 0; i < ThreadCount; i++)
                 {
-                    var task = StartFloodAsync(channel, "TestExchange", sendBody, PublishCount);
+                    var task = StartFloodAsync(channel, "xUnitTestExchangeFlooding", sendBody, PublishCount);
                     tasks.Add(task);
                 }
                 await Task.WhenAll(tasks);
@@ -146,9 +146,9 @@ namespace AMQP.Client.RabbitMQ.Tests
             //await consumer.CancelAsync(); //TODO: fix this
             Assert.Equal(ThreadCount * PublishCount, receivedCount);
 
-            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "TestQueue", "TestExchange"));
-            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "TestQueue"));
-            await channel.ExchangeDeleteAsync(ExchangeDelete.Create(channel.ChannelId, "TestExchange"));
+            await channel.QueueUnbindAsync(QueueUnbind.Create(channel.ChannelId, "xUnitTestQueueFlooding", "xUnitTestExchangeFlooding"));
+            var deleted = await channel.QueueDeleteAsync(QueueDelete.Create(channel.ChannelId, "xUnitTestQueueFlooding"));
+            await channel.ExchangeDeleteAsync(ExchangeDelete.Create(channel.ChannelId, "xUnitTestExchangeFlooding"));
 
             await connection.CloseAsync("Finish TestMultithreadFloodPublishingWithAck");
         }

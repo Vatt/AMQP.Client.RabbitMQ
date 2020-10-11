@@ -14,16 +14,7 @@ using AMQP.Client.RabbitMQ.Protocol.Internal;
 
 namespace AMQP.Client.RabbitMQ
 {
-    public class ConnectionCloseArgs : EventArgs
-    {
-        public Exception? Exception { get; }
-        public CloseInfo? Info { get; }
-        public ConnectionCloseArgs(CloseInfo? info, Exception? exception)
-        {
-            Info = info;
-            Exception = exception;
-        }
-    }
+
     public class RabbitMQConnection
     {
 
@@ -42,7 +33,7 @@ namespace AMQP.Client.RabbitMQ
         private Task _watchTask;
         
         public bool Closed { get; private set;}
-        public event EventHandler<ConnectionCloseArgs> ConnectionClosed;
+        public event EventHandler<RabbitMQCloseArgs> ConnectionClosed;
         
         internal RabbitMQConnection(RabbitMQConnectionFactoryBuilder builder)
         {
@@ -110,7 +101,7 @@ namespace AMQP.Client.RabbitMQ
             }
             finally
             {
-                onConnectionClosed(new ConnectionCloseArgs(info, exception));
+                onConnectionClosed(new RabbitMQCloseArgs(info, exception));
                 if (exception != null || info.ReplyCode != RabbitMQConstants.Success )
                 {
                     var isReconnected = await ReconnectAsync().ConfigureAwait(false);
@@ -160,7 +151,7 @@ namespace AMQP.Client.RabbitMQ
             ThrowIfConnectionClosed();
             return _session.OpenChannel();
         }
-        protected virtual void onConnectionClosed(ConnectionCloseArgs e)
+        protected virtual void onConnectionClosed(RabbitMQCloseArgs e)
         {
             ConnectionClosed?.Invoke(this, e);
         }

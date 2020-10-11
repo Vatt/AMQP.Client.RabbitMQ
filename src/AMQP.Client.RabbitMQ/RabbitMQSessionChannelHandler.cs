@@ -67,7 +67,10 @@ namespace AMQP.Client.RabbitMQ
         }
         public ValueTask OnChannelCloseAsync(ushort channelId, CloseInfo info)
         {
-            throw new NotImplementedException();
+            var channel = RemoveChannelData(channelId);
+            channel.Dispose();
+            channel.onChanelClosed(new RabbitMQCloseArgs(info, null));
+            return default;
         }
 
         public ValueTask OnChannelCloseOkAsync(ushort channelId)
@@ -206,13 +209,13 @@ namespace AMQP.Client.RabbitMQ
         {
             //await _writerSemaphore.WaitAsync().ConfigureAwait(false);
             var replyText = reason == null ? string.Empty : reason;
-            await Writer.WriteAsync(ProtocolWriters.CloseWriter, new CloseInfo(channel.ChannelId, 20, 40, RabbitMQConstants.ReplySuccess, replyText, 0, 0)).ConfigureAwait(false);
+            var info = new CloseInfo(channel.ChannelId, 20, 40, RabbitMQConstants.ReplySuccess, replyText, 0, 0);
+            await Writer.WriteAsync(ProtocolWriters.CloseWriter, info).ConfigureAwait(false);
             await _manualCloseSrc.Task.ConfigureAwait(false);
-            channel.IsClosed = true;
-            channel.Session = null;
-            channel.WriterSemaphore = null;
+            channel.Dispose();
             Channels.TryRemove(channel.ChannelId, out _);
-            Logger.LogDebug($"{nameof(RabbitMQSession)}: Channel {channel.ChannelId} closed");
+            Logger.LogDebug($"{nameof(RabbitMQSession)}: Channel {channel.ChannelId} closed gracefully");
+            channel.onChanelClosed(new RabbitMQCloseArgs(info, null));
             //_writerSemaphore.Release();
         }
 
@@ -224,6 +227,15 @@ namespace AMQP.Client.RabbitMQ
                 RabbitMQExceptionHelper.ThrowChannelNotFound(channelId);
             }
             return data;
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ChannelData RemoveChannelData(ushort channelId)
+        {
+            if (!Channels.TryRemove(channelId, out var data))
+            {
+                RabbitMQExceptionHelper.ThrowChannelNotFound(channelId);
+            }
+            return data!;
         }
     }
 }
