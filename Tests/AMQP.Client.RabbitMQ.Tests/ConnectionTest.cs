@@ -28,12 +28,13 @@ namespace AMQP.Client.RabbitMQ.Tests
                     loggerBuilder.AddConsole();
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.OnConnectionClose((obj, args) =>
+                {
+                    _connectionCloseTcs.SetResult();
+                });
             });
             var connection = factory.CreateConnection();
-            connection.ConnectionClosed += (obj, args) =>
-            {
-                _connectionCloseTcs.SetResult();
-            };
+
             await connection.StartAsync();
                 
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Seconds));
@@ -59,12 +60,12 @@ namespace AMQP.Client.RabbitMQ.Tests
                     loggerBuilder.AddConsole();
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.OnConnectionClose((obj, args) =>
+                {
+                    _connectionCloseTcs.SetResult();
+                });
             });
             var connection = factory.CreateConnection();
-            connection.ConnectionClosed += (obj, args) =>
-            {
-                _connectionCloseTcs.SetResult();
-            };
             await connection.StartAsync();
             
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Seconds));
@@ -100,9 +101,10 @@ namespace AMQP.Client.RabbitMQ.Tests
             {
                 Assert.True(false);
             }
+            
             try
             {
-                await connection.StartAsync();
+                var test = await connection.StartAsync();
             }
             catch (ConnectionClosedException ex)
             {
@@ -112,9 +114,38 @@ namespace AMQP.Client.RabbitMQ.Tests
             {
                 Assert.True(false);
             }
-
             Assert.True(connection.Closed);
+        }
 
+        [Fact]
+        public async Task DoubleStartConnection()
+        {
+            var factory = RabbitMQConnectionFactory.Create(new DnsEndPoint(Host, 5672), builder =>
+            {
+                var loggerFactory = LoggerFactory.Create(loggerBuilder =>
+                {
+                    loggerBuilder.AddConsole();
+                });
+                builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
+                builder.OnConnectionClose((obj, args) =>
+                {
+                    _connectionCloseTcs.SetResult();
+                });
+            });
+            var connection = factory.CreateConnection();
+            await connection.StartAsync();
+            try
+            {
+                await connection.StartAsync();
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.True(true);
+            }
+            catch (Exception e)
+            {
+                Assert.True(false);
+            }
         }
     }
 }

@@ -11,6 +11,7 @@ namespace AMQP.Client.RabbitMQ
         internal ConnectionOptions Options;
         internal PipeScheduler PipeScheduler;
         internal ILogger Logger;
+        internal EventHandler<ConnectionCloseArgs> ClosedCallback;
         public RabbitMQConnectionFactoryBuilder(EndPoint endpoint)
         {
             Options = new ConnectionOptions(endpoint);
@@ -18,6 +19,7 @@ namespace AMQP.Client.RabbitMQ
         }
         public RabbitMQConnectionFactoryBuilder AddLogger(ILogger logger)
         {
+            Options.ConnectionTimeout = TimeSpan.FromSeconds(5);
             Logger = logger;
             return this;
         }
@@ -83,6 +85,12 @@ namespace AMQP.Client.RabbitMQ
         public RabbitMQConnectionFactoryBuilder ConnectionTimeout(TimeSpan timeout)
         {
             Options.ConnectionTimeout = timeout;
+            return this;
+        }
+
+        public RabbitMQConnectionFactoryBuilder OnConnectionClose(EventHandler<ConnectionCloseArgs> callback)
+        {
+            ClosedCallback = callback;
             return this;
         }
     }

@@ -14,7 +14,9 @@ namespace AMQP.Client.RabbitMQ
 
         public RabbitMQConnection CreateConnection()
         {
-            return new RabbitMQConnection(_builder);
+            var connection =  new RabbitMQConnection(_builder);
+            connection.ConnectionClosed += _builder.ClosedCallback;
+            return connection;
         }
 
         public static RabbitMQConnectionFactory Create(EndPoint endpoint, Action<RabbitMQConnectionFactoryBuilder> configure)

@@ -20,5 +20,9 @@ namespace AMQP.Client.RabbitMQ.Internal
         {
             throw new ConnectionClosedException(id);
         }
+        internal static void ThrowConnectionInProgress(Guid id)
+        {
+            throw new InvalidOperationException($"Connection {id} in progress");
+        }
     }
 }

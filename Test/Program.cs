@@ -93,7 +93,7 @@ namespace Test
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
                 builder.Heartbeat(30);
-                builder.ConnectionTimeout(TimeSpan.FromSeconds(15));
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
             });
 
             var connection = factory.CreateConnection();
@@ -128,7 +128,7 @@ namespace Test
                     loggerBuilder.SetMinimumLevel(LogLevel.Debug);
                 });
                 builder.AddLogger(loggerFactory.CreateLogger(string.Empty));
-                builder.ConnectionTimeout(TimeSpan.FromSeconds(15));
+                builder.ConnectionTimeout(TimeSpan.FromSeconds(30));
             });
 
             var connection = factory.CreateConnection();

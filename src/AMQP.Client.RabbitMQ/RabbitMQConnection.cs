@@ -56,8 +56,7 @@ namespace AMQP.Client.RabbitMQ
 
         public async ValueTask<bool> StartAsync()
         {
-
-            Closed = false;
+            ThrowIfConnectionClosed();
             _session = new RabbitMQSession(_builder, _channels, _connectionClosedSrc, _lockEvent);
             var isConnected = await _session.Connect().ConfigureAwait(false);
             if (!isConnected)
